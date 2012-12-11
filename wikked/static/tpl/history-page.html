@@ -1,0 +1,11 @@
+<nav>
+    <a href="{{url_read}}">Read</a>
+</nav>
+<article>
+    <h1><span class="small">History:</span> {{title}}</h1>
+    {{#each history}}
+    <div>
+        <p>{{index}} [{{rev_id}} {{rev_hash}}] : {{description}}</p>
+    </div>
+    {{/each}}
+</article>

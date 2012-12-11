@@ -1,0 +1,23 @@
+<nav>
+    <a href="{{url_read}}">Read</a>
+</nav>
+<article>
+    <h1><span class="small">Editing:</span> {{title}}</h1>
+    <form id="page-edit">
+        <div>
+            <textarea name="text">{{content}}</textarea>
+        </div>
+        <div>
+            <label for="author">Author: </label>
+            <input type="text" name="author"></input>
+        </div>
+        <div>
+            <label for="message">Message: </label>
+            <input type="text" name="message"></input>
+        </div>
+        <div>
+            <button type="submit">Save</button>
+            <a href="{{url_read}}">Cancel</a>
+        </div>
+    </form>
+</article>
