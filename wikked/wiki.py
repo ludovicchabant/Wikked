@@ -19,6 +19,7 @@ class PageFormattingContext(object):
         self.url = url
         self.ext = ext
         self.out_links = []
+        self.title = None
 
 
 class PageFormatter(object):
@@ -40,9 +41,18 @@ class PageFormatter(object):
         raise FormatterNotFound("No formatter mapped to file extension: " + extension)
 
     def _preProcessWikiSyntax(self, ctx, text):
-        return self._processWikiLinks(ctx, text)
+        text = self._processWikiMeta(ctx, text)
+        text = self._processWikiLinks(ctx, text)
+        return text
 
     def _postProcessWikiSyntax(self, ctx, text):
+        return text
+
+    def _processWikiMeta(self, ctx, text):
+        def repl1(m):
+            ctx.title = m.group(1)
+            return ''
+        text = re.sub(r'^\[\[title:\s*(.+)\]\]\s*$', repl1, text, flags=re.MULTILINE)
         return text
 
     def _processWikiLinks(self, ctx, text):
@@ -78,7 +88,7 @@ class Page(object):
     @property
     def title(self):
         self._ensureMeta()
-        return self._meta['name']
+        return self._meta['title']
 
     @property
     def raw_text(self):
@@ -127,6 +137,10 @@ class Page(object):
         ctx = PageFormattingContext(self.url, ext)
         f = PageFormatter(self.wiki)
         self._meta['formatted'] = f.formatText(ctx, self._meta['content'])
+
+        self._meta['title'] = re.sub(r'\-', ' ', self._meta['name'])
+        if ctx.title is not None:
+            self._meta['title'] = ctx.title
 
         self._meta['out_links'] = []
         for l in ctx.out_links:
