@@ -125,6 +125,7 @@ def api_site_history():
 
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
+    page = get_page_or_404(url)
     history = wiki.getPageHistory(url)
     hist_data = []
     for i, rev in enumerate(reversed(history)):
@@ -136,6 +137,6 @@ def api_page_history(url):
             'timestamp': rev.timestamp,
             'description': rev.description
             })
-    result = { 'url': url, 'history': hist_data }
+    result = { 'url': url, 'title': page.title, 'history': hist_data }
     return jsonify(result)
 
