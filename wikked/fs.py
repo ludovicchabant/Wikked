@@ -20,7 +20,7 @@ class FileSystem(object):
         self.root = root
         self.excluded = []
 
-    def getPageNames(self, subdir=None):
+    def getPageInfos(self, subdir=None):
         basepath = self.root
         if subdir is not None:
             basepath = self.getPhysicalNamespacePath(subdir)
@@ -29,9 +29,15 @@ class FileSystem(object):
             dirnames[:] = [d for d in dirnames if os.path.join(dirpath, d) not in self.excluded]
             for filename in filenames:
                 path = os.path.join(dirpath, filename)
-                path_split = os.path.splitext(os.path.relpath(path, self.root))
-                if path_split[1] != '':
-                    yield path_split[0]
+                rel_path = os.path.relpath(path, self.root)
+                rel_path_split = os.path.splitext(rel_path)
+                url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
+                yield {
+                        'url': url,
+                        'path': path,
+                        'name': rel_path_split[0],
+                        'ext': rel_path_split[1]
+                        }
 
     def getPage(self, url):
         path = self.getPhysicalPagePath(url)
@@ -46,6 +52,13 @@ class FileSystem(object):
                 'ext': name_split[1],
                 'content': content
                 }
+
+    def pageExists(self, url):
+        try:
+            self.getPhysicalPagePath(url)
+            return True
+        except PageNotFoundError:
+            return False
 
     def getPhysicalNamespacePath(self, url):
         return self._getPhysicalPath(url, False)

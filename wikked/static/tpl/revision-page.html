@@ -1,0 +1,18 @@
+<div class="wrapper">
+    <nav>
+        <div class="container_12">
+            <a href="{{url_read}}">Read</a>
+            <a href="{{url_hist}}">History</a>
+        </div>
+    </nav>
+    <article class="container_12">
+        <div class="page">
+            <h1>{{meta.title}} <span class="decorator">Revision <span class="rev_id">{{disp_rev}}</span></span></h1>
+            <pre><code>{{text}}</code></pre>
+        </div>
+    </article>
+    <div class="meta container_12">
+        <a href="{{url_inlinks}}">Pages Linking Here</a>
+        <!-- TODO: last modified, etc. -->
+    </div>
+</div>

@@ -1,23 +1,55 @@
-<nav>
-    <a href="{{url_read}}">Read</a>
-</nav>
-<article>
-    <h1><span class="small">Editing:</span> {{title}}</h1>
-    <form id="page-edit">
-        <div>
-            <textarea name="text">{{content}}</textarea>
+<div class="wrapper">
+    <nav>
+        <div class="container_12">
+            <a href="{{url_read}}">Read</a>
         </div>
-        <div>
-            <label for="author">Author: </label>
-            <input type="text" name="author"></input>
+    </nav>
+    <article class="container_12">
+        <div class="page grid_12 alpha omega">
+            <h1 class="grid_12 alpha"><span class="decorator">Editing:</span> {{meta.title}}</h1>
+            <form id="page-edit" class="page-edit grid_12 omega">
+                <div class="grid_12 alpha">
+                    <div id="wmd-button-bar"></div>
+                </div>
+                <div class="grid_12">
+                    <textarea id="wmd-input" name="text">{{content}}</textarea>
+                </div>
+                <div class="grid_12">
+                    <label for="author" class="grid_2 alpha">Author: </label>
+                    <input class="grid_3 suffix_9 omega" type="text" name="author"></input>
+                </div>
+                <div class="grid_12">
+                    <label for="message" class="grid_2 alpha">Message: </label>
+                    <input class="grid_3 suffix_9 omega" type="text" name="message"></input>
+                </div>
+                <div class="grid_12">
+                    <button type="submit">Save</button>
+                    <a href="{{url_read}}">Cancel</a>
+                </div>
+                <div class="grid_12 omega">
+                    <div id="wmd-preview" class="page-preview"></div>
+                </div>
+            </form>
         </div>
-        <div>
-            <label for="message">Message: </label>
-            <input type="text" name="message"></input>
-        </div>
-        <div>
-            <button type="submit">Save</button>
-            <a href="{{url_read}}">Cancel</a>
-        </div>
-    </form>
-</article>
+    </article>
+    <script type="text/javascript" src="/js/pagedown/Markdown.Converter.js"></script>
+    <script type="text/javascript" src="/js/pagedown/Markdown.Sanitizer.js"></script>
+    <script type="text/javascript" src="/js/pagedown/Markdown.Editor.js"></script>
+    <script type="text/javascript">
+        (function() {
+                var formatter = _.extend(this.Wikked.PageFormatter, {});
+                var converter = Markdown.getSanitizingConverter();
+                converter.hooks.chain("preConversion", function(text) {
+                    return formatter.formatText(text);
+                });
+                
+                //var help = function () { alert("Do you need help?"); }
+                //var options = {
+                //    helpButton: { handler: help },
+                //    strings: { quoteexample: "whatever you're quoting, put it right here" }
+                //};
+                var editor = new Markdown.Editor(converter); //TODO: pass options
+                editor.run();
+            })();
+    </script>
+</div>

@@ -1,0 +1,29 @@
+<div class="wrapper">
+    <nav class="container_12">
+        <div class="grid_12">
+            <a href="{{url_read}}">Read</a>
+            <a href="{{url_hist}}">History</a>
+        </div>
+    </nav>
+    <article class="container_12">
+        <div class="page grid_12">
+            <h1>
+                {{meta.title}}
+                <span class="decorator">Diff 
+                {{#if disp_rev2}}
+                <span class="rev_id">{{disp_rev1}}</span> to <span class="rev_id">{{disp_rev2}}</span>
+                {{else}}
+                change <span class="rev_id">{{disp_rev1}}</span>
+                {{/if}}
+                </span>
+            </h1>
+            <pre><code>{{{diff}}}</code></pre>
+        </div>
+    </article>
+    <div class="meta container_12">
+        <div class="grid_12">
+            <a href="{{url_inlinks}}">Pages Linking Here</a>
+            <!-- TODO: last modified, etc. -->
+        </div>
+    </div>
+</div>

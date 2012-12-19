@@ -26,6 +26,12 @@ class SourceControl(object):
     def getState(self, path):
         raise NotImplementedError()
 
+    def getRevision(self, path, rev):
+        raise NotImplementedError()
+
+    def diff(self, path, rev1, rev2):
+        raise NotImplementedError()
+
     def commit(self, paths, op_meta):
         raise NotImplementedError()
 
@@ -94,6 +100,17 @@ class MercurialSourceControl(SourceControl):
             if st_out[0] == 'M':
                 return STATE_MODIFIED
         return STATE_COMMITTED
+
+    def getRevision(self, path, rev):
+        cat_out = self._run('cat', '-r', rev, path)
+        return cat_out
+
+    def diff(self, path, rev1, rev2):
+        if rev2 is None:
+            diff_out = self._run('diff', '-c', rev1, '--git', path);
+        else:
+            diff_out = self._run('diff', '-r', rev1, '-r', rev2, '--git', path)
+        return diff_out
 
     def commit(self, paths, op_meta):
         if 'message' not in op_meta or not op_meta['message']:

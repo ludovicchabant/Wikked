@@ -4,6 +4,7 @@ Flask-Script==0.5.1
 Flask-WTF==0.8
 Jinja2==2.6
 Markdown==2.2.1
+Pygments==1.5
 WTForms==1.0.2
 Werkzeug==0.8.3
 argparse==1.2.1

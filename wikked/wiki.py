@@ -60,23 +60,26 @@ class PageFormatter(object):
 
         # [[display name|Whatever/PageName]]
         def repl1(m):
-            ctx.out_links.append(m.group(2))
-            return s._formatWikiLink(m.group(1), m.group(2))
+            return s._formatWikiLink(ctx, m.group(1), m.group(2))
         text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl1, text)
 
         # [[Namespace/PageName]]
         def repl2(m):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
-            ctx.out_links.append(url)
-            return s._formatWikiLink(b, url)
+            return s._formatWikiLink(ctx, b, url)
         text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl2, text)
 
         return text
 
-    def _formatWikiLink(self, display, url):
+    def _formatWikiLink(self, ctx, display, url):
         slug = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', url.lower())
-        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (slug, display)
+        ctx.out_links.append(slug)
+
+        css_class = 'wiki-link'
+        if not self.wiki.pageExists(slug):
+            css_class += ' missing'
+        return '<a class="%s" data-wiki-url="%s">%s</a>' % (css_class, slug, display)
 
 
 class Page(object):
@@ -110,7 +113,7 @@ class Page(object):
     @property
     def in_links(self):
         links = []
-        for other_url in self.wiki.getPageNames():
+        for other_url in self.wiki.getPageUrls():
             if other_url == self.url:
                 continue
             other_page = Page(self.wiki, other_url)
@@ -118,6 +121,31 @@ class Page(object):
                 if l == self.url:
                     links.append(other_url)
         return links
+
+    @property
+    def all_meta(self):
+        self._ensureMeta()
+        return {
+                'url': self._meta['url'],
+                'name': self._meta['name'],
+                'title': self._meta['title']
+                }
+
+    def getHistory(self):
+        self._ensureMeta()
+        return self.wiki.scm.getHistory(self._meta['path'])
+
+    def getState(self):
+        self._ensureMeta()
+        return self.wiki.scm.getState(self._meta['path'])
+
+    def getRevision(self, rev):
+        self._ensureMeta()
+        return self.wiki.scm.getRevision(self._meta['path'], rev)
+
+    def getDiff(self, rev1, rev2):
+        self._ensureMeta()
+        return self.wiki.scm.diff(self._meta['path'], rev1, rev2)
 
     def _ensureMeta(self):
         if self._meta is not None:
@@ -189,12 +217,16 @@ class Wiki(object):
     def root(self):
         return self.fs.root
 
-    def getPageNames(self, subdir=None):
-        return self.fs.getPageNames(subdir)
+    def getPageUrls(self, subdir=None):
+        for info in self.fs.getPageInfos(subdir):
+            yield info['url']
+
+    def getPages(self, subdir=None):
+        for url in self.getPageUrls(subdir):
+            yield Page(self, url)
 
     def getPage(self, url):
-        page = Page(self, url)
-        return page
+        return Page(self, url)
 
     def setPage(self, url, page_fields):
         if 'author' not in page_fields:
@@ -217,13 +249,8 @@ class Wiki(object):
                     }
             self.scm.commit([ path ], commit_meta)
 
-    def getPageHistory(self, url):
-        path = self.fs.getPhysicalPagePath(url)
-        return self.scm.getHistory(path)
-
-    def getPageState(self, url):
-        path = self.fs.getPhysicalPagePath(url)
-        return self.scm.getState(path)
+    def pageExists(self, url):
+        return self.fs.pageExists(url)
 
     def _passthrough(self, content):
         return content

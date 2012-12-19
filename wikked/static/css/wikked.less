@@ -1,0 +1,152 @@
+@import "../960gs/css/reset.css";
+@import "../960gs/css/text.css";
+@import "../960gs/css/960.css";
+@import "css/wmd.css";
+
+@baseFontSize: 18px;
+@baseLineHeight: (@baseFontSize * 1.5);
+@smallFontSize: 16px;
+
+@colorNavLink: rgb(128, 128, 128);
+@colorNavLinkHover: rgb(96, 96, 96);
+
+@colorBlueDark: #48577D;
+@colorBlueLight: #7690CF;
+@colorGrayLight: #D3DCF2;
+@colorGrayMedium: #9197A6;
+@colorGrayDark: #43464C;
+
+@colorCode: #523C37;
+
+@backgroundPage: white;
+
+.box-shadow(@style, @c) {
+  box-shadow:         @style @c;
+  -webkit-box-shadow: @style @c;
+  -moz-box-shadow:    @style @c;
+}
+
+
+body {
+    background: url('../img/gray_jean.png');
+    //background-image: url(http://basehold.it/i/27);
+    font-size: @baseFontSize;
+}
+
+p {
+    font-size: @baseFontSize;
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: @baseLineHeight;
+}
+h1 {
+    font-size: (@baseFontSize * 2);
+    line-height: (@baseLineHeight * 2);
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+h2 {
+    font-size: (@baseFontSize * 1.5);
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+h3 {
+    font-size: (@baseFontSize * 1.2);
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+h4 {
+    font-size: @baseFontSize;
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+h5 {
+    font-size: (@baseFontSize / 1.1);
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+h6 {
+    font-size: (@baseFontSize / 1.2);
+    line-height: @baseLineHeight;
+    margin-top: @baseLineHeight;
+    margin-bottom: 0;
+}
+sup, sub {
+    line-height: 0;
+}
+
+a.wiki-link {
+    color: #12f;
+    text-decoration: none;
+    &:link { color: #12f; }
+    &:visited { color: #12f; }
+    &:hover { color: #36f; }
+    &:active { color: #12f; }
+}
+a.wiki-link.missing {
+    color: #f12;
+}
+
+.decorator {
+    text-transform: lowercase;
+    font-weight: normal;
+    font-size: 0.8em;
+}
+
+.rev_id {
+    font-family: monospace;
+    font-size: 0.8em;
+    color: @colorCode;
+}
+
+.wrapper {
+    nav, div.meta {
+        color: @colorNavLink;
+        font-size: @smallFontSize;
+        line-height: (@baseLineHeight * 2);
+        a {
+            padding: 0 1em;
+            display: inline-block;
+            text-decoration: none;
+            color: @colorNavLink;
+            &:link { color: @colorNavLink; }
+            &:visited { color: @colorNavLink; }
+            &:hover { color: @colorNavLinkHover; }
+            &:active { color: @colorNavLink; }
+        }
+    }
+    article {
+        .page {
+            .box-shadow(0 0 10px, rgb(210, 210, 210));
+            padding: @baseLineHeight;
+            background: @backgroundPage;
+        }
+
+        .page>pre {
+            margin-top: @baseLineHeight;
+        }
+
+        form.page-edit {
+            textarea {
+                width: 90%;
+                height: 15em;
+                font-size: 1.15em;
+                font-family: "Lucida Console", Monaco, Consolas, "Courier New", monospace;
+            }
+            input {
+                margin: 0;
+                padding: 0;
+            }
+        }
+        .page-preview {
+        }
+        #wmd-button-bar li {
+            margin-left: 0;
+        }
+    }
+}
+
