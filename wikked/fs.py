@@ -29,8 +29,12 @@ class FileSystem(object):
             dirnames[:] = [d for d in dirnames if os.path.join(dirpath, d) not in self.excluded]
             for filename in filenames:
                 path = os.path.join(dirpath, filename)
+                if path in self.excluded:
+                    continue
                 rel_path = os.path.relpath(path, self.root)
                 rel_path_split = os.path.splitext(rel_path)
+                if rel_path_split[1] == '':
+                    continue
                 url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
                 yield {
                         'url': url,

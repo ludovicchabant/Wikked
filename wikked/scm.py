@@ -70,7 +70,8 @@ class MercurialSourceControl(SourceControl):
             self._run('commit', ignore_path, '-m', 'Created .hgignore.')
 
     def getSpecialDirs(self):
-        return [ os.path.join(self.root, '.hg') ]
+        specials = [ '.hg', '.hgignore', '.hgtags' ]
+        return [ os.path.join(self.root, d) for d in specials ]
 
     def getHistory(self, path):
         st_out = self._run('status', path)
