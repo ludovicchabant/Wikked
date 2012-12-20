@@ -6,16 +6,19 @@
     </nav>
     <article class="container_12">
         <div class="page grid_12">
-            <h1><span class="decorator">Linking To:</span> {{meta.title}}</h1>
+            <h1>{{meta.title}} <span class="decorator">Incoming Links</span></h1>
+            <p>The following pages link to <a href="{{url_read}}">{{meta.title}}</a>:</p>
+            <ul>
             {{#each in_links}}
-            <div>
-                {{#if missing}}
-                <p><a class="wiki-link missing" href="/#/edit/{{url}}">{{url}}</a></p>
-                {{else}}
-                <p><a class="wiki-link" href="/#/read/{{url}}">{{meta.title}}</a></p>
-                {{/if}}
-            </div>
+                <li>
+                    {{#if missing}}
+                    <a class="wiki-link missing" href="/#/edit/{{url}}">{{url}}</a>
+                    {{else}}
+                    <a class="wiki-link" href="/#/read/{{url}}">{{meta.title}}</a>
+                    {{/if}}
+                </li>
             {{/each}}
+            </ul>
         </div>
     </article>
 </div>
