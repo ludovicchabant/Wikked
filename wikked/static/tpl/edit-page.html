@@ -1,33 +1,43 @@
 <div class="wrapper">
-    <nav class="container_12">
+    <nav class="row">
         <div>
             <a href="{{url_read}}">Read</a>
         </div>
     </nav>
-    <article class="container_12">
-        <div class="page grid_12">
-            <h1 class="grid_12 alpha">{{meta.title}} <span class="decorator">Editing</span></h1>
-            <form id="page-edit" class="page-edit grid_12 omega">
-                <div class="grid_12 alpha">
+    <article class="row">
+        <div class="page span12">
+            <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
+            <form id="page-edit" class="page-edit row">
+                <div class="span12">
                     <div id="wmd-button-bar"></div>
                 </div>
-                <div class="grid_12">
-                    <textarea id="wmd-input" name="text">{{content}}</textarea>
+                <div class="span12">
+                    <div class="wmd-input-wrapper">
+                        <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                        <div class="wmd-input-grip"></div>
+                    </div>
                 </div>
-                <div class="grid_12">
-                    <label for="author" class="grid_2 alpha">Author: </label>
-                    <input class="grid_3 suffix_9 omega" type="text" name="author"></input>
+                <div class="span12">
+                    <div class="wmd-preview-wrapper">
+                        <h3><a class="btn"><i class="icon-minus"></i></a> Preview</h3>
+                        <div id="wmd-preview" class="wmd-preview"></div>
+                    </div>
                 </div>
-                <div class="grid_12">
-                    <label for="message" class="grid_2 alpha">Message: </label>
-                    <input class="grid_3 suffix_9 omega" type="text" name="message"></input>
+                <div class="span12">
+                        <div class="controls commit-meta">
+                            <div class="control-group input-prepend">
+                                <label for="author" class="control-label add-on">Author: </label>
+                                <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
+                            </div>
+                            <div class="control-group input-prepend">
+                                <label for="message" class="control-label add-on">Change Description: </label>
+                                <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
+                            </div>
+                        </div>
                 </div>
-                <div class="grid_12">
-                    <button type="submit">Save</button>
-                    <a href="{{url_read}}">Cancel</a>
-                </div>
-                <div class="grid_12 omega">
-                    <div id="wmd-preview" class="page-preview"></div>
+                <div class="span12">
+                    <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
+                    <a href="{{url_read}}" class="btn">Cancel</a>
                 </div>
             </form>
         </div>
@@ -38,7 +48,7 @@
     <script type="text/javascript">
         (function() {
                 var formatter = _.extend(this.Wikked.PageFormatter, {});
-                var converter = Markdown.getSanitizingConverter();
+                var converter = new Markdown.Converter();
                 converter.hooks.chain("preConversion", function(text) {
                     return formatter.formatText(text);
                 });
@@ -50,6 +60,35 @@
                 //};
                 var editor = new Markdown.Editor(converter); //TODO: pass options
                 editor.run();
+
+                var editor_control = $('textarea#wmd-input');
+                editor_control.outerWidth($('.wmd-input-wrapper').innerWidth());
+
+                var last_pageY;
+                $(".wmd-input-grip")
+                    .mousedown(function(e) {
+                            last_pageY = e.pageY;
+                            $('body')
+                                .on('mousemove.wikked.editor_resize', function(e) {
+                                        editor_control.height(editor_control.height() + e.pageY - last_pageY);
+                                        last_pageY = e.pageY;
+                                    })
+                                .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) { 
+                                        $('body').off('.wikked.editor_resize');
+                                    });
+                        });
+                $('.wmd-preview-wrapper>h3>a').on('click', function(e) {
+                        $('#wmd-preview').fadeToggle(function() {
+                                var icon = $('.wmd-preview-wrapper>h3>a i');
+                                if (icon.hasClass('icon-minus')) {
+                                    icon.removeClass('icon-minus');
+                                    icon.addClass('icon-plus');
+                                } else {
+                                    icon.removeClass('icon-plus');
+                                    icon.addClass('icon-minus');
+                                }
+                            });
+                    });
             })();
     </script>
 </div>

@@ -143,7 +143,17 @@ def api_get_incoming_links(url):
 @app.route('/api/edit/<path:url>', methods=['GET', 'PUT', 'POST'])
 def api_edit_page(url):
     if request.method == 'GET':
-        return api_read_page_raw(url)
+        page = get_page_or_404(url)
+        result = { 
+                'path': url, 
+                'meta': page.all_meta, 
+                'commit_meta': {
+                    'author': request.remote_addr,
+                    'desc': 'Editing ' + page.title
+                    },
+                'text': page.raw_text
+                }
+        return jsonify(result)
 
     if not 'text' in request.form:
         abort(400)

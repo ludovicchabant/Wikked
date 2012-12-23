@@ -74,14 +74,19 @@ var PageFormatter = Wikked.PageFormatter = {
     },
     formatText: function(text) {
         var $f = this;
-        text = text.replace(/\[\[([a-z]+)\:\s*(.+)\]\]\s*$/m, 
-            '<p class="preview-wiki-meta">$1 = $2</p>\n\n');
+        text = text.replace(/^\[\[([a-z]+)\:\s*(.+)\]\]\s*$/m, function(m, a, b) {
+            var p = "<p><span class=\"preview-wiki-meta\">\n";
+            p += "<span class=\"meta-name\">" + a + "</span>";
+            p += "<span class=\"meta-value\">" + b + "</span>\n";
+            p += "</span></p>\n\n";
+            return p;
+        });
         text = text.replace(/\[\[([^\|\]]+)\|([^\]]+)\]\]/g, function(m, a, b) {
-            url = $f.formatLink(b);
+            var url = $f.formatLink(b);
             return '[' + a + '](/#/read/' + url + ')';
         });
         text = text.replace(/\[\[([^\]]+\/)?([^\]]+)\]\]/g, function(m, a, b) {
-            url = $f.formatLink(a + b);
+            var url = $f.formatLink(a + b);
             return '[' + b + '](/#/read/' + url + ')';
         });
         return text;
@@ -259,8 +264,9 @@ $(function() {
                 },
                 error: function(model, xhr, options) {
                     TemplateLoader.get('404', function(src) {
-                        var template = _.template(src);
-                        $view.$el.html(template());
+                        var template_data = model.toJSON();
+                        var template = Handlebars.compile(src);
+                        $view.$el.html(template(template_data));
                     });
                 }
             });

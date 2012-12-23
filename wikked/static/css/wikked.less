@@ -1,38 +1,43 @@
-@import "../960gs/css/reset.css";
-@import "../960gs/css/text.css";
-@import "../960gs/css/960.css";
-@import "css/wmd.css";
+// Includes
+@import "../bootstrap/css/bootstrap.min.css";
+@import "../css/syntax.css";
+@import "../css/wmd.css";
 
+// Constants
 @baseFontSize: 18px;
 @baseLineHeight: (@baseFontSize * 1.5);
 @smallFontSize: 16px;
+@smallerFontSize: 12px;
 
 @colorNavLink: rgb(128, 128, 128);
 @colorNavLinkHover: rgb(96, 96, 96);
 
 @colorBlueDark: #48577D;
 @colorBlueLight: #7690CF;
-@colorGrayLight: #D3DCF2;
-@colorGrayMedium: #9197A6;
-@colorGrayDark: #43464C;
-
+@colorGrayBlueLight: #D3DCF2;
+@colorGrayBlueMedium: #9197A6;
+@colorGrayBlueDark: #43464C;
+@colorGrayLight: #EEE;
+@colorGrayMedium: #AAA;
+@colorGrayDark: #666;
 @colorCode: #523C37;
 
 @backgroundPage: white;
 
+// Macros
 .box-shadow(@style, @c) {
   box-shadow:         @style @c;
   -webkit-box-shadow: @style @c;
   -moz-box-shadow:    @style @c;
 }
 
-
+// Main tags
 body {
     background: url('../img/gray_jean.png');
     //background-image: url(http://basehold.it/i/27);
     font-size: @baseFontSize;
+    color: #333;
 }
-
 p {
     font-size: @baseFontSize;
     line-height: @baseLineHeight;
@@ -79,6 +84,7 @@ sup, sub {
     line-height: 0;
 }
 
+// Global classes
 a.wiki-link {
     color: #12f;
     text-decoration: none;
@@ -90,7 +96,6 @@ a.wiki-link {
 a.wiki-link.missing {
     color: #f12;
 }
-
 .decorator {
     text-transform: uppercase;
     font-weight: lighter;
@@ -98,7 +103,6 @@ a.wiki-link.missing {
     letter-spacing: 0.1em;
     color: @colorBlueDark;
 }
-
 .rev_id {
     font-family: monospace;
     font-size: 0.8em;
@@ -131,24 +135,66 @@ a.wiki-link.missing {
         .page>pre {
             margin-top: @baseLineHeight;
         }
-
-        form.page-edit {
-            textarea {
-                width: 90%;
-                height: 15em;
-                font-size: 1em;
-                font-family: "Lucida Console", Monaco, Consolas, "Courier New", monospace;
-            }
-            input {
-                margin: 0;
-                padding: 0;
-            }
-        }
-        .page-preview {
-        }
-        #wmd-button-bar li {
-            margin-left: 0;
-        }
+    }
+    div.meta {
+        font-size: @smallerFontSize;
     }
 }
 
+form.page-edit {
+    textarea {
+        height: 10em;
+        font-size: 1em;
+        font-family: "Lucida Console", Monaco, Consolas, "Courier New", monospace;
+        margin-bottom: 0;
+        border-radius: 0;
+    }
+}
+.wmd-input-wrapper {
+    padding: 1em 0;
+
+    .wmd-input-grip { 
+        background: @colorGrayLight;
+        border: 1px solid @colorGrayMedium;
+        border-width: 0 1px 1px 1px;
+        height: 12px;
+        cursor: ns-resize;
+    }
+}
+.wmd-preview-wrapper {
+    border: 1px dashed @colorGrayBlueMedium;
+    background: @colorGrayBlueLight;
+
+    h3 {
+        margin-left: 1em;
+        margin-right: 1em;
+        margin-bottom: 1em;
+    }
+    .wmd-preview {
+        margin: 1em;
+        background: none;
+    }
+}
+#wmd-button-bar li {
+    margin-left: 0;
+}
+.preview-wiki-meta {
+    .meta-name {
+        background: @colorBlueLight;
+        color: #fff;
+        padding: 0.2em 0.4em 0.2em 0.6em;
+        border-radius: 0.5em 0 0 0.5em;
+        font-variant: small-caps;
+        letter-spacing: 0.18em;
+    }
+    .meta-value {
+        background: @colorGrayBlueDark;
+        color: #fff;
+        padding: 0.2em 0.6em 0.2em 0.4em;
+        border-radius:  0 0.5em 0.5em 0;
+    }
+}
+.commit-meta {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
