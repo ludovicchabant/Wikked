@@ -7,5 +7,6 @@ Markdown==2.2.1
 Pygments==1.5
 WTForms==1.0.2
 Werkzeug==0.8.3
+Whoosh==2.4.1
 argparse==1.2.1
 wsgiref==0.1.2
