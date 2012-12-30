@@ -1,0 +1,11 @@
+<nav class="row">
+    <div class="span12">
+        {{#ifneq action to='read'}}<a href="{{url_read}}">Read</a>{{/ifneq}}
+        {{#ifneq action to='edit'}}<a href="{{url_edit}}">Edit</a>{{/ifneq}}
+        {{#ifneq action to='history'}}<a href="{{url_hist}}">History</a>{{/ifneq}}
+        <form id="search" class="search">
+            <input type="text" name="q" class="input-medium search-query" placeholder="Search...">
+            <button type="submit" class="btn">Search</button>
+        </form>
+    </div>
+</nav>

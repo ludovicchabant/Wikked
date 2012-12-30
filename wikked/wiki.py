@@ -8,6 +8,7 @@ import markdown
 from fs import FileSystem
 from cache import Cache
 from scm import MercurialSourceControl
+from indexer import WhooshWikiIndex
 
 
 class FormatterNotFound(Exception):
@@ -73,7 +74,7 @@ class PageFormatter(object):
         return text
 
     def _formatWikiLink(self, ctx, display, url):
-        slug = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', url.lower())
+        slug = Page.title_to_url(url)
         ctx.out_links.append(slug)
 
         css_class = 'wiki-link'
@@ -188,6 +189,10 @@ class Page(object):
             self.wiki.logger.debug("Updated cached %s for page '%s'." % (cache_key, self.url))
             self.wiki.cache.write(cache_key, data)
 
+    @staticmethod
+    def title_to_url(title):
+        return re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', title.lower())
+
 
 class Wiki(object):
     def __init__(self, root=None, logger=None):
@@ -202,16 +207,22 @@ class Wiki(object):
         self.fs = FileSystem(root)
         self.scm = MercurialSourceControl(root, self.logger)
         self.cache = None #Cache(os.path.join(root, '.cache'))
+        self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
 
         if self.cache is not None:
             self.fs.excluded.append(self.cache.cache_dir)
         if self.scm is not None:
             self.fs.excluded += self.scm.getSpecialDirs()
+        if self.index is not None:
+            self.fs.excluded.append(self.index.store_dir)
 
         self.formatters = {
                 markdown.markdown: [ 'md', 'mdown', 'markdown' ],
                 self._passthrough: [ 'txt', 'text', 'html' ]
                 }
+
+        if self.index is not None:
+            self.index.update(self.getPages())
 
     @property
     def root(self):
@@ -248,6 +259,9 @@ class Wiki(object):
                     'message': page_fields['message']
                     }
             self.scm.commit([ path ], commit_meta)
+
+        if self.index is not None:
+            self.index.update([ self.getPage(url) ])
 
     def pageExists(self, url):
         return self.fs.pageExists(url)

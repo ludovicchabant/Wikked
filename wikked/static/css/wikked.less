@@ -83,6 +83,9 @@ h6 {
 sup, sub {
     line-height: 0;
 }
+li {
+    line-height: @baseLineHeight;
+}
 
 // Global classes
 a.wiki-link {
@@ -99,17 +102,16 @@ a.wiki-link.missing {
 .decorator {
     text-transform: uppercase;
     font-weight: lighter;
-    font-size: 0.8em;
+    font-size: 0.7em;
     letter-spacing: 0.1em;
     color: @colorBlueDark;
-}
-.rev_id {
-    font-family: monospace;
-    font-size: 0.8em;
-    color: @colorCode;
+    .rev_id {
+        font-family: monospace;
+        color: @colorCode;
+    }
 }
 
-.wrapper {
+.container {
     nav, div.meta {
         color: @colorNavLink;
         font-size: @smallFontSize;
@@ -141,6 +143,10 @@ a.wiki-link.missing {
     }
 }
 
+form.search {
+    display: inline-block;
+    margin: 0;
+}
 form.page-edit {
     textarea {
         height: 10em;

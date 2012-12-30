@@ -35,6 +35,16 @@ def home():
     return render_template('index.html', cache_bust=('?%d' % time.time()))
 
 
+@app.route('/read/<path:url>')
+def read():
+    return render_template('index.html', cache_bust=('?%d' % time.time()))
+
+
+@app.route('/search')
+def search():
+    return render_template('index.html', cache_bust=('?%d' % time.time()))
+
+
 @app.route('/api/list')
 def api_list_all_pages():
     return list_pages(None)
@@ -84,7 +94,7 @@ def api_diff_page_revs(url, rev1, rev2):
         formatter = get_formatter_by_name('html')
         diff = highlight(diff, lexer, formatter)
     if rev2 is None:
-        meta = dict(page.all_meta, change=rev)
+        meta = dict(page.all_meta, change=rev1)
     else:
         meta = dict(page.all_meta, rev1=rev1, rev2=rev2)
     result = { 'path': url, 'meta': meta, 'diff': diff }
@@ -205,5 +215,12 @@ def api_page_history(url):
             'description': rev.description
             })
     result = { 'url': url, 'meta': page.all_meta, 'history': hist_data }
+    return jsonify(result)
+
+@app.route('/api/search')
+def api_search():
+    query = request.args.get('q')
+    hits = wiki.index.search(query)
+    result = { 'query': query, 'hits': hits }
     return jsonify(result)
 

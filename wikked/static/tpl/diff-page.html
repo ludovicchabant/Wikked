@@ -1,29 +1,15 @@
-<div class="wrapper">
-    <nav class="row">
-        <div class="span12">
-            <a href="{{url_read}}">Read</a>
-            <a href="{{url_hist}}">History</a>
-        </div>
-    </nav>
-    <article class="row">
-        <div class="page span12">
-            <h1>
-                {{meta.title}}
-                <span class="decorator">Diff 
-                {{#if disp_rev2}}
-                <span class="rev_id">{{disp_rev1}}</span> to <span class="rev_id">{{disp_rev2}}</span>
-                {{else}}
-                change <span class="rev_id">{{disp_rev1}}</span>
-                {{/if}}
-                </span>
-            </h1>
-            <pre><code>{{{diff}}}</code></pre>
-        </div>
-    </article>
-    <div class="row meta">
-        <div class="span12">
-            <a href="{{url_inlinks}}">Pages Linking Here</a>
-            <!-- TODO: last modified, etc. -->
-        </div>
+<article class="row">
+    <div class="page span12">
+        <h1>
+            {{meta.title}}
+            <span class="decorator">Diff:
+            {{#if disp_rev2}}
+            <span class="rev_id">{{disp_rev1}}</span> to <span class="rev_id">{{disp_rev2}}</span>
+            {{else}}
+            change <span class="rev_id">{{disp_rev1}}</span>
+            {{/if}}
+            </span>
+        </h1>
+        <pre><code>{{{diff}}}</code></pre>
     </div>
-</div>
+</article>

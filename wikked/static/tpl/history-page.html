@@ -1,43 +1,34 @@
-<div class="wrapper">
-    <nav class="row">
-        <div class="span12">
-            <a href="{{url_read}}">Read</a>
-        </div>
-    </nav>
-    <article class="row">
-        <div class="page span12">
-            <h1>{{meta.title}} <span class="decorator">History</span></h1>
-            <p>Here's the revision log for <a href="{{url_read}}">{{meta.title}}</a>.</p>
-            <form id="diff-page">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Rev.</th>
-                            <th>Date</th>
-                            <th>Author</th>
-                            <th>Comment</th>
-                            <th><button id="diff-revs" class="btn btn-primary">Show Diff.</button></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{#eachr history}}
-                        <tr>
-                            <td><a href="{{../url_rev}}/{{rev_hash}}">{{index}}</a></td>
-                            <td>{{timestamp}}</td>
-                            <td>{{author}}</td>
-                            <td>{{description}}</td>
-                            <td>
-                                <input type="radio" name="rev1" value="{{rev_hash}}" {{#ifeq @index to=0 }}checked="true" {{/ifeq}}/>
-                                <input type="radio" name="rev2" value="{{rev_hash}}" {{#ifeq @index to=1 }}checked="true" {{/ifeq}}/>
-                                <small><a href="{{../url_diffc}}/{{rev_hash}}">with previous</a></small>
-                            </td>
-                        </tr>
-                        {{/eachr}}
-                    </tbody>
-                </table>
-            </form>
-        </div>
-    </article>
-    <div class="row meta">
+<article class="row">
+    <div class="page span12">
+        <h1>{{meta.title}} <span class="decorator">History</span></h1>
+        <p>Here's the revision log for <a href="{{url_read}}">{{meta.title}}</a>.</p>
+        <form id="diff-page">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Rev.</th>
+                        <th>Date</th>
+                        <th>Author</th>
+                        <th>Comment</th>
+                        <th><button id="diff-revs" class="btn btn-primary">Show Diff.</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{#eachr history}}
+                    <tr>
+                        <td><a href="{{../url_rev}}/{{rev_hash}}">{{index}}</a></td>
+                        <td>{{timestamp}}</td>
+                        <td>{{author}}</td>
+                        <td>{{description}}</td>
+                        <td>
+                            <input type="radio" name="rev1" value="{{rev_hash}}" {{#ifeq @index to=0 }}checked="true" {{/ifeq}}/>
+                            <input type="radio" name="rev2" value="{{rev_hash}}" {{#ifeq @index to=1 }}checked="true" {{/ifeq}}/>
+                            <small><a href="{{../url_diffc}}/{{rev_hash}}">with previous</a></small>
+                        </td>
+                    </tr>
+                    {{/eachr}}
+                </tbody>
+            </table>
+        </form>
     </div>
-</div>
+</article>
