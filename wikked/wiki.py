@@ -4,11 +4,13 @@ import re
 import time
 import logging
 from itertools import chain
+from ConfigParser import SafeConfigParser
 import markdown
 from fs import FileSystem
 from cache import Cache
 from scm import MercurialSourceControl
 from indexer import WhooshWikiIndex
+from auth import UserManager
 
 
 class FormatterNotFound(Exception):
@@ -204,11 +206,18 @@ class Wiki(object):
             self.logger = logging.getLogger('wikked.wiki')
         self.logger.debug("Initializing wiki at: " + root)
 
+        self.config = SafeConfigParser()
+        config_path = os.path.join(root, '.wikirc')
+        if os.path.isfile(config_path):
+            self.config.read(config_path)
+
         self.fs = FileSystem(root)
         self.scm = MercurialSourceControl(root, self.logger)
         self.cache = None #Cache(os.path.join(root, '.cache'))
         self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
+        self.auth = UserManager(self.config, logger=self.logger)
 
+        self.fs.excluded.append(config_path)
         if self.cache is not None:
             self.fs.excluded.append(self.cache.cache_dir)
         if self.scm is not None:

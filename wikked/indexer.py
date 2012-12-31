@@ -25,16 +25,27 @@ class WhooshWikiIndex(WikiIndex):
         WikiIndex.__init__(self, store_dir, logger)
         if not os.path.isdir(store_dir):
             os.makedirs(store_dir)
-            schema = Schema(
-                    url=ID(stored=True), 
-                    title=TEXT(stored=True), 
-                    content=TEXT,
-                    path=STORED,
-                    time=STORED
-                    )
-            self.ix = create_in(store_dir, schema)
+            self.ix = create_in(store_dir, self._getSchema())
         else:
             self.ix = open_dir(store_dir)
+
+    def _getSchema(self):
+        schema = Schema(
+                url=ID(stored=True), 
+                title=TEXT(stored=True), 
+                content=TEXT,
+                path=STORED,
+                time=STORED
+                )
+        return schema
+    
+    def reset(self, pages):
+        self.ix = create_in(self.store_dir, schema=self._getSchema())
+        writer = self.ix.writer()
+        for page in pages:
+            page._ensureMeta()
+            self._indexPage(writer, page)
+        writer.commit()
 
     def update(self, pages):
         to_reindex = set()

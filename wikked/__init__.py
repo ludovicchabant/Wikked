@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, abort
 
 # Create the main app.
 app = Flask(__name__)
@@ -12,16 +12,21 @@ if app.config['DEBUG']:
       '/': os.path.join(os.path.dirname(__file__), 'static')
     })
 
-# Login extension.
-from flask.ext.login import LoginManager
-login_manager = LoginManager()
-login_manager.setup_app(app)
-
 # The main Wiki instance.
 from wiki import Wiki
 wiki = Wiki(logger=app.logger)
 
 # Import views and user loader.
 import wikked.views
-import wikked.auth
+
+# Login extension.
+from flask.ext.login import LoginManager
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.user_loader(wiki.auth.getUser)
+login_manager.unauthorized_handler(lambda: abort(401))
+
+# Bcrypt extension.
+from flaskext.bcrypt import Bcrypt
+app.bcrypt = Bcrypt(app)
 

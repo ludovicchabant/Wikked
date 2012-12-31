@@ -112,7 +112,7 @@ a.wiki-link.missing {
 }
 
 .container {
-    nav, div.meta {
+    nav, .meta {
         color: @colorNavLink;
         font-size: @smallFontSize;
         line-height: (@baseLineHeight * 2);
@@ -127,18 +127,16 @@ a.wiki-link.missing {
             &:active { color: @colorNavLink; }
         }
     }
-    article {
-        .page {
-            .box-shadow(0 0 10px, rgb(210, 210, 210));
-            padding: @baseLineHeight;
-            background: @backgroundPage;
-        }
-
-        .page>pre {
-            margin-top: @baseLineHeight;
-        }
+    .page {
+        .box-shadow(0 0 10px, rgb(210, 210, 210));
+        padding: @baseLineHeight;
+        background: @backgroundPage;
     }
-    div.meta {
+
+    .page>pre {
+        margin-top: @baseLineHeight;
+    }
+    .meta {
         font-size: @smallerFontSize;
     }
 }

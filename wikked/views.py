@@ -30,6 +30,15 @@ def get_page_or_404(url):
     abort(404)
 
 
+def make_auth_response(data):
+    if current_user.is_authenticated():
+        data['auth'] = { 
+                'username': current_user.username,
+                'is_admin': current_user.is_admin()
+                }
+    return jsonify(data)
+
+
 @app.route('/')
 def home():
     return render_template('index.html', cache_bust=('?%d' % time.time()))
@@ -54,21 +63,21 @@ def api_list_all_pages():
 def api_list_pages(url):
     page_metas = [page.all_meta for page in wiki.getPages(url)]
     result = { 'path': url, 'pages': list(page_metas) }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
     page = get_page_or_404(url)
     result = { 'path': url, 'meta': page.all_meta, 'text': page.formatted_text }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
     page = get_page_or_404(url)
     result = { 'path': url, 'meta': page.all_meta, 'text': page.raw_text }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/revision/<path:url>/<rev>')
@@ -77,7 +86,7 @@ def api_read_page_rev(url, rev):
     page_rev = page.getRevision(rev)
     meta = dict(page.all_meta, rev=rev)
     result = { 'path': url, 'meta': meta, 'text': page_rev }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/diff/<path:url>/<rev>')
@@ -98,7 +107,7 @@ def api_diff_page_revs(url, rev1, rev2):
     else:
         meta = dict(page.all_meta, rev1=rev1, rev2=rev2)
     result = { 'path': url, 'meta': meta, 'diff': diff }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/state/<path:url>')
@@ -111,7 +120,7 @@ def api_get_state(url):
         result = 'modified'
     elif state == scm.STATE_COMMITTED:
         result = 'committed'
-    return jsonify({ 'path': url, 'meta': page.all_meta, 'state': result })
+    return make_auth_response({ 'path': url, 'meta': page.all_meta, 'state': result })
 
 
 @app.route('/api/outlinks/<path:url>')
@@ -129,7 +138,7 @@ def api_get_outgoing_links(url):
             links.append({ 'url': link, 'missing': True })
 
     result = { 'path': url, 'meta': page.all_meta, 'out_links': links }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/inlinks/<path:url>')
@@ -147,7 +156,7 @@ def api_get_incoming_links(url):
             links.append({ 'url': link, 'missing': True })
 
     result = { 'path': url, 'meta': page.all_meta, 'in_links': links }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'PUT', 'POST'])
@@ -163,7 +172,7 @@ def api_edit_page(url):
                     },
                 'text': page.raw_text
                 }
-        return jsonify(result)
+        return make_auth_response(result)
 
     if not 'text' in request.form:
         abort(400)
@@ -182,7 +191,7 @@ def api_edit_page(url):
             }
     wiki.setPage(url, page_fields)
     result = { 'path': url, 'saved': 1 }
-    return jsonify(result)
+    return make_auth_response(result)
 
 
 @app.route('/api/rename/<path:url>', methods=['POST'])
@@ -215,12 +224,61 @@ def api_page_history(url):
             'description': rev.description
             })
     result = { 'url': url, 'meta': page.all_meta, 'history': hist_data }
-    return jsonify(result)
+    return make_auth_response(result)
+
 
 @app.route('/api/search')
 def api_search():
     query = request.args.get('q')
     hits = wiki.index.search(query)
     result = { 'query': query, 'hits': hits }
-    return jsonify(result)
+    return make_auth_response(result)
+
+
+@app.route('/api/admin/reindex', methods=['POST'])
+def api_admin_reindex():
+    if not current_user.is_authenticated() or not current_user.is_admin():
+        return login_manager.unauthorized()
+    wiki.index.reset(wiki.getPages())
+    result = { 'ok': 1 }
+    return make_auth_response(result)
+
+
+@app.route('/api/user/login', methods=['POST'])
+def api_user_login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    remember = request.form.get('remember')
+
+    user = wiki.auth.getUser(username)
+    if user is not None:
+        if app.bcrypt.check_password_hash(user.password, password):
+            login_user(user, remember=bool(remember))
+            result = { 'username': username, 'logged_in': 1 }
+            return make_auth_response(result)
+    abort(401)
+
+
+@app.route('/api/user/is_logged_in')
+def api_user_is_logged_in():
+    if current_user.is_authenticated():
+        result = { 'logged_in': True }
+        return make_auth_response(result)
+    abort(401)
+
+
+@app.route('/api/user/logout', methods=['POST'])
+def api_user_logout():
+    logout_user()
+    result = { 'ok': 1 }
+    return make_auth_response(result)
+
+
+@app.route('/api/user/info/<name>')
+def api_user_info(name):
+    user = wiki.auth.getUser(name)
+    if user is not None:
+        result = { 'username': user.username, 'groups': user.groups }
+        return make_auth_response(result)
+    abort(404)
 

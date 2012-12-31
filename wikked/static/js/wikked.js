@@ -18,12 +18,10 @@ var TemplateLoader = Wikked.TemplateLoader = {
     loadedTemplates: {},
     get: function(name, callback) {
         if (name in this.loadedTemplates) {
-            console.log('Returning cached template "{0}".'.format(name));
             callback(this.loadedTemplates[name]);
         } else {
             var $loader = this;
             url = '/tpl/' + name + '.html' + '?' + (new Date()).getTime();
-            console.log('Loading template "{0}" from: {1}'.format(name, url));
             $.get(url, function(data) {
                 $loader.loadedTemplates[name] = data;
                 callback(data);
@@ -118,7 +116,8 @@ $(function() {
         defaults: function() {
             return {
                 path: "main-page",
-                action: "read"
+                action: "read",
+                user: false
             };
         },
         initialize: function() {
@@ -126,6 +125,10 @@ $(function() {
                 model._onChangePath(path);
             });
             this._onChangePath(this.get('path'));
+            this.on('change:auth', function(model, auth) {
+                model._onChangeAuth(auth);
+            });
+            this._onChangeAuth(this.get('auth'));
             return this;
         },
         _onChangePath: function(path) {
@@ -134,6 +137,17 @@ $(function() {
             this.set('url_edit', '/#/edit/' + path);
             this.set('url_hist', '/#/changes/' + path);
             this.set('url_search', '/search');
+        },
+        _onChangeAuth: function(auth) {
+            if (auth) {
+                this.set('url_login', false);
+                this.set('url_logout', '/#/logout');
+                this.set('username', auth.username);
+            } else {
+                this.set('url_login', '/#/login');
+                this.set('url_logout', false);
+                this.set('username', false);
+            }
         }
     });
 
@@ -149,6 +163,18 @@ $(function() {
             } else {
                 this.get('url_extras').splice(index, 0, { name: name, url: url });
             }
+        }
+    });
+
+    var LoginModel = Backbone.Model.extend({
+        doLogin: function(form) {
+            $.post('/api/user/login', $(form).serialize())
+                .success(function() {
+                    app.navigate('/', { trigger: true });
+                })
+                .error(function() {
+                    alert("Error while logging in...");
+                });
         }
     });
 
@@ -201,6 +227,9 @@ $(function() {
             this.nav = new NavigationModel({ id: this.id });
             this.footer = new FooterModel();
             MasterPageModel.__super__.initialize.apply(this, arguments);
+            this.on('change:auth', function(model, auth) {
+                model._onChangeAuth(auth);
+            });
             if (this.action !== undefined) {
                 this.nav.set('action', this.action);
                 this.footer.set('action', this.action);
@@ -210,6 +239,9 @@ $(function() {
         _onChangePath: function(path) {
             MasterPageModel.__super__._onChangePath.apply(this, arguments);
             this.nav.set('path', path);
+        },
+        _onChangeAuth: function(auth) {
+            this.nav.set('auth', auth);
         }
     });
 
@@ -230,7 +262,17 @@ $(function() {
 
     var PageEditModel = MasterPageModel.extend({
         urlRoot: '/api/edit/',
-        action: 'edit'
+        action: 'edit',
+        doEdit: function(form) {
+            var path = this.get('path');
+            $.post('/api/edit/' + path, $(form).serialize())
+                .success(function(data) {
+                    app.navigate('/read/' + path, { trigger: true });
+                })
+                .error(function() {
+                    alert('Error saving page...');
+                });
+        }
     });
 
     var PageHistoryModel = MasterPageModel.extend({
@@ -410,6 +452,24 @@ $(function() {
         }
     });
 
+    var LoginView = PageView.extend({
+        templateName: 'login',
+        initialize: function() {
+            LoginView.__super__.initialize.apply(this, arguments);
+            this.render();
+            return this;
+        },
+        render: function() {
+            this.renderTemplate('login', function(view, model) {
+                this.$('form#login').submit(function() {
+                    model.doLogin(this);
+                    return false;
+                });
+            });
+            document.title = 'Login';
+        }
+    });
+
     var MasterPageView = PageView.extend({
         initialize: function() {
             MasterPageView.__super__.initialize.apply(this, arguments);
@@ -471,21 +531,12 @@ $(function() {
         renderCallback: function(view, model) {
             PageEditView.__super__.renderCallback.apply(this, arguments);
             this.$('#page-edit').submit(function() {
-                view._submitText(this, model.get('path'));
+                model.doEdit(this);
                 return false;
             });
         },
         titleFormat: function(title) {
             return 'Editing: ' + title;
-        },
-        _submitText: function(form, path) {
-            $.post('/api/edit/' + path, this.$(form).serialize())
-                .success(function(data) {
-                    app.navigate('/read/' + path, { trigger: true });
-                })
-                .error(function() {
-                    alert('Error saving page...');
-                });
         }
     });
 
@@ -546,7 +597,9 @@ $(function() {
             'revision/*path/:rev':  "readPageRevision",
             'diff/c/*path/:rev':    "showDiffWithPrevious",
             'diff/r/*path/:rev1/:rev2':"showDiff",
-            'search/:query':         "showSearchResults"
+            'search/:query':         "showSearchResults",
+            'login':                 "showLogin",
+            'logout':                "doLogout"
         },
         readPage: function(path) {
             var view = new PageReadView({ 
@@ -621,6 +674,22 @@ $(function() {
             });
             view.model.execute(query);
             this.navigate('/search/' + query);
+        },
+        showLogin: function() {
+            var view = new LoginView({
+                el: $('#app'),
+                model: new LoginModel()
+            });
+            this.navigate('/login');
+        },
+        doLogout: function() {
+            $.post('/api/user/logout')
+                .success(function(data) {
+                    app.navigate('/', { trigger: true });
+                })
+                .error(function() {
+                    alert("Error logging out!");
+                });
         },
         getQueryVariable: function(variable) {
             var query = window.location.search.substring(1);
