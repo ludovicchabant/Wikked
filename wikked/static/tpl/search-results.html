@@ -1,10 +1,20 @@
 <article class="row">
     <div class="page span12">
         <h1>Search Results</h1>
+        {{#if is_instant}}
+        <p><small>Press <code>Escape</code> to cancel.</small></p>
+        {{/if}}
+        {{#if hits}}
         <ul class="search-results">
             {{#each hits}}
-            <li><a href="/#/read/{{url}}">{{title}}</a></li>
+            <li>
+            <h3><a href="/#/read/{{url}}">{{title}}</a></h3>
+            <div class="highlighted"><pre><code>{{{content_highlights}}}</code></pre></div>
+            </li>
             {{/each}}
         </ul>
+        {{else}}
+        <p>No matches found.</p>
+        {{/if}}
     </div>
 </article>

@@ -64,6 +64,45 @@ define([
                 model.doSearch(this);
                 return false;
             });
+            var $view = this;
+            Util.TemplateLoader.get('search-results', function(src) {
+                var template = Handlebars.compile(src);
+                var origPageEl = $('#app .page');
+
+                $view.$('#search .search-query')
+                    .on('input', function() {
+                        var curPreviewEl = $('#app .page[class~="preview-search-results"]');
+
+                        // Restore the original content if the query is now
+                        // empty. Otherwise, run a search and render only the
+                        // `.page` portion of the results page.
+                        var query = $(this).val();
+                        if (query && query.length > 0) {
+                            model.doPreviewSearch(query, function(data) {
+                                data.is_instant = true;
+                                var resultList = $(template(data));
+                                var inner = $('.page', resultList)
+                                    .addClass('preview-search-results')
+                                    .detach();
+                                if (origPageEl.is(':visible')) {
+                                    inner.insertAfter(origPageEl);
+                                    origPageEl.hide();
+                                } else {
+                                    curPreviewEl.replaceWith(inner);
+                                }
+                            });
+                        } else {
+                            curPreviewEl.remove();
+                            origPageEl.show();
+                        }
+                    })
+                    .keyup(function(e) {
+                        if (e.keyCode == 27) {
+                            // Clear search on `Esc`.
+                            $(this).val('').trigger('input');
+                        }
+                    });
+            });
         }
     });
 

@@ -30,6 +30,21 @@ define([
             this._onChangeAuth(this.get('auth'));
             return this;
         },
+        doPreviewSearch: function(query, callback) {
+            if (this._isSearching) {
+                return;
+            }
+            this._isSearching = true;
+            var $model = this;
+            $.getJSON('/api/search', { q: query })
+                .success(function (data) {
+                    $model._isSearching = false;
+                    callback(data);
+                })
+                .error(function() {
+                    $model._isSearching = false;
+                });
+        },
         doSearch: function(form) {
             this.app.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
@@ -40,6 +55,7 @@ define([
             this.set('url_hist', '/#/changes/' + path);
             this.set('url_search', '/search');
         },
+        _isSearching: false,
         _onChangeAuth: function(auth) {
             if (auth) {
                 this.set('url_login', false);
