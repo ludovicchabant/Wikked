@@ -209,6 +209,16 @@ def api_site_history():
     pass
 
 
+@app.route('/api/special/orphans')
+def api_special_orphans():
+    orphans = []
+    for page in wiki.getPages():
+        if len(page.in_links) == 0:
+            orphans.append({ 'path': page.url, 'meta': page.all_meta })
+    result = { 'orphans': orphans }
+    return make_auth_response(result)
+
+
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
     page = get_page_or_404(url)

@@ -1,0 +1,18 @@
+<nav class="row">
+    <div class="span12">
+        <a href="/">Home</a>
+        {{#if show_root_link}}
+        <a href="/#/special">Special Pages</a>
+        {{/if}}
+        <form id="search" class="search">
+            <input type="text" name="q" class="input-medium search-query" placeholder="Search...">
+            <button type="submit" class="btn">Search</button>
+        </form>
+        {{#if username}}
+        <a href="{{url_profile}}">{{username}}</a>
+        <a href="{{url_logout}}">Logout</a>
+        {{else}}
+        <a href="{{url_login}}">Login</a>
+        {{/if}}
+    </div>
+</nav>

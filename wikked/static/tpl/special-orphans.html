@@ -1,0 +1,14 @@
+<article class="row">
+    <div class="page special span12">
+        <h1>Orphaned Pages</h1>
+        <p>The following pages are not linked to by any other page in the wiki.</p>
+        <p><span class="label label-info">Note</span> The main page can occasionally show up here but that's OK since it's the page visitors will see first anyway.</p>
+        {{#if orphans}}
+        {{#each orphans}}
+        <h3><a href="/#/read/{{meta.url}}">{{meta.title}}</a></h3>
+        {{/each}}
+        {{else}}
+        <p>No orphaned pages!</p>
+        {{/if}}
+    </div>
+</article>

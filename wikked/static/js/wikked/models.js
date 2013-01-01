@@ -10,7 +10,9 @@ define([
         ],
     function(require, $, _, Backbone, Handlebars) {
 
-    var NavigationModel = Backbone.Model.extend({
+    var exports = {};
+
+    var NavigationModel = exports.NavigationModel = Backbone.Model.extend({
         idAttribute: 'path',
         defaults: function() {
             return {
@@ -69,11 +71,17 @@ define([
         }
     });
 
-    var FooterModel = Backbone.Model.extend({
+    var FooterModel = exports.FooterModel = Backbone.Model.extend({
         defaults: function() {
             return {
-                url_extras: [ { name: 'Home', url: '/' } ]
+                url_extras: [
+                    { name: 'Home', url: '/' },
+                    { name: 'Special Pages', url: '/#/special' }
+                ]
             };
+        },
+        clearExtraUrls: function() {
+            this.get('url_extras').length = 0;
         },
         addExtraUrl: function(name, url, index) {
             if (index === undefined) {
@@ -84,7 +92,7 @@ define([
         }
     });
 
-    var LoginModel = Backbone.Model.extend({
+    var LoginModel = exports.LoginModel = Backbone.Model.extend({
         setApp: function(app) {
             this.app = app;
         },
@@ -100,7 +108,7 @@ define([
         }
     });
 
-    var PageModel = Backbone.Model.extend({
+    var PageModel = exports.PageModel = Backbone.Model.extend({
         idAttribute: 'path',
         defaults: function() {
             return {
@@ -146,11 +154,11 @@ define([
         }
     });
     
-    var PageStateModel = PageModel.extend({
+    var PageStateModel = exports.PageStateModel = PageModel.extend({
         urlRoot: '/api/state/'
     });
     
-    var MasterPageModel = PageModel.extend({
+    var MasterPageModel = exports.MasterPageModel = PageModel.extend({
         initialize: function() {
             this.nav = new NavigationModel({ id: this.id });
             this.footer = new FooterModel();
@@ -177,7 +185,7 @@ define([
         }
     });
 
-    var PageReadModel = MasterPageModel.extend({
+    var PageReadModel = exports.PageReadModel = MasterPageModel.extend({
         urlRoot: '/api/read/',
         action: 'read',
         _onChangePath: function(path) {
@@ -187,12 +195,12 @@ define([
         }
     });
 
-    var PageSourceModel = MasterPageModel.extend({
+    var PageSourceModel = exports.PageSourceModel = MasterPageModel.extend({
         urlRoot: '/api/raw/',
         action: 'source'
     });
 
-    var PageEditModel = MasterPageModel.extend({
+    var PageEditModel = exports.PageEditModel = MasterPageModel.extend({
         urlRoot: '/api/edit/',
         action: 'edit',
         doEdit: function(form) {
@@ -208,7 +216,7 @@ define([
         }
     });
 
-    var PageHistoryModel = MasterPageModel.extend({
+    var PageHistoryModel = exports.PageHistoryModel = MasterPageModel.extend({
         urlRoot: '/api/history/',
         action: 'history',
         doDiff: function(form) {
@@ -224,7 +232,7 @@ define([
         }
     });
 
-    var PageRevisionModel = MasterPageModel.extend({
+    var PageRevisionModel = exports.PageRevisionModel = MasterPageModel.extend({
         urlRoot: '/api/revision/',
         idAttribute: 'path_and_rev',
         action: 'revision',
@@ -254,7 +262,7 @@ define([
         }
     });
 
-    var PageDiffModel = MasterPageModel.extend({
+    var PageDiffModel = exports.PageDiffModel = MasterPageModel.extend({
         urlRoot: '/api/diff/',
         idAttribute: 'path_and_revs',
         action: 'diff',
@@ -295,12 +303,12 @@ define([
         }
     });
 
-    var IncomingLinksModel = MasterPageModel.extend({
+    var IncomingLinksModel = exports.IncomingLinksModel = MasterPageModel.extend({
         urlRoot: '/api/inlinks/',
         action: 'inlinks'
     });
 
-    var WikiSearchModel = MasterPageModel.extend({
+    var WikiSearchModel = exports.WikiSearchModel = MasterPageModel.extend({
         urlRoot: '/api/search/',
         action: 'search',
         title: function() {
@@ -318,18 +326,27 @@ define([
         }
     });
 
-    return {
-        NavigationModel: NavigationModel,
-        FooterModel: FooterModel,
-        PageReadModel: PageReadModel,
-        PageEditModel: PageEditModel,
-        PageHistoryModel: PageHistoryModel,
-        IncomingLinksModel: IncomingLinksModel,
-        PageRevisionModel: PageRevisionModel,
-        PageDiffModel: PageDiffModel,
-        WikiSearchModel: WikiSearchModel,
-        LoginModel: LoginModel,
-        PageStateModel: PageStateModel
-    };
+    var SpecialPagesModel = exports.SpecialPagesModel = MasterPageModel.extend({
+        action: 'special',
+        title: function() {
+            return 'Special Pages';
+        },
+        initialize: function() {
+            SpecialPagesModel.__super__.initialize.apply(this, arguments);
+            this.footer.clearExtraUrls();
+        }
+    });
+
+    var GenericSpecialPageModel = exports.GenericSpecialPageModel = MasterPageModel.extend({
+        action: 'special',
+        urlRoot: '/api/special',
+        idAttribute: 'page',
+        initialize: function() {
+            GenericSpecialPageModel.__super__.initialize.apply(this, arguments);
+            this.footer.clearExtraUrls();
+        }
+    });
+
+    return exports;
 });
 

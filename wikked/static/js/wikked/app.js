@@ -25,7 +25,9 @@ define([
             'diff/r/*path/:rev1/:rev2':"showDiff",
             'search/:query':         "showSearchResults",
             'login':                 "showLogin",
-            'logout':                "doLogout"
+            'logout':                "doLogout",
+            'special':               "showSpecialPages",
+            'special/:page':         "showSpecialPage"
         },
         readPage: function(path) {
             var view = new Views.PageReadView({ 
@@ -126,6 +128,23 @@ define([
                 .error(function() {
                     alert("Error logging out!");
                 });
+        },
+        showSpecialPages: function() {
+            var view = new Views.SpecialPagesView({
+                el: $('#app'),
+                model: new Models.SpecialPagesModel()
+            });
+            view.model.setApp(this);
+            this.navigate('/special');
+        },
+        showSpecialPage: function(page) {
+            var view = new Views.GenericSpecialPageView({
+                el: $('#app'),
+                model: new Models.GenericSpecialPageModel({ page: page })
+            });
+            view.model.setApp(this);
+            view.model.fetch();
+            this.navigate('/special/' + page);
         },
         getQueryVariable: function(variable) {
             var query = window.location.search.substring(1);

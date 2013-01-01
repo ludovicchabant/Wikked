@@ -11,18 +11,22 @@ define([
         ],
     function($, _, Backbone, Handlebars, Models, Util) {
 
-    var PageView = Backbone.View.extend({
+    var exports = {};
+
+    var PageView = exports.PageView = Backbone.View.extend({
         tagName: 'div',
         className: 'wrapper',
         initialize: function() {
             PageView.__super__.initialize.apply(this, arguments);
-            var $view = this;
-            this.model.on("change", function() { $view.render(); });
+            if (this.model !== undefined) {
+                var $view = this;
+                this.model.on("change", function() { $view.render(); });
+            }
             return this;
         },
         render: function(view) {
             if (this.templateName !== undefined) {
-                this.renderTemplate(this.templateName, this.renderCallback);
+                this.renderTemplate(_.result(this, 'templateName'), this.renderCallback);
             }
             this.renderTitle(this.titleFormat);
             return this;
@@ -47,7 +51,7 @@ define([
     });
     _.extend(PageView, Backbone.Events);
 
-    var NavigationView = PageView.extend({
+    var NavigationView = exports.NavigationView = PageView.extend({
         templateName: 'nav',
         initialize: function() {
             NavigationView.__super__.initialize.apply(this, arguments);
@@ -55,7 +59,7 @@ define([
             return this;
         },
         render: function() {
-            this.renderTemplate('nav');
+            this.renderTemplate(this.templateName);
         },
         postRender: function() {
             var model = this.model;
@@ -106,7 +110,7 @@ define([
         }
     });
 
-    var FooterView = PageView.extend({
+    var FooterView = exports.FooterView = PageView.extend({
         templateName:  'footer',
         initialize: function() {
             FooterView.__super__.initialize.apply(this, arguments);
@@ -120,7 +124,7 @@ define([
         }
     });
 
-    var LoginView = PageView.extend({
+    var LoginView = exports.LoginView = PageView.extend({
         templateName: 'login',
         initialize: function() {
             LoginView.__super__.initialize.apply(this, arguments);
@@ -139,11 +143,11 @@ define([
         }
     });
 
-    var MasterPageView = PageView.extend({
+    var MasterPageView = exports.MasterPageView = PageView.extend({
         initialize: function() {
             MasterPageView.__super__.initialize.apply(this, arguments);
-            this.nav = new NavigationView({ model: this.model.nav });
-            this.footer = new FooterView({ model: this.model.footer });
+            this.nav = this._createNavigation(this.model.nav);
+            this.footer = this._createFooter(this.model.footer);
             this.render();
             return this;
         },
@@ -152,10 +156,16 @@ define([
             this.nav.postRender();
             this.footer.$el.appendTo(this.$el);
             this.footer.postRender();
+        },
+        _createNavigation: function(model) {
+            return new NavigationView({ model: model });
+        },
+        _createFooter: function(model) {
+            return new FooterView({ model: model });
         }
     });
 
-    var PageReadView = MasterPageView.extend({
+    var PageReadView = exports.PageReadView = MasterPageView.extend({
         templateName: 'read-page',
         initialize: function() {
             PageReadView.__super__.initialize.apply(this, arguments);
@@ -195,7 +205,7 @@ define([
         }
     });
 
-    var PageEditView = MasterPageView.extend({
+    var PageEditView = exports.PageEditView = MasterPageView.extend({
         templateName: 'edit-page',
         renderCallback: function(view, model) {
             PageEditView.__super__.renderCallback.apply(this, arguments);
@@ -210,7 +220,7 @@ define([
         }
     });
 
-    var PageHistoryView = MasterPageView.extend({
+    var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({
         templateName: 'history-page',
         renderCallback: function(view, model) {
             PageHistoryView.__super__.renderCallback.apply(this, arguments);
@@ -225,40 +235,53 @@ define([
         }
     });
 
-    var PageRevisionView = MasterPageView.extend({
+    var PageRevisionView = exports.PageRevisionView = MasterPageView.extend({
         templateName: 'revision-page',
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev') + ']';
         }
     });
 
-    var PageDiffView = MasterPageView.extend({
+    var PageDiffView = exports.PageDiffView = MasterPageView.extend({
         templateName: 'diff-page',
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev1') + '-' + this.model.get('rev2') + ']';
         }
     });
 
-    var IncomingLinksView = MasterPageView.extend({
+    var IncomingLinksView = exports.IncomingLinksView = MasterPageView.extend({
         templateName: 'inlinks-page',
         titleFormat: function(title) {
             return 'Incoming Links: ' + title;
         }
     });
 
-    var WikiSearchView = MasterPageView.extend({
+    var WikiSearchView = exports.WikiSearchView = MasterPageView.extend({
         templateName: 'search-results'
     });
 
-    return {
-        PageReadView: PageReadView,
-        PageEditView: PageEditView,
-        PageHistoryView: PageHistoryView,
-        IncomingLinksView: IncomingLinksView,
-        PageRevisionView: PageRevisionView,
-        PageDiffView: PageDiffView,
-        WikiSearchView: WikiSearchView,
-        LoginView: LoginView
-    };
+    var SpecialNavigationView = exports.SpecialNavigationView = NavigationView.extend({
+        templateName: 'special-nav'
+    });
+
+    var SpecialPagesView = exports.SpecialPagesView = MasterPageView.extend({
+        templateName: 'special-pages',
+        _createNavigation: function(model) {
+            model.set('show_root_link', false);
+            return new SpecialNavigationView({ model: model });
+        }
+    });
+
+    var GenericSpecialPageView = exports.GenericSpecialPageView = MasterPageView.extend({
+        templateName: function() {
+            return 'special-' + this.model.get('page');
+        },
+        _createNavigation: function(model) {
+            model.set('show_root_link', true);
+            return new SpecialNavigationView({ model: model });
+        }
+    });
+
+    return exports;
 });
 
