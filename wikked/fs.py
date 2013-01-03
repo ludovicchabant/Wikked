@@ -31,17 +31,15 @@ class FileSystem(object):
                 path = os.path.join(dirpath, filename)
                 if path in self.excluded:
                     continue
-                rel_path = os.path.relpath(path, self.root)
-                rel_path_split = os.path.splitext(rel_path)
-                if rel_path_split[1] == '':
-                    continue
-                url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
-                yield {
-                        'url': url,
-                        'path': path,
-                        'name': rel_path_split[0],
-                        'ext': rel_path_split[1]
-                        }
+                page_info = self.getPageInfo(path)
+                if page_info is not None:
+                    yield page_info
+
+    def getPageInfo(self, path):
+        for e in self.excluded:
+            if path.startswith(e):
+                return None
+        return self._getPageInfo(path)
 
     def getPage(self, url):
         path = self.getPhysicalPagePath(url)
@@ -66,6 +64,19 @@ class FileSystem(object):
 
     def getPhysicalNamespacePath(self, url):
         return self._getPhysicalPath(url, False)
+
+    def _getPageInfo(self, path):
+            rel_path = os.path.relpath(path, self.root)
+            rel_path_split = os.path.splitext(rel_path)
+            if rel_path_split[1] == '':
+                return None
+            url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
+            return {
+                    'url': url,
+                    'path': path,
+                    'name': rel_path_split[0],
+                    'ext': rel_path_split[1]
+                    }
 
     def getPhysicalPagePath(self, url):
         return self._getPhysicalPath(url, True)
