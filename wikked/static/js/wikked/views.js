@@ -20,7 +20,7 @@ define([
             PageView.__super__.initialize.apply(this, arguments);
             if (this.model !== undefined) {
                 var $view = this;
-                this.model.on("change", function() { $view.render(); });
+                this.model.on("change", function() { $view._onModelChange(); });
             }
             return this;
         },
@@ -47,6 +47,9 @@ define([
                 title = formatter.call(this, title);
             }
             document.title = title;
+        },
+        _onModelChange: function() {
+            this.render();
         }
     });
     _.extend(PageView, Backbone.Events);
@@ -279,6 +282,31 @@ define([
         _createNavigation: function(model) {
             model.set('show_root_link', true);
             return new SpecialNavigationView({ model: model });
+        },
+        _onModelChange: function() {
+            var history = this.model.get('history');
+            for (var i = 0; i < history.length; ++i) {
+                var rev = history[i];
+                rev.changes = [];
+                for (var j = 0; j < rev.pages.length; ++j) {
+                    var page = rev.pages[j];
+                    switch (page.action) {
+                        case 'edit':
+                            rev.changes.push({ is_edit: true, url: page.url });
+                            break;
+                        case 'add':
+                            rev.changes.push({ is_add: true, url: page.url });
+                            break;
+                        case 'delete':
+                            rev.changes.push({ is_delete: true, url: page.url });
+                            break;
+                    }
+                    rev.pages[j] = page;
+                }
+                history[i] = rev;
+            }
+            this.model.set('history', history);
+            this.render();
         }
     });
 

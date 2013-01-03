@@ -30,6 +30,30 @@ def get_page_or_404(url):
     abort(404)
 
 
+def get_history_data(history):
+    hist_data = []
+    for i, rev in enumerate(reversed(history)):
+        rev_data = {
+            'index': i + 1,
+            'rev_id': rev.rev_id,
+            'rev_hash': rev.rev_hash,
+            'author': rev.author,
+            'timestamp': rev.timestamp,
+            'description': rev.description,
+            'pages': []
+            }
+        for f in rev.files:
+            f_info = wiki.fs.getPageInfo(f['path'])
+            if f_info is None:
+                continue
+            rev_data['pages'].append({
+                'url': f_info['url'],
+                'action': scm.ACTION_NAMES[f['action']]
+                })
+        hist_data.append(rev_data)
+    return hist_data
+
+
 def make_auth_response(data):
     if current_user.is_authenticated():
         data['auth'] = { 
@@ -80,8 +104,11 @@ def api_read_page_raw(url):
     return make_auth_response(result)
 
 
-@app.route('/api/revision/<path:url>/<rev>')
-def api_read_page_rev(url, rev):
+@app.route('/api/revision/<path:url>')
+def api_read_page_rev(url):
+    rev = request.args.get('rev')
+    if rev is None:
+        abort(400)
     page = get_page_or_404(url)
     page_rev = page.getRevision(rev)
     meta = dict(page.all_meta, rev=rev)
@@ -89,13 +116,12 @@ def api_read_page_rev(url, rev):
     return make_auth_response(result)
 
 
-@app.route('/api/diff/<path:url>/<rev>')
-def api_diff_page_change(url, rev):
-    return api_diff_page_revs(url, rev, None)
-
-
-@app.route('/api/diff/<path:url>/<rev1>/<rev2>')
-def api_diff_page_revs(url, rev1, rev2):
+@app.route('/api/diff/<path:url>')
+def api_diff_page(url):
+    rev1 = request.args.get('rev1')
+    rev2 = request.args.get('rev2')
+    if rev1 is None:
+        abort(400)
     page = get_page_or_404(url)
     diff = page.getDiff(rev1, rev2)
     if 'raw' not in request.args:
@@ -114,13 +140,11 @@ def api_diff_page_revs(url, rev1, rev2):
 def api_get_state(url):
     page = get_page_or_404(url)
     state = page.getState()
-    if state == scm.STATE_NEW:
-        result = 'new'
-    elif state == scm.STATE_MODIFIED:
-        result = 'modified'
-    elif state == scm.STATE_COMMITTED:
-        result = 'committed'
-    return make_auth_response({ 'path': url, 'meta': page.all_meta, 'state': result })
+    return make_auth_response({ 
+        'path': url, 
+        'meta': page.all_meta, 
+        'state': scm.STATE_NAMES[state] 
+        })
 
 
 @app.route('/api/outlinks/<path:url>')
@@ -204,12 +228,7 @@ def api_delete_page(url):
     pass
 
 
-@app.route('/api/history')
-def api_site_history():
-    pass
-
-
-@app.route('/api/special/orphans')
+@app.route('/api/orphans')
 def api_special_orphans():
     orphans = []
     for page in wiki.getPages():
@@ -219,20 +238,19 @@ def api_special_orphans():
     return make_auth_response(result)
 
 
+@app.route('/api/history')
+def api_site_history():
+    history = wiki.getHistory()
+    hist_data = get_history_data(history)
+    result = { 'history': hist_data }
+    return make_auth_response(result)
+
+
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
     page = get_page_or_404(url)
     history = page.getHistory()
-    hist_data = []
-    for i, rev in enumerate(reversed(history)):
-        hist_data.append({
-            'index': i + 1,
-            'rev_id': rev.rev_id,
-            'rev_hash': rev.rev_hash,
-            'author': rev.author,
-            'timestamp': rev.timestamp,
-            'description': rev.description
-            })
+    hist_data = get_history_data(history)
     result = { 'url': url, 'meta': page.all_meta, 'history': hist_data }
     return make_auth_response(result)
 

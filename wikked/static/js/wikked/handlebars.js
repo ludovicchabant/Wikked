@@ -44,5 +44,10 @@ define([
         }
         return options.inverse(this);
     });
+
+    Handlebars.registerHelper('date', function(timestamp) {
+        var date = new Date(timestamp * 1000);
+        return date.toDateString();
+    });
 });
 

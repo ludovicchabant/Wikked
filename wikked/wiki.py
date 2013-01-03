@@ -275,6 +275,9 @@ class Wiki(object):
     def pageExists(self, url):
         return self.fs.pageExists(url)
 
+    def getHistory(self):
+        return self.scm.getHistory();
+
     def _passthrough(self, content):
         return content
 

@@ -1,14 +1,15 @@
 <article class="row">
-    <div class="page span12">
-        <h1>{{meta.title}} <span class="decorator">History</span></h1>
-        <p>Here's the revision log for <a href="{{url_read}}">{{meta.title}}</a>.</p>
-        <form id="diff-page">
+    <div class="page special span12">
+        <h1>Wiki History</h1>
+        <p>Here are the recent changes on this wiki.</p>
+        <form>
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>Rev.</th>
                         <th>Date</th>
                         <th>Author</th>
+                        <th>Changes</th>
                         <th>Comment</th>
                         <th><button id="diff-revs" class="btn btn-primary">Show Diff.</button></th>
                     </tr>
@@ -16,15 +17,20 @@
                 <tbody>
                     {{#eachr history}}
                     <tr>
-                        <td><a href="{{../url_rev}}/{{rev_id}}">{{rev_id}}</a></td>
-                        <td>{{timestamp}}</td>
+                        <td>{{rev_id}}</td>
+                        <td>{{date timestamp}}</td>
                         <td>{{author}}</td>
-                        <td>{{description}}</td>
                         <td>
-                            <input type="radio" name="rev1" value="{{rev_id}}" {{#ifeq @index to=0 }}checked="true" {{/ifeq}}/>
-                            <input type="radio" name="rev2" value="{{rev_id}}" {{#ifeq @index to=1 }}checked="true" {{/ifeq}}/>
-                            <small><a href="{{../url_diffc}}/{{rev_id}}">with previous</a></small>
+                            {{#each changes}}
+                            <a href="/#/read/{{url}}">{{url}}</a> 
+                            {{#if is_edit}}(edit) {{/if}}
+                            {{#if is_add}}(added) {{/if}}
+                            {{#if is_delete}}(deleted) {{/if}}
+                            <br/>
+                            {{/each}}
                         </td>
+                        <td>{{description}}</td>
+                        <td></td>
                     </tr>
                     {{/eachr}}
                 </tbody>

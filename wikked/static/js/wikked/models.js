@@ -233,8 +233,6 @@ define([
     });
 
     var PageRevisionModel = exports.PageRevisionModel = MasterPageModel.extend({
-        urlRoot: '/api/revision/',
-        idAttribute: 'path_and_rev',
         action: 'revision',
         defaults: function() {
             return {
@@ -242,19 +240,18 @@ define([
                 rev: "tip"
             };
         },
+        url: function() {
+            return '/api/revision/' + this.get('path') + '?rev=' + this.get('rev');
+        },
         initialize: function() {
             PageRevisionModel.__super__.initialize.apply(this, arguments);
-            this.on('change:path', function(model, path) {
-                model._onChangePathOrRev(path, model.get('rev'));
-            });
             this.on('change:rev', function(model, rev) {
-                model._onChangePathOrRev(model.get('path'), rev);
+                model._onChangeRev(rev);
             });
-            this._onChangePathOrRev(this.get('path'), this.get('rev'));
+            this._onChangeRev(this.get('rev'));
             return this;
         },
-        _onChangePathOrRev: function(path, rev) {
-            this.set('path_and_rev', path + '/' + rev);
+        _onChangeRev: function(rev) {
             this.set('disp_rev', rev);
             if (rev.match(/[a-f0-9]{40}/)) {
                 this.set('disp_rev', rev.substring(0, 8));
@@ -263,8 +260,6 @@ define([
     });
 
     var PageDiffModel = exports.PageDiffModel = MasterPageModel.extend({
-        urlRoot: '/api/diff/',
-        idAttribute: 'path_and_revs',
         action: 'diff',
         defaults: function() {
             return {
@@ -273,29 +268,32 @@ define([
                 rev2: ""
             };
         },
+        url: function() {
+            var apiUrl = '/api/diff/' + this.get('path') + '?rev1=' + this.get('rev1');
+            if (this.get('rev2')) {
+                apiUrl += '&rev2=' + this.get('rev2');
+            }
+            return apiUrl;
+        },
         initialize: function() {
             PageDiffModel.__super__.initialize.apply(this, arguments);
-            this.on('change:path', function(model, path) {
-                model._onChangePathOrRevs(path, model.get('rev'));
-            });
             this.on('change:rev1', function(model, rev1) {
-                model._onChangePathOrRevs(model.get('path'), rev1, model.get('rev2'));
+                model._onChangeRev1(rev1);
             });
             this.on('change:rev2', function(model, rev2) {
-                model._onChangePathOrRevs(model.get('path'), model.get('rev1'), rev2);
+                model._onChangeRev2(rev2);
             });
-            this._onChangePathOrRevs(this.get('path'), this.get('rev1'), this.get('rev2'));
+            this._onChangeRev1(this.get('rev1'));
+            this._onChangeRev2(this.get('rev2'));
             return this;
         },
-        _onChangePathOrRevs: function(path, rev1, rev2) {
-            this.set('path_and_revs', path + '/' + rev1 + '/' + rev2);
-            if (!rev2) {
-                this.set('path_and_revs', path + '/' + rev1);
-            }
+        _onChangeRev1: function(rev1) {
             this.set('disp_rev1', rev1);
             if (rev1 !== undefined && rev1.match(/[a-f0-9]{40}/)) {
                 this.set('disp_rev1', rev1.substring(0, 8));
             }
+        },
+        _onChangeRev2: function(rev2) {
             this.set('disp_rev2', rev2);
             if (rev2 !== undefined && rev2.match(/[a-f0-9]{40}/)) {
                 this.set('disp_rev2', rev2.substring(0, 8));
@@ -339,11 +337,31 @@ define([
 
     var GenericSpecialPageModel = exports.GenericSpecialPageModel = MasterPageModel.extend({
         action: 'special',
-        urlRoot: '/api/special',
-        idAttribute: 'page',
         initialize: function() {
             GenericSpecialPageModel.__super__.initialize.apply(this, arguments);
             this.footer.clearExtraUrls();
+        },
+        titleMap: {
+            orphans: 'Orphaned Pages',
+            changes: 'Wiki History'
+        },
+        title: function() {
+            var key = this.get('page');
+            if (key in this.titleMap) {
+                return this.titleMap[key];
+            }
+            return 'Unknown';
+        },
+        urlMap: {
+            orphans: '/api/orphans',
+            changes: '/api/history'
+        },
+        url: function() {
+            var key = this.get('page');
+            if (key in this.urlMap) {
+                return this.urlMap[key];
+            }
+            return false;
         }
     });
 

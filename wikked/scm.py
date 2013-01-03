@@ -9,6 +9,13 @@ import subprocess
 STATE_COMMITTED = 0
 STATE_MODIFIED = 1
 STATE_NEW = 2
+STATE_NAMES = ['committed', 'modified', 'new']
+
+ACTION_ADD = 0
+ACTION_DELETE = 1
+ACTION_EDIT = 2
+ACTION_NAMES = ['add', 'delete', 'edit']
+
 
 class SourceControl(object):
     def __init__(self, root, logger=None):
@@ -20,7 +27,7 @@ class SourceControl(object):
     def getSpecialDirs(self):
         raise NotImplementedError()
 
-    def getHistory(self, path):
+    def getHistory(self, path=None):
         raise NotImplementedError()
 
     def getState(self, path):
@@ -39,12 +46,13 @@ class SourceControl(object):
         raise NotImplementedError()
 
 
-class PageRevision(object):
+class Revision(object):
     def __init__(self, rev_id=-1):
         self.rev_id = rev_id
         self.author = None
         self.timestamp = 0
         self.description = None
+        self.files = []
 
     @property
     def is_local(self):
@@ -69,28 +77,34 @@ class MercurialSourceControl(SourceControl):
             self._run('add', ignore_path)
             self._run('commit', ignore_path, '-m', 'Created .hgignore.')
 
+        self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
+        self.actions = {
+                'A': ACTION_ADD,
+                'R': ACTION_DELETE,
+                'M': ACTION_EDIT
+                }
+
     def getSpecialDirs(self):
         specials = [ '.hg', '.hgignore', '.hgtags' ]
         return [ os.path.join(self.root, d) for d in specials ]
 
-    def getHistory(self, path):
-        st_out = self._run('status', path)
-        if len(st_out) > 0 and st_out[0] == '?':
-            return [ PageRevision() ]
+    def getHistory(self, path=None):
+        if path is not None:
+            st_out = self._run('status', path)
+            if len(st_out) > 0 and st_out[0] == '?':
+                return [ Revision() ]
+
+        log_args = []
+        if path is not None:
+            log_args.append(path)
+        log_args += ['--style', self.log_style]
+        log_out = self._run('log', *log_args)
 
         revisions = []
-        log_out = self._run('log', path, '--template', '{rev} {node} [{author}] {date|localdate} {desc}\n')
-        for line in log_out.splitlines():
-            m = re.match(r'(\d+) ([0-9a-f]+) \[([^\]]+)\] ([^ ]+) (.*)', line)
-            if m is None:
-                raise Exception('Error parsing history from Mercurial, got: ' + line)
-            rev = PageRevision()
-            rev.rev_id = int(m.group(1))
-            rev.rev_hash = m.group(2)
-            rev.author = m.group(3)
-            rev.timestamp = float(m.group(4))
-            rev.description = m.group(5)
-            revisions.append(rev)
+        for group in log_out.split("$$$\n"):
+            if group == '':
+                continue
+            revisions.append(self._parseRevision(group))
         return revisions
 
     def getState(self, path):
@@ -129,7 +143,6 @@ class MercurialSourceControl(SourceControl):
         # Create a temp file with the commit message.
         f, temp = tempfile.mkstemp()
         with os.fdopen(f, 'w') as fd:
-            self.logger.debug("Saving message: " + op_meta['message'])
             fd.write(op_meta['message'])
 
         # Commit and clean up the temp file.
@@ -146,6 +159,35 @@ class MercurialSourceControl(SourceControl):
             self._run('revert', '-C', paths)
         else:
             self._run('revert', '-a', '-C')
+
+    def _parseRevision(self, group):
+        lines = group.split("\n")
+
+        m = re.match(r'(\d+) ([0-9a-f]+) \[([^\]]+)\] ([^ ]+)', lines[0])
+        if m is None:
+            raise Exception('Error parsing history from Mercurial, got: ' + lines[0])
+
+        rev = Revision()
+        rev.rev_id = int(m.group(1))
+        rev.rev_hash = m.group(2)
+        rev.author = m.group(3)
+        rev.timestamp = float(m.group(4))
+
+        i = 1
+        rev.description = ''
+        while lines[i] != '---':
+            if i > 1:
+                rev.description += "\n"
+            rev.description += lines[i]
+            i += 1
+
+        rev.files = []
+        for j in range(i + 1, len(lines)):
+            if lines[j] == '':
+                continue
+            rev.files.append({ 'path': lines[j][2:], 'action': self.actions[lines[j][0]] })
+
+        return rev
 
     def _run(self, cmd, *args, **kwargs):
         exe = [ self.hg ]
