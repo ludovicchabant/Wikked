@@ -9,7 +9,8 @@ require.config({
         jquery: 'jquery-1.8.3.min',
         underscore: 'underscore-min',
         backbone: 'backbone-min',
-        handlebars: 'handlebars-1.0.rc.1'
+        handlebars: 'handlebars-1.0.rc.1',
+        bootstrap: '/bootstrap/js/bootstrap.min'
     },
     shim: {
         'jquery': {
@@ -24,6 +25,9 @@ require.config({
         },
         'handlebars': {
             exports: 'Handlebars'
+        },
+        'bootstrap': {
+            deps: ['jquery']
         }
     }
 });
@@ -40,7 +44,8 @@ require([
         'wikked/app', 
         'wikked/handlebars', 
         'wikked/client', 
-        'backbone'
+        'backbone',
+        'bootstrap'
         ],
     function(app, hb, client, Backbone) {
 
