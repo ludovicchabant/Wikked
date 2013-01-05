@@ -182,7 +182,7 @@ define([
                             var template = Handlebars.compile(src);
                             var warning = $(template(model.toJSON()));
                             warning.css('display', 'none');
-                            warning.prependTo($('#app'));
+                            warning.prependTo($('#app .page'));
                             warning.slideDown();
                             $('.dismiss', warning).click(function() {
                                 warning.slideUp();
