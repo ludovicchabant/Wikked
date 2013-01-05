@@ -9,10 +9,13 @@ define(function() {
         },
         formatText: function(text) {
             var $f = this;
-            text = text.replace(/^\[\[([a-z]+)\:\s*(.+)\]\]\s*$/gm, function(m, a, b) {
+            text = text.replace(/^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+)\:\s*(.*)\]\]\s*$/gm, function(m, a, b, c) {
+                if (!c) {
+                    c = 'true';
+                }
                 var p = "<p><span class=\"preview-wiki-meta\">\n";
                 p += "<span class=\"meta-name\">" + a + "</span>";
-                p += "<span class=\"meta-value\">" + b + "</span>\n";
+                p += "<span class=\"meta-value\">" + c + "</span>\n";
                 p += "</span></p>\n\n";
                 return p;
             });

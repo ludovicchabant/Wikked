@@ -22,7 +22,11 @@ class PageFormattingContext(object):
         self.url = url
         self.ext = ext
         self.out_links = []
-        self.title = None
+        self.meta = {}
+
+    @property
+    def urldir(self):
+        return os.path.dirname(self.url)
 
 
 class PageFormatter(object):
@@ -53,9 +57,9 @@ class PageFormatter(object):
 
     def _processWikiMeta(self, ctx, text):
         def repl1(m):
-            ctx.title = m.group(1)
+            ctx.meta[str(m.group(1))] = str(m.group(3)) if m.group(3) is not None else True
             return ''
-        text = re.sub(r'^\[\[title:\s*(.+)\]\]\s*$', repl1, text, flags=re.MULTILINE)
+        text = re.sub(r'^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\]\]\s*$', repl1, text, flags=re.MULTILINE)
         return text
 
     def _processWikiLinks(self, ctx, text):
@@ -76,7 +80,7 @@ class PageFormatter(object):
         return text
 
     def _formatWikiLink(self, ctx, display, url):
-        slug = Page.title_to_url(url)
+        slug = Page.title_to_url(os.path.join(ctx.urldir, url))
         ctx.out_links.append(slug)
 
         css_class = 'wiki-link'
@@ -128,11 +132,16 @@ class Page(object):
     @property
     def all_meta(self):
         self._ensureMeta()
-        return {
+        meta = {
                 'url': self._meta['url'],
                 'name': self._meta['name'],
-                'title': self._meta['title']
+                'title': self._meta['title'],
+                'user': self._meta['user']
                 }
+        for name in self._promoted_meta:
+            if name in self._meta['user']:
+                meta[name] = self._meta['user']
+        return meta
 
     def getHistory(self):
         self._ensureMeta()
@@ -168,10 +177,12 @@ class Page(object):
         ctx = PageFormattingContext(self.url, ext)
         f = PageFormatter(self.wiki)
         self._meta['formatted'] = f.formatText(ctx, self._meta['content'])
+        self._meta['user'] = ctx.meta
 
         self._meta['title'] = re.sub(r'\-', ' ', self._meta['name'])
-        if ctx.title is not None:
-            self._meta['title'] = ctx.title
+        for name in self._promoted_meta:
+            if name in ctx.meta:
+                self._meta[name] = ctx.meta[name]
 
         self._meta['out_links'] = []
         for l in ctx.out_links:
@@ -190,6 +201,12 @@ class Page(object):
         if self.wiki.cache is not None:
             self.wiki.logger.debug("Updated cached %s for page '%s'." % (cache_key, self.url))
             self.wiki.cache.write(cache_key, data)
+
+    _promoted_meta = [
+            'title',
+            'redirect',
+            'notitle'
+            ]
 
     @staticmethod
     def title_to_url(title):

@@ -1,6 +1,8 @@
 <article class="row">
     <div class="page span12">
+        {{#ifnot meta.notitle}}
         <h1>{{meta.title}}</h1>
+        {{/ifnot}}
         {{content}}
     </div>
 </article>
