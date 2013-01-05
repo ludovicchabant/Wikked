@@ -140,7 +140,7 @@ class Page(object):
                 }
         for name in self._promoted_meta:
             if name in self._meta['user']:
-                meta[name] = self._meta['user']
+                meta[name] = self._meta['user'][name]
         return meta
 
     def getHistory(self):
