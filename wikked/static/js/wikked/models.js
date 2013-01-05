@@ -188,6 +188,22 @@ define([
     var PageReadModel = exports.PageReadModel = MasterPageModel.extend({
         urlRoot: '/api/read/',
         action: 'read',
+        initialize: function() {
+            PageReadModel.__super__.initialize.apply(this, arguments);
+            this.on('change', this._onChange, this);
+        },
+        _onChange: function() {
+            if (this.getMeta('redirect') && !this.get('no_redirect')) {
+                var oldPath = this.get('path');
+                this.set('path', this.getMeta('redirect'));
+                this.fetch({
+                    success: function(model) {
+                        model.set('redirected_from', oldPath);
+                    }
+                });
+                this.app.navigate('/read/' + this.getMeta('redirect'), { replace: true });
+            }
+        },
         _onChangePath: function(path) {
             PageReadModel.__super__._onChangePath.apply(this, arguments);
             this.footer.addExtraUrl('Pages Linking Here', '/#/inlinks/' + path, 1);

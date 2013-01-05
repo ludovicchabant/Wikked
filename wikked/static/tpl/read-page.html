@@ -3,6 +3,12 @@
         {{#ifnot meta.notitle}}
         <h1>{{meta.title}}</h1>
         {{/ifnot}}
+        {{#if redirected_from}}
+        <small>Redirected from <a href="/#/read/{{redirected_from}}?no_redirect">{{redirected_from}}</a></small>
+        {{/if}}
+        {{#if meta.redirect}}
+        <small>Redirects to <a href="/#/read/{{meta.redirect}}">{{meta.redirect}}</a></small>
+        {{/if}}
         {{content}}
     </div>
 </article>

@@ -30,10 +30,15 @@ define([
             'special/:page':         "showSpecialPage"
         },
         readPage: function(path) {
+            path_clean = this.stripQuery(path);
+            no_redirect = this.getQueryVariable('no_redirect', path);
             var view = new Views.PageReadView({ 
                 el: $('#app'), 
-                model: new Models.PageReadModel({ path: path })
+                model: new Models.PageReadModel({ path: path_clean })
             });
+            if (no_redirect) {
+                view.model.set('no_redirect', true);
+            }
             view.model.setApp(this);
             view.model.fetch();
             this.navigate('/read/' + path);
@@ -146,13 +151,30 @@ define([
             view.model.fetch();
             this.navigate('/special/' + page);
         },
-        getQueryVariable: function(variable) {
-            var query = window.location.search.substring(1);
-            var vars = query.split("&");
+        stripQuery: function(url) {
+            q = url.indexOf("?");
+            if (q < 0)
+                return url;
+            return url.substring(0, q);
+        },
+        getQueryVariable: function(variable, url) {
+            if (url === undefined) {
+                url = window.location.search.substring(1);
+            } else {
+                q = url.indexOf("?");
+                if (q < 0)
+                    return false;
+                url = url.substring(q + 1);
+            }
+            var vars = url.split("&");
             for (var i = 0; i < vars.length; i++) {
                 var pair = vars[i].split("=");
                 if (pair[0] == variable) {
-                    return unescape(pair[1]);
+                    if (pair.length > 1) {
+                        return unescape(pair[1]);
+                    } else {
+                        return true;
+                    }
                 }
             }
             return false;

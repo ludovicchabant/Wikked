@@ -95,6 +95,15 @@ class Page(object):
         self.url = url
         self._meta = None
 
+        self._promoted_meta = [
+                'title',
+                'redirect',
+                'notitle'
+                ]
+        self._coerce_promoted_meta = {
+                'redirect': Page.title_to_url
+                }
+
     @property
     def title(self):
         self._ensureMeta()
@@ -141,6 +150,8 @@ class Page(object):
         for name in self._promoted_meta:
             if name in self._meta['user']:
                 meta[name] = self._meta['user'][name]
+                if name in self._coerce_promoted_meta:
+                    meta[name] = self._coerce_promoted_meta[name](meta[name])
         return meta
 
     def getHistory(self):
@@ -201,12 +212,6 @@ class Page(object):
         if self.wiki.cache is not None:
             self.wiki.logger.debug("Updated cached %s for page '%s'." % (cache_key, self.url))
             self.wiki.cache.write(cache_key, data)
-
-    _promoted_meta = [
-            'title',
-            'redirect',
-            'notitle'
-            ]
 
     @staticmethod
     def title_to_url(title):
