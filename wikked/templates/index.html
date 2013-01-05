@@ -9,6 +9,12 @@
     <body>
         <div id="app" class="container">
         </div>
-        <script data-main="/js/wikked.js" src="/js/require.js{{cache_bust}}"></script>
+        <script type="text/javascript">
+            var require = {
+                baseUrl: "/js/",
+                deps: ["/js/wikked.js{{cache_bust}}"]
+            };
+        </script>
+        <script src="/js/require.js{{cache_bust}}"></script>
     </body>
 </html>
