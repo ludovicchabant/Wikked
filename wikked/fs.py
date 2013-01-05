@@ -2,6 +2,7 @@ import os
 import os.path
 import re
 import string
+import codecs
 
 
 class PageNotFoundError(Exception):
@@ -19,6 +20,7 @@ class FileSystem(object):
     def __init__(self, root):
         self.root = root
         self.excluded = []
+        self.page_extensions = None
 
     def getPageInfos(self, subdir=None):
         basepath = self.root
@@ -43,7 +45,7 @@ class FileSystem(object):
 
     def getPage(self, url):
         path = self.getPhysicalPagePath(url)
-        with open(path, 'r') as f:
+        with codecs.open(path, 'r', encoding='utf-8') as f:
             content = f.read()
         name = os.path.basename(path)
         name_split = os.path.splitext(name)
@@ -68,7 +70,7 @@ class FileSystem(object):
     def _getPageInfo(self, path):
             rel_path = os.path.relpath(path, self.root)
             rel_path_split = os.path.splitext(rel_path)
-            if rel_path_split[1] == '':
+            if self.page_extensions is not None and rel_path_split[1] not in self.page_extensions:
                 return None
             url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
             return {

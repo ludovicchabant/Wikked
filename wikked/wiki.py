@@ -3,7 +3,7 @@ import os.path
 import re
 import time
 import logging
-from itertools import chain
+import itertools
 from ConfigParser import SafeConfigParser
 import markdown
 from fs import FileSystem
@@ -229,6 +229,7 @@ class Wiki(object):
                 markdown.markdown: [ 'md', 'mdown', 'markdown' ],
                 self._passthrough: [ 'txt', 'text', 'html' ]
                 }
+        self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
 
         if self.index is not None:
             self.index.update(self.getPages())
