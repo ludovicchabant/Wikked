@@ -45,6 +45,19 @@ define([
         return options.inverse(this);
     });
 
+    /**
+     * Inverse if.
+     */
+    Handlebars.registerHelper('ifnot', function(context, options) {
+        if (!context) {
+            return options.fn(this);
+        }
+        return options.inverse(this);
+    });
+
+    /**
+     * Format dates.
+     */
     Handlebars.registerHelper('date', function(timestamp) {
         var date = new Date(timestamp * 1000);
         return date.toDateString();
