@@ -35,6 +35,14 @@ def reset_index():
     wiki.index.reset(wiki.getPages())
 
 
+@manager.command
+def list():
+    """ Lists page names in the wiki.
+    """
+    for url in wiki.getPageUrls():
+        print url
+
+
 if __name__ == "__main__":
     manager.run()
 
