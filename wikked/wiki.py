@@ -61,13 +61,20 @@ class PageFormatter(object):
         return text
 
     def _processWikiMeta(self, ctx, text):
-        def repl1(m):
-            if m.group(3) is not None and len(str(m.group(3))) > 0:
-                ctx.meta[str(m.group(1))] = str(m.group(3))
+        def repl(m):
+            meta_name = str(m.group(1))
+            meta_value = str(m.group(3))
+            if meta_value is not None and len(meta_value) > 0:
+                ctx.meta[meta_name] = meta_value
             else:
-                ctx.meta[str(m.group(1))] = True
+                ctx.meta[meta_name] = True
+            if meta_name == 'include':
+                # TODO: handle self-includes or cyclic includes.
+                included_page = self.wiki.getPage(meta_value)
+                return included_page.formatted_text
             return ''
-        text = re.sub(r'^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\]\]\s*$', repl1, text, flags=re.MULTILINE)
+
+        text = re.sub(r'^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\]\]\s*$', repl, text, flags=re.MULTILINE)
         return text
 
     def _processWikiLinks(self, ctx, text):
@@ -263,8 +270,10 @@ class Wiki(object):
             raise InitializationError("No such source control: " + scm_type)
 
         if (not self.config.has_option('wiki', 'cache') or
-                self.config.get('wiki', 'cache')):
+                self.config.getboolean('wiki', 'cache')):
             self.cache = Cache(os.path.join(root, '.cache'))
+        else:
+            self.cache = None
 
         self.fs.excluded.append(config_path)
         if self.scm is not None:
