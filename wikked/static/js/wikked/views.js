@@ -219,7 +219,14 @@ define([
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
-        defaultTemplateName: 'edit-page',
+        templateName: function() {
+            switch (this.model.get('error_code')) {
+                case 401:
+                    return 'error-unauthorized-edit';
+                default:
+                    return 'edit-page';
+            }
+        },
         renderCallback: function(view, model) {
             PageEditView.__super__.renderCallback.apply(this, arguments);
             this.$('#page-edit').submit(function(e) {

@@ -1,4 +1,5 @@
 import time
+import os.path
 from flask import (
         Response, 
         render_template, url_for, redirect, abort, request, flash,
@@ -9,6 +10,7 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
 from wikked import app, wiki
+from wikked.wiki import Page
 from auth import User
 from forms import RegistrationForm, EditPageForm
 from fs import PageNotFoundError
@@ -208,15 +210,29 @@ def api_get_incoming_links(url):
 @app.route('/api/edit/<path:url>', methods=['GET', 'PUT', 'POST'])
 def api_edit_page(url):
     if request.method == 'GET':
-        page = get_page_or_404(url, CHECK_FOR_WRITE)
-        result = { 
-                'path': url, 
-                'meta': page.all_meta, 
-                'commit_meta': {
-                    'author': request.remote_addr,
-                    'desc': 'Editing ' + page.title
-                    },
-                'text': page.raw_text
+        page = get_page_or_none(url)
+        if page is None:
+            result = {
+                    'path': url,
+                    'meta': {
+                        'url': url,
+                        'name': os.path.basename(url),
+                        'title': Page.url_to_title(url),
+                        'user': {}
+                        },
+                    'text': ''
+                    }
+        else:
+            if not is_page_writable(page):
+                abort(401)
+            result = { 
+                    'path': url, 
+                    'meta': page.all_meta, 
+                    'text': page.raw_text
+                    }
+        result['commit_meta'] = {
+                'author': request.remote_addr,
+                'desc': 'Editing ' + result['meta']['title']
                 }
         return make_auth_response(result)
 

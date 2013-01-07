@@ -224,6 +224,12 @@ class Page(object):
         # Now replace spaces and punctuation with a hyphen.
         return re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', ansi_title.lower())
 
+    @staticmethod
+    def url_to_title(url):
+        def upperChar(m):
+            return m.group(0).upper()
+        return re.sub(r'^.|\s\S', upperChar, url.lower().replace('-', ' '))
+
 
 class Wiki(object):
     def __init__(self, root=None, logger=None):
