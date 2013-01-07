@@ -24,6 +24,9 @@ class SourceControl(object):
         if logger is None:
             self.logger = logging.getLogger('wikked.scm')
 
+    def initRepo(self):
+        raise NotImplementedError()
+
     def getSpecialDirs(self):
         raise NotImplementedError()
 
@@ -66,23 +69,29 @@ class Revision(object):
 class MercurialSourceControl(SourceControl):
     def __init__(self, root, logger=None):
         SourceControl.__init__(self, root, logger)
+
         self.hg = 'hg'
-        if not os.path.isdir(os.path.join(root, '.hg')):
-            self._run('init', root, norepo=True)
-
-        ignore_path = os.path.join(root, '.hgignore')
-        if not os.path.isfile(ignore_path):
-            with open(ignore_path, 'w') as f:
-                f.write('.cache')
-            self._run('add', ignore_path)
-            self._run('commit', ignore_path, '-m', 'Created .hgignore.')
-
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
         self.actions = {
                 'A': ACTION_ADD,
                 'R': ACTION_DELETE,
                 'M': ACTION_EDIT
                 }
+
+    def initRepo(self):
+        # Make a Mercurial repo if there's none.
+        if not os.path.isdir(os.path.join(self.root, '.hg')):
+            self.logger.info("Creating Mercurial repository at: " + self.root)
+            self._run('init', self.root, norepo=True)
+
+        # Create a `.hgignore` file is there's none.
+        ignore_path = os.path.join(self.root, '.hgignore')
+        if not os.path.isfile(ignore_path):
+            self.logger.info("Creating `.hgignore` file.")
+            with open(ignore_path, 'w') as f:
+                f.write('.cache')
+            self._run('add', ignore_path)
+            self._run('commit', ignore_path, '-m', 'Created .hgignore.')
 
     def getSpecialDirs(self):
         specials = [ '.hg', '.hgignore', '.hgtags' ]

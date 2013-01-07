@@ -14,6 +14,9 @@ class WikiIndex(object):
         if logger is None:
             self.logger = logging.getLogger('wikked.index')
 
+    def open(self):
+        raise NotImplementedError()
+
     def update(self, pages):
         raise NotImplementedError()
 
@@ -24,11 +27,13 @@ class WikiIndex(object):
 class WhooshWikiIndex(WikiIndex):
     def __init__(self, store_dir, logger=None):
         WikiIndex.__init__(self, store_dir, logger)
-        if not os.path.isdir(store_dir):
-            os.makedirs(store_dir)
-            self.ix = create_in(store_dir, self._getSchema())
+
+    def open(self):
+        if not os.path.isdir(self.store_dir):
+            os.makedirs(self.store_dir)
+            self.ix = create_in(self.store_dir, self._getSchema())
         else:
-            self.ix = open_dir(store_dir)
+            self.ix = open_dir(self.store_dir)
 
     def _getSchema(self):
         schema = Schema(

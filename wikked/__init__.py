@@ -15,6 +15,7 @@ if app.config['DEBUG']:
 # The main Wiki instance.
 from wiki import Wiki
 wiki = Wiki(root=app.config.get('WIKI_ROOT'), logger=app.logger)
+wiki.start()
 
 # Import views and user loader.
 import wikked.views

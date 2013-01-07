@@ -14,6 +14,10 @@ from indexer import WhooshWikiIndex
 from auth import UserManager
 
 
+class InitializationError(Exception):
+    pass
+
+
 class FormatterNotFound(Exception):
     pass
 
@@ -247,16 +251,26 @@ class Wiki(object):
             self.config.read(config_path)
 
         self.fs = FileSystem(root, slugify=Page.title_to_url)
-        self.scm = MercurialSourceControl(root, self.logger)
-        self.cache = None #Cache(os.path.join(root, '.cache'))
-        self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
         self.auth = UserManager(self.config, logger=self.logger)
+        self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
+        
+        scm_type = 'hg'
+        if self.config.has_option('wiki', 'scm'):
+            scm_type = self.config.get('wiki', 'scm')
+        if scm_type == 'hg':
+            self.scm = MercurialSourceControl(root, self.logger)
+        else:
+            raise InitializationError("No such source control: " + scm_type)
+
+        if (not self.config.has_option('wiki', 'cache') or
+                self.config.get('wiki', 'cache')):
+            self.cache = Cache(os.path.join(root, '.cache'))
 
         self.fs.excluded.append(config_path)
-        if self.cache is not None:
-            self.fs.excluded.append(self.cache.cache_dir)
         if self.scm is not None:
             self.fs.excluded += self.scm.getSpecialDirs()
+        if self.cache is not None:
+            self.fs.excluded.append(self.cache.cache_dir)
         if self.index is not None:
             self.fs.excluded.append(self.index.store_dir)
 
@@ -265,6 +279,12 @@ class Wiki(object):
                 self._passthrough: [ 'txt', 'text', 'html' ]
                 }
         self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
+
+    def start(self):
+        if self.scm is not None:
+            self.scm.initRepo()
+        if self.index is not None:
+            self.index.open()
 
     @property
     def root(self):
