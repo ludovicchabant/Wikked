@@ -1,5 +1,6 @@
 import os
 import os.path
+import codecs
 import logging
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, ID, KEYWORD, TEXT, STORED
@@ -91,8 +92,8 @@ class WhooshWikiIndex(WikiIndex):
                         'url': hit['url']
                         }
                 page_info['title_highlights'] = hit.highlights('title')
-                with open(hit['path']) as f:
-                    content = unicode(f.read())
+                with codecs.open(hit['path'], 'r', encoding='utf-8') as f:
+                    content = f.read()
                 page_info['content_highlights'] = hit.highlights('content', text=content)
                 page_infos.append(page_info)
             return page_infos
