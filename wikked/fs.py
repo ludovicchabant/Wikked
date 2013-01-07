@@ -17,10 +17,14 @@ class FileSystem(object):
         file-system paths, and for scanning the file-system
         to list existing pages.
     """
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, root, slugify=None):
+        self.root = unicode(root)
+        self.slugify = slugify
         self.excluded = []
         self.page_extensions = None
+
+        if slugify is None:
+            self.slugify = lambda x: x
 
     def getPageInfos(self, subdir=None):
         basepath = self.root
@@ -38,6 +42,8 @@ class FileSystem(object):
                     yield page_info
 
     def getPageInfo(self, path):
+        if not isinstance(path, unicode):
+            path = unicode(path)
         for e in self.excluded:
             if path.startswith(e):
                 return None
@@ -53,7 +59,7 @@ class FileSystem(object):
                 'url': url,
                 'path': path,
                 'name': name_split[0],
-                'ext': name_split[1],
+                'ext': name_split[1].lstrip('.'),
                 'content': content
                 }
 
@@ -68,17 +74,21 @@ class FileSystem(object):
         return self._getPhysicalPath(url, False)
 
     def _getPageInfo(self, path):
-            rel_path = os.path.relpath(path, self.root)
-            rel_path_split = os.path.splitext(rel_path)
-            if self.page_extensions is not None and rel_path_split[1] not in self.page_extensions:
-                return None
-            url = re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', rel_path_split[0].lower())
-            return {
-                    'url': url,
-                    'path': path,
-                    'name': rel_path_split[0],
-                    'ext': rel_path_split[1]
-                    }
+        rel_path = os.path.relpath(path, self.root)
+        rel_path_split = os.path.splitext(rel_path)
+        ext = rel_path_split[1].lstrip('.')
+        name = rel_path_split[0]
+        if len(ext) == 0:
+            return None
+        if self.page_extensions is not None and ext not in self.page_extensions:
+            return None
+        url = self.slugify(name)
+        return {
+                'url': url,
+                'path': path,
+                'name': name,
+                'ext': ext
+                }
 
     def getPhysicalPagePath(self, url):
         return self._getPhysicalPath(url, True)
@@ -91,11 +101,11 @@ class FileSystem(object):
         # file-system entry that would get slugified to an
         # equal string.
         current = self.root
-        parts = url.lower().split('/')
+        parts = unicode(url).lower().split('/')
         for i, part in enumerate(parts):
             names = os.listdir(current)
             for name in names:
-                name_formatted = re.sub(r'[^A-Za-z0-9_\.\-\(\)]+', '-', name.lower())
+                name_formatted = self.slugify(name)
                 if is_file and i == len(parts) - 1:
                     # If we're looking for a file and this is the last part,
                     # look for something similar but with an extension.

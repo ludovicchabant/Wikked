@@ -4,6 +4,7 @@ import re
 import time
 import logging
 import itertools
+import unicodedata
 from ConfigParser import SafeConfigParser
 import markdown
 from fs import FileSystem
@@ -57,7 +58,10 @@ class PageFormatter(object):
 
     def _processWikiMeta(self, ctx, text):
         def repl1(m):
-            ctx.meta[str(m.group(1))] = str(m.group(3)) if m.group(3) is not None else True
+            if m.group(3) is not None and len(str(m.group(3))) > 0:
+                ctx.meta[str(m.group(1))] = str(m.group(3))
+            else:
+                ctx.meta[str(m.group(1))] = True
             return ''
         text = re.sub(r'^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\]\]\s*$', repl1, text, flags=re.MULTILINE)
         return text
@@ -215,7 +219,10 @@ class Page(object):
 
     @staticmethod
     def title_to_url(title):
-        return re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', title.lower())
+        # Remove diacritics (accents, etc.) and replace them with ASCII equivelent.
+        ansi_title = ''.join((c for c in unicodedata.normalize('NFD', title) if unicodedata.category(c) != 'Mn'))
+        # Now replace spaces and punctuation with a hyphen.
+        return re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', ansi_title.lower())
 
 
 class Wiki(object):
@@ -233,7 +240,7 @@ class Wiki(object):
         if os.path.isfile(config_path):
             self.config.read(config_path)
 
-        self.fs = FileSystem(root)
+        self.fs = FileSystem(root, slugify=Page.title_to_url)
         self.scm = MercurialSourceControl(root, self.logger)
         self.cache = None #Cache(os.path.join(root, '.cache'))
         self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
@@ -252,9 +259,6 @@ class Wiki(object):
                 self._passthrough: [ 'txt', 'text', 'html' ]
                 }
         self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
-
-        if self.index is not None:
-            self.index.update(self.getPages())
 
     @property
     def root(self):
