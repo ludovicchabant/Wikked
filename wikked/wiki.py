@@ -95,7 +95,16 @@ class PageFormatter(object):
         return text
 
     def _formatWikiLink(self, ctx, display, url):
-        slug = Page.title_to_url(os.path.join(ctx.urldir, url))
+        if url.startswith('/'):
+            # Absolute page URL.
+            abs_url = url[1:]
+        else:
+            # Relative page URL. Let's normalize all `..` in it,
+            # which could also replace forward slashes by backslashes
+            # on Windows, so we need to convert that back.
+            raw_abs_url = os.path.join(ctx.urldir, url)
+            abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
+        slug = Page.title_to_url(abs_url)
         ctx.out_links.append(slug)
 
         css_class = 'wiki-link'
@@ -260,7 +269,7 @@ class Wiki(object):
         self.fs = FileSystem(root, slugify=Page.title_to_url)
         self.auth = UserManager(self.config, logger=self.logger)
         self.index = WhooshWikiIndex(os.path.join(root, '.index'), logger=self.logger)
-        
+
         scm_type = 'hg'
         if self.config.has_option('wiki', 'scm'):
             scm_type = self.config.get('wiki', 'scm')

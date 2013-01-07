@@ -6,10 +6,11 @@ define([
         'underscore',
         'backbone',
         'handlebars',
+        './client',
         './models',
         './util'
         ],
-    function($, _, Backbone, Handlebars, Models, Util) {
+    function($, _, Backbone, Handlebars, Client, Models, Util) {
 
     var exports = {};
 
@@ -229,6 +230,49 @@ define([
         },
         renderCallback: function(view, model) {
             PageEditView.__super__.renderCallback.apply(this, arguments);
+
+            // Create the Markdown editor.
+            var formatter = new Client.PageFormatter();
+            formatter.baseUrl = this.model.get('path').match(/.*\//);
+            var converter = new Markdown.Converter();
+            converter.hooks.chain("preConversion", function(text) {
+                return formatter.formatText(text);
+            });
+            var editor = new Markdown.Editor(converter); //TODO: pass options
+            editor.run();
+            var editor_control = this.$('textarea#wmd-input');
+            editor_control.outerWidth(this.$('.wmd-input-wrapper').innerWidth());
+
+            // Input area resizing with the grip.
+            var last_pageY;
+            this.$(".wmd-input-grip")
+                .mousedown(function(e) {
+                    last_pageY = e.pageY;
+                    $('body')
+                        .on('mousemove.wikked.editor_resize', function(e) {
+                            editor_control.height(editor_control.height() + e.pageY - last_pageY);
+                            last_pageY = e.pageY;
+                        })
+                        .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) {
+                            $('body').off('.wikked.editor_resize');
+                        });
+                });
+
+            // Show/hide live preview.
+            this.$('.wmd-preview-wrapper>h3>a').on('click', function(e) {
+                $('#wmd-preview').fadeToggle(function() {
+                    var icon = $('.wmd-preview-wrapper>h3>a i');
+                    if (icon.hasClass('icon-minus')) {
+                        icon.removeClass('icon-minus');
+                        icon.addClass('icon-plus');
+                    } else {
+                        icon.removeClass('icon-plus');
+                        icon.addClass('icon-minus');
+                    }
+                });
+            });
+
+            // Make the model submit the form.
             this.$('#page-edit').submit(function(e) {
                 e.preventDefault();
                 model.doEdit(this);

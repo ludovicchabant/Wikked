@@ -1,8 +1,16 @@
 /**
  * Client-side Wikked.
  */
-define(function() {
+define([
+        'jquery',
+        'underscore'
+        ],
+    function($, _) {
 
+    /**
+     * Lookup table and function to remove accentuated/alternate characters
+     * with their ASCII equivalent.
+     */
     var defaultDiacriticsRemovalMap = [
         {'base':'A', 'letters':/[\u0041\u24B6\uFF21\u00C0\u00C1\u00C2\u1EA6\u1EA4\u1EAA\u1EA8\u00C3\u0100\u0102\u1EB0\u1EAE\u1EB4\u1EB2\u0226\u01E0\u00C4\u01DE\u1EA2\u00C5\u01FA\u01CD\u0200\u0202\u1EA0\u1EAC\u1EB6\u1E00\u0104\u023A\u2C6F]/g},
         {'base':'AA','letters':/[\uA732]/g},
@@ -99,9 +107,61 @@ define(function() {
         return str;
     }
 
-    var PageFormatter = {
+    /**
+     * Function to normalize an array of path parts (remove/simplify `./` and
+     * `../` elements).
+     */
+    function normalizeArray(parts, keepBlanks) {
+        var directories = [], prev;
+        for (var i = 0, l = parts.length - 1; i <= l; i++) {
+            var directory = parts[i];
+
+            // if it's blank, but it's not the first thing, and not the last thing, skip it.
+            if (directory === "" && i !== 0 && i !== l && !keepBlanks)
+                continue;
+
+            // if it's a dot, and there was some previous dir already, then skip it.
+            if (directory === "." && prev !== undefined)
+                continue;
+
+            // if it starts with "", and is a . or .., then skip it.
+            if (directories.length === 1 && directories[0] === "" && (
+                directory === "." || directory === ".."))
+                continue;
+
+                if (
+                    directory === ".." && directories.length && prev !== ".." && prev !== "." && prev !== undefined && (prev !== "" || keepBlanks)) {
+                    directories.pop();
+                prev = directories.slice(-1)[0]
+            } else {
+                if (prev === ".") directories.pop();
+                directories.push(directory);
+                prev = directory;
+            }
+        }
+        return directories;
+    }
+
+    /**
+     * Client-side page formatter, with support for previewing meta properties
+     * in the live preview window.
+     */
+    var PageFormatter = function(baseUrl) {
+        this.baseUrl = baseUrl;
+        if (baseUrl === undefined) {
+            this.baseUrl = '';
+        }
+    };
+    _.extend(PageFormatter.prototype, {
         formatLink: function(link) {
-            ansi_link = removeDiacritics(link);
+            var abs_link = link;
+            if (link[0] == '/') {
+                abs_link = link.substring(1);
+            } else {
+                raw_abs_link = this.baseUrl + link
+                abs_link = normalizeArray(raw_abs_link.split('/')).join('/');
+            }
+            ansi_link = removeDiacritics(abs_link);
             return ansi_link.toLowerCase().replace(/[^a-z0-9_\.\-\(\)\/]+/g, '-');
         },
         formatText: function(text) {
@@ -126,11 +186,7 @@ define(function() {
             });
             return text;
         }
-    };
-    //TODO: remove this and move the JS code from the template to the view.
-    if (!window.Wikked)
-        window.Wikked = {};
-    window.Wikked.PageFormatter = PageFormatter;
+    });
 
     return {
         PageFormatter: PageFormatter

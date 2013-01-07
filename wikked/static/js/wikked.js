@@ -37,17 +37,16 @@ require.config({
 /**
  * Entry point: run Backbone!
  *
- * We also import scripts like `handlebars` and `client` that
- * are not used directly by anybody, but need to be evaluated.
+ * We also import scripts like `handlebars` that are not used directly
+ * by anybody, but need to be evaluated.
  */
 require([
-        'wikked/app', 
-        'wikked/handlebars', 
-        'wikked/client', 
+        'wikked/app',
+        'wikked/handlebars',
         'backbone',
         'bootstrap'
         ],
-    function(app, hb, client, Backbone) {
+    function(app, hb, Backbone) {
 
     var router = new app.Router();
     Backbone.history.start();//{ pushState: true });
