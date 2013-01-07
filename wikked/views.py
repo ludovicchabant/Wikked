@@ -208,7 +208,7 @@ def api_get_incoming_links(url):
 @app.route('/api/edit/<path:url>', methods=['GET', 'PUT', 'POST'])
 def api_edit_page(url):
     if request.method == 'GET':
-        page = get_page_or_404(url, CHECK_FOR_READ)
+        page = get_page_or_404(url, CHECK_FOR_WRITE)
         result = { 
                 'path': url, 
                 'meta': page.all_meta, 
