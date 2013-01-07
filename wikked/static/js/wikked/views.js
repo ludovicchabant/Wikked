@@ -160,6 +160,16 @@ define([
             this.footer.$el.appendTo(this.$el);
             this.footer.postRender();
         },
+        templateName: function() {
+            switch (this.model.get('error_code')) {
+                case 401:
+                    return 'error-unauthorized';
+                case 404:
+                    return 'error-not-found';
+                default:
+                    return _.result(this, 'defaultTemplateName');
+            }
+        },
         _createNavigation: function(model) {
             return new NavigationView({ model: model });
         },
@@ -169,11 +179,24 @@ define([
     });
 
     var PageReadView = exports.PageReadView = MasterPageView.extend({
-        templateName: 'read-page',
+        defaultTemplateName: 'read-page',
         initialize: function() {
             PageReadView.__super__.initialize.apply(this, arguments);
-            // Also get the current state, and show a warning
-            // if the page is new or modified.
+            return this;
+        },
+        renderCallback: function(view, model) {
+            PageReadView.__super__.renderCallback.apply(this, arguments);
+            // Replace all wiki links with proper hyperlinks using the JS app's
+            // URL scheme.
+            this.$('a.wiki-link[data-wiki-url]').each(function(i) {
+                var jel = $(this);
+                if (jel.hasClass('missing'))
+                    jel.attr('href', '/#/edit/' + jel.attr('data-wiki-url'));
+                else
+                    jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
+            });
+        },
+        _fetchState: function() {
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
             stateModel.fetch({
                 success: function(model, response, options) {
@@ -192,24 +215,11 @@ define([
                     }
                 }
             });
-            return this;
-        },
-        renderCallback: function(view, model) {
-            PageReadView.__super__.renderCallback.apply(this, arguments);
-            // Replace all wiki links with proper hyperlinks using the JS app's
-            // URL scheme.
-            this.$('a.wiki-link[data-wiki-url]').each(function(i) {
-                var jel = $(this);
-                if (jel.hasClass('missing'))
-                    jel.attr('href', '/#/edit/' + jel.attr('data-wiki-url'));
-                else
-                    jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
-            });
         }
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
-        templateName: 'edit-page',
+        defaultTemplateName: 'edit-page',
         renderCallback: function(view, model) {
             PageEditView.__super__.renderCallback.apply(this, arguments);
             this.$('#page-edit').submit(function(e) {
@@ -224,7 +234,7 @@ define([
     });
 
     var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({
-        templateName: 'history-page',
+        defaultTemplateName: 'history-page',
         renderCallback: function(view, model) {
             PageHistoryView.__super__.renderCallback.apply(this, arguments);
             this.$('#diff-page').submit(function(e) {
@@ -239,36 +249,36 @@ define([
     });
 
     var PageRevisionView = exports.PageRevisionView = MasterPageView.extend({
-        templateName: 'revision-page',
+        defaultTemplateName: 'revision-page',
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev') + ']';
         }
     });
 
     var PageDiffView = exports.PageDiffView = MasterPageView.extend({
-        templateName: 'diff-page',
+        defaultTemplateName: 'diff-page',
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev1') + '-' + this.model.get('rev2') + ']';
         }
     });
 
     var IncomingLinksView = exports.IncomingLinksView = MasterPageView.extend({
-        templateName: 'inlinks-page',
+        defaultTemplateName: 'inlinks-page',
         titleFormat: function(title) {
             return 'Incoming Links: ' + title;
         }
     });
 
     var WikiSearchView = exports.WikiSearchView = MasterPageView.extend({
-        templateName: 'search-results'
+        defaultTemplateName: 'search-results'
     });
 
     var SpecialNavigationView = exports.SpecialNavigationView = NavigationView.extend({
-        templateName: 'special-nav'
+        defaultTemplateName: 'special-nav'
     });
 
     var SpecialPagesView = exports.SpecialPagesView = MasterPageView.extend({
-        templateName: 'special-pages',
+        defaultTemplateName: 'special-pages',
         _createNavigation: function(model) {
             model.set('show_root_link', false);
             return new SpecialNavigationView({ model: model });
@@ -276,7 +286,7 @@ define([
     });
 
     var GenericSpecialPageView = exports.GenericSpecialPageView = MasterPageView.extend({
-        templateName: function() {
+        defaultTemplateName: function() {
             return 'special-' + this.model.get('page');
         },
         _createNavigation: function(model) {
@@ -285,27 +295,29 @@ define([
         },
         _onModelChange: function() {
             var history = this.model.get('history');
-            for (var i = 0; i < history.length; ++i) {
-                var rev = history[i];
-                rev.changes = [];
-                for (var j = 0; j < rev.pages.length; ++j) {
-                    var page = rev.pages[j];
-                    switch (page.action) {
-                        case 'edit':
-                            rev.changes.push({ is_edit: true, url: page.url });
-                            break;
-                        case 'add':
-                            rev.changes.push({ is_add: true, url: page.url });
-                            break;
-                        case 'delete':
-                            rev.changes.push({ is_delete: true, url: page.url });
-                            break;
+            if (history) {
+                for (var i = 0; i < history.length; ++i) {
+                    var rev = history[i];
+                    rev.changes = [];
+                    for (var j = 0; j < rev.pages.length; ++j) {
+                        var page = rev.pages[j];
+                        switch (page.action) {
+                            case 'edit':
+                                rev.changes.push({ is_edit: true, url: page.url });
+                                break;
+                            case 'add':
+                                rev.changes.push({ is_add: true, url: page.url });
+                                break;
+                            case 'delete':
+                                rev.changes.push({ is_delete: true, url: page.url });
+                                break;
+                        }
+                        rev.pages[j] = page;
                     }
-                    rev.pages[j] = page;
+                    history[i] = rev;
                 }
-                history[i] = rev;
+                this.model.set('history', history);
             }
-            this.model.set('history', history);
             this.render();
         }
     });
