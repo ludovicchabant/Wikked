@@ -51,22 +51,28 @@ define([
             this.app.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
         _onChangePath: function(path) {
-            this.set('url_home', '/#/read/main-page');
-            this.set('url_read', '/#/read/' + path);
-            this.set('url_edit', '/#/edit/' + path);
-            this.set('url_hist', '/#/changes/' + path);
-            this.set('url_search', '/search');
+            this.set({
+                url_home: '/#/read/main-page',
+                url_read: '/#/read/' + path,
+                url_edit: '/#/edit/' + path,
+                url_hist: '/#/changes/' + path,
+                url_search: '/search'
+            });
         },
         _isSearching: false,
         _onChangeAuth: function(auth) {
             if (auth) {
-                this.set('url_login', false);
-                this.set('url_logout', '/#/logout');
-                this.set('username', auth.username);
+                this.set({
+                    url_login: false,
+                    url_logout: '/#/logout',
+                    username: auth.username
+                });
             } else {
-                this.set('url_login', '/#/login');
-                this.set('url_logout', false);
-                this.set('username', false);
+                this.set({
+                    url_login: '/#/login',
+                    url_logout: false,
+                    username: false
+                });
             }
         }
     });
@@ -166,6 +172,7 @@ define([
             this.on('change:auth', function(model, auth) {
                 model._onChangeAuth(auth);
             });
+            this.on('error', this._onError, this);
             if (this.action !== undefined) {
                 this.nav.set('action', this.action);
                 this.footer.set('action', this.action);
@@ -182,6 +189,24 @@ define([
         },
         _onChangeAuth: function(auth) {
             this.nav.set('auth', auth);
+        },
+        _onError: function(model, resp) {
+            var setmap = {
+                has_error: true,
+                error_code: resp.status
+            };
+            switch (resp.status) {
+                case 401:
+                    setmap.error = 'Unauthorized';
+                    break;
+                case 404:
+                    setmap.error = 'Not Found';
+                    break;
+                default:
+                    setmap.error = 'Error';
+                    break;
+            }
+            this.set(setmap);
         }
     });
 
@@ -242,9 +267,11 @@ define([
         },
         _onChangePath: function(path) {
             PageHistoryModel.__super__._onChangePath.apply(this, arguments);
-            this.set('url_rev', '/#/revision/' + path);
-            this.set('url_diffc', '/#/diff/c/' + path);
-            this.set('url_diffr', '/#/diff/r/' + path);
+            this.set({
+                url_rev: '/#/revision/' + path,
+                url_diffc: '/#/diff/c/' + path,
+                url_diffr: '/#/diff/r/' + path
+            });
         }
     });
 
@@ -268,10 +295,11 @@ define([
             return this;
         },
         _onChangeRev: function(rev) {
-            this.set('disp_rev', rev);
+            var setmap = { disp_rev: rev };
             if (rev.match(/[a-f0-9]{40}/)) {
-                this.set('disp_rev', rev.substring(0, 8));
+                setmap.disp_rev = rev.substring(0, 8);
             }
+            this.set(setmap);
         }
     });
 
@@ -304,16 +332,18 @@ define([
             return this;
         },
         _onChangeRev1: function(rev1) {
-            this.set('disp_rev1', rev1);
+            var setmap = { disp_rev1: rev1 };
             if (rev1 !== undefined && rev1.match(/[a-f0-9]{40}/)) {
-                this.set('disp_rev1', rev1.substring(0, 8));
+                setmap.disp_rev1 = rev1.substring(0, 8);
             }
+            this.set(setmap);
         },
         _onChangeRev2: function(rev2) {
-            this.set('disp_rev2', rev2);
+            var setmap = { disp_rev2:  rev2 };
             if (rev2 !== undefined && rev2.match(/[a-f0-9]{40}/)) {
-                this.set('disp_rev2', rev2.substring(0, 8));
+                setmap.disp_rev2 = rev2.substring(0, 8);
             }
+            this.set(setmap);
         }
     });
 
