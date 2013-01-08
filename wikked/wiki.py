@@ -27,6 +27,7 @@ class PageFormattingContext(object):
         self.url = url
         self.ext = ext
         self.out_links = []
+        self.included_pages = []
         self.meta = {}
 
     @property
@@ -70,7 +71,10 @@ class PageFormatter(object):
                 ctx.meta[meta_name] = True
             if meta_name == 'include':
                 # TODO: handle self-includes or cyclic includes.
-                included_page = self.wiki.getPage(meta_value)
+                abs_included_url = Page.get_absolute_url(ctx.urldir, meta_value)
+                abs_included_url = Page.title_to_url(abs_included_url)
+                included_page = self.wiki.getPage(abs_included_url)
+                ctx.included_pages.append(abs_included_url)
                 return included_page.formatted_text
             return ''
 
@@ -95,15 +99,7 @@ class PageFormatter(object):
         return text
 
     def _formatWikiLink(self, ctx, display, url):
-        if url.startswith('/'):
-            # Absolute page URL.
-            abs_url = url[1:]
-        else:
-            # Relative page URL. Let's normalize all `..` in it,
-            # which could also replace forward slashes by backslashes
-            # on Windows, so we need to convert that back.
-            raw_abs_url = os.path.join(ctx.urldir, url)
-            abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
+        abs_url = Page.get_absolute_url(ctx.urldir, url)
         slug = Page.title_to_url(abs_url)
         ctx.out_links.append(slug)
 
@@ -201,8 +197,19 @@ class Page(object):
         cache_key = self.url + '.info.cache'
         cached_meta = self._getCached(cache_key)
         if cached_meta is not None:
-            self._meta = cached_meta
-            return
+            # We have a valid cache for our content, but if we are including
+            # other pages, we need to check if they have changed since last
+            # time.
+            base_url = os.path.dirname(self.url)
+            for included_url in cached_meta['included_pages']:
+                included_path = self.wiki.fs.getPhysicalPagePath(included_url)
+                included_time = os.path.getmtime(included_path)
+                included_cache_key = included_url + '.info.cache'
+                if not self.wiki.cache.isValid(included_cache_key, included_time):
+                    break
+            else:
+                self._meta = cached_meta
+                return
 
         self._meta = self.wiki.fs.getPage(self.url)
 
@@ -219,9 +226,8 @@ class Page(object):
             if name in ctx.meta:
                 self._meta[name] = ctx.meta[name]
 
-        self._meta['out_links'] = []
-        for l in ctx.out_links:
-            self._meta['out_links'].append(l)
+        self._meta['out_links'] = ctx.out_links
+        self._meta['included_pages'] = ctx.included_pages
 
         self._putCached(cache_key, self._meta)
 
@@ -249,6 +255,18 @@ class Page(object):
         def upperChar(m):
             return m.group(0).upper()
         return re.sub(r'^.|\s\S', upperChar, url.lower().replace('-', ' '))
+
+    @staticmethod
+    def get_absolute_url(base_url, url):
+        if url.startswith('/'):
+            # Absolute page URL.
+            return url[1:]
+        else:
+            # Relative page URL. Let's normalize all `..` in it,
+            # which could also replace forward slashes by backslashes
+            # on Windows, so we need to convert that back.
+            raw_abs_url = os.path.join(base_url, url)
+            return os.path.normpath(raw_abs_url).replace('\\', '/')
 
 
 class Wiki(object):

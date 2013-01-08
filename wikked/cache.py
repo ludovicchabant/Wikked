@@ -11,6 +11,10 @@ class Cache(object):
     def __init__(self, root):
         self.cache_dir = root
 
+    def isValid(self, url, time):
+        path, valid = self._getCachePathAndValidity(url, time)
+        return valid
+
     def read(self, url, time):
         path, valid = self._getCachePathAndValidity(url, time)
         if valid:
@@ -35,7 +39,7 @@ class Cache(object):
         if not os.path.isfile(path):
             return None
         return os.path.getmtime(path)
-        
+
     def _getCachePath(self, url):
         return os.path.join(self.cache_dir, url)
 
