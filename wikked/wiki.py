@@ -7,6 +7,7 @@ import itertools
 import unicodedata
 from ConfigParser import SafeConfigParser
 import markdown
+import textile
 from fs import FileSystem
 from cache import Cache
 from scm import MercurialSourceControl
@@ -312,7 +313,8 @@ class Wiki(object):
 
         self.formatters = {
                 markdown.markdown: [ 'md', 'mdown', 'markdown' ],
-                self._passthrough: [ 'txt', 'text', 'html' ]
+                textile.textile: [ 'tl', 'text', 'textile' ],
+                self._passthrough: [ 'txt', 'html' ]
                 }
         self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
 

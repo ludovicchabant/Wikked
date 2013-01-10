@@ -11,4 +11,5 @@ Werkzeug==0.8.3
 Whoosh==2.4.1
 argparse==1.2.1
 py-bcrypt==0.2
+textile==2.1.5
 wsgiref==0.1.2
