@@ -67,16 +67,18 @@ class PageFormatter(object):
             meta_name = str(m.group(1))
             meta_value = str(m.group(3))
             if meta_value is not None and len(meta_value) > 0:
-                ctx.meta[meta_name] = meta_value
+                if meta_name not in ctx.meta:
+                    ctx.meta[meta_name] = meta_value
+                elif ctx.meta[meta_name] is list:
+                    ctx.meta[meta_name].append(meta_value)
+                else:
+                    ctx.meta[meta_name] = [ ctx.meta[meta_name], meta_value ]
             else:
                 ctx.meta[meta_name] = True
             if meta_name == 'include':
-                # TODO: handle self-includes or cyclic includes.
-                abs_included_url = Page.get_absolute_url(ctx.urldir, meta_value)
-                abs_included_url = Page.title_to_url(abs_included_url)
-                included_page = self.wiki.getPage(abs_included_url)
-                ctx.included_pages.append(abs_included_url)
-                return included_page.formatted_text
+                return self._processInclude(ctx, meta_value)
+            elif meta_name == 'query':
+                return self._processQuery(ctx, meta_value)
             return ''
 
         text = re.sub(r'^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\]\]\s*$', repl, text, flags=re.MULTILINE)
@@ -96,6 +98,54 @@ class PageFormatter(object):
             url = b if a is None else (a + b)
             return s._formatWikiLink(ctx, b, url)
         text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl2, text)
+
+        return text
+
+    def _processInclude(self, ctx, value):
+        # TODO: handle self-includes or cyclic includes.
+        abs_included_url = Page.get_absolute_url(ctx.urldir, value)
+        abs_included_url = Page.title_to_url(abs_included_url)
+        included_page = self.wiki.getPage(abs_included_url)
+        ctx.included_pages.append(abs_included_url)
+        return included_page.formatted_text
+
+    def _processQuery(self, ctx, query):
+        parameters = {
+                'header': "<ul>",
+                'footer': "</ul>",
+                'item': "<li><a class=\"wiki-link\" data-wiki-url=\"{{url}}\">{{title}}</a></li>",
+                'empty': "<p>No page matches the query.</p>"
+                }
+        meta_query = {}
+        arg_pattern = r"(^|\|)(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)=(?P<value>[^\|]+)"
+        for m in re.findall(arg_pattern, query):
+            if m[1] not in parameters:
+                meta_query[m[1]] = m[2]
+            else:
+                parameters[m[1]] = m[2]
+
+        matched_pages = []
+        for p in self.wiki.getPages():
+            if p.url == ctx.url:
+                continue
+            for key, value in meta_query.iteritems():
+                actual = p.getUserMeta(key)
+                if (type(actual) is list and value in actual) or (actual == value):
+                    matched_pages.append(p)
+        if len(matched_pages) == 0:
+            return parameters['empty']
+
+        text = parameters['header']
+        for p in matched_pages:
+            item_str = parameters['item']
+            tokens = {
+                    'url': p.url,
+                    'title': p.title
+                    }
+            for tk, tv in tokens.iteritems():
+                item_str = item_str.replace('{{%s}}' % tk, tv)
+            text += item_str
+        text += parameters['footer']
 
         return text
 
@@ -174,6 +224,10 @@ class Page(object):
                 if name in self._coerce_promoted_meta:
                     meta[name] = self._coerce_promoted_meta[name](meta[name])
         return meta
+
+    def getUserMeta(self, key):
+        self._ensureMeta()
+        return self._meta['user'].get(key)
 
     def getHistory(self):
         self._ensureMeta()
