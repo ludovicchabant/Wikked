@@ -8,6 +8,7 @@ import unicodedata
 from ConfigParser import SafeConfigParser
 import markdown
 import textile
+import creole
 from fs import FileSystem
 from cache import Cache
 from scm import MercurialSourceControl
@@ -18,8 +19,6 @@ from formatter import PageFormatter, PageFormattingContext
 
 class InitializationError(Exception):
     pass
-
-
 
 
 class Page(object):
@@ -184,6 +183,13 @@ class Wiki(object):
             self.logger = logging.getLogger('wikked.wiki')
         self.logger.debug("Initializing wiki at: " + root)
 
+        self.formatters = {
+                markdown.markdown: [ 'md', 'mdown', 'markdown' ],
+                textile.textile: [ 'tl', 'text', 'textile' ],
+                creole.creole2html: [ 'cr', 'creole' ],
+                self._passthrough: [ 'txt', 'html' ]
+                }
+
         self.config = SafeConfigParser()
         config_path = os.path.join(root, '.wikirc')
         if os.path.isfile(config_path):
@@ -207,6 +213,7 @@ class Wiki(object):
         else:
             self.cache = None
 
+        self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
         self.fs.excluded.append(config_path)
         if self.scm is not None:
             self.fs.excluded += self.scm.getSpecialDirs()
@@ -214,13 +221,6 @@ class Wiki(object):
             self.fs.excluded.append(self.cache.cache_dir)
         if self.index is not None:
             self.fs.excluded.append(self.index.store_dir)
-
-        self.formatters = {
-                markdown.markdown: [ 'md', 'mdown', 'markdown' ],
-                textile.textile: [ 'tl', 'text', 'textile' ],
-                self._passthrough: [ 'txt', 'html' ]
-                }
-        self.fs.page_extensions = list(set(itertools.chain(*self.formatters.itervalues())))
 
     def start(self):
         if self.scm is not None:

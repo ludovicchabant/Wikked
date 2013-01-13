@@ -1,7 +1,7 @@
 import os.path
 import logging
 from flask.ext.script import Manager, Command, prompt, prompt_pass
-from wikked import app, wiki
+from wikked.web import app, wiki
 
 
 manager = Manager(app)
