@@ -53,13 +53,9 @@ class FileSystem(object):
         path = self.getPhysicalPagePath(url)
         with codecs.open(path, 'r', encoding='utf-8') as f:
             content = f.read()
-        name = os.path.basename(path)
-        name_split = os.path.splitext(name)
         return {
                 'url': url,
                 'path': path,
-                'name': name_split[0],
-                'ext': name_split[1].lstrip('.'),
                 'content': content
                 }
 
@@ -85,9 +81,7 @@ class FileSystem(object):
         url = self.slugify(name)
         return {
                 'url': url,
-                'path': path,
-                'name': name,
-                'ext': ext
+                'path': path
                 }
 
     def getPhysicalPagePath(self, url):

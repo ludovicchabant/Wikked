@@ -3,7 +3,7 @@ import os.path
 import codecs
 import logging
 from whoosh.index import create_in, open_dir
-from whoosh.fields import Schema, ID, KEYWORD, TEXT, STORED
+from whoosh.fields import Schema, ID, TEXT, STORED
 from whoosh.qparser import QueryParser
 
 
@@ -14,7 +14,10 @@ class WikiIndex(object):
         if logger is None:
             self.logger = logging.getLogger('wikked.index')
 
-    def open(self):
+    def initIndex(self):
+        raise NotImplementedError()
+
+    def reset(self, pages):
         raise NotImplementedError()
 
     def update(self, pages):
@@ -28,24 +31,16 @@ class WhooshWikiIndex(WikiIndex):
     def __init__(self, store_dir, logger=None):
         WikiIndex.__init__(self, store_dir, logger)
 
-    def open(self):
+    def initIndex(self):
         if not os.path.isdir(self.store_dir):
+            self.logger.debug("Creating new index in: " + self.store_dir)
             os.makedirs(self.store_dir)
             self.ix = create_in(self.store_dir, self._getSchema())
         else:
             self.ix = open_dir(self.store_dir)
 
-    def _getSchema(self):
-        schema = Schema(
-                url=ID(stored=True), 
-                title=TEXT(stored=True), 
-                content=TEXT,
-                path=STORED,
-                time=STORED
-                )
-        return schema
-    
     def reset(self, pages):
+        self.logger.debug("Re-creating new index in: " + self.store_dir)
         self.ix = create_in(self.store_dir, schema=self._getSchema())
         writer = self.ix.writer()
         for page in pages:
@@ -54,6 +49,7 @@ class WhooshWikiIndex(WikiIndex):
         writer.commit()
 
     def update(self, pages):
+        self.logger.debug("Updating index...")
         to_reindex = set()
         already_indexed = set()
 
@@ -67,12 +63,12 @@ class WhooshWikiIndex(WikiIndex):
 
                 if not os.path.isfile(indexed_path):
                     # File was deleted.
-                    writer.delete_by_term('url', indexed_url)
+                    self._unindexPage(writer, indexed_url)
                 else:
                     already_indexed.add(indexed_path)
-                    if os.path.getmtime(indexed_path) > fields['time']:
-                        # File as changed since last index.
-                        writer.delete_by_term('url', indexed_url)
+                    if os.path.getmtime(indexed_path) > indexed_time:
+                        # File has changed since last index.
+                        self._unindexPage(writer, indexed_url)
                         to_reindex.add(indexed_path)
 
             for page in pages:
@@ -82,6 +78,7 @@ class WhooshWikiIndex(WikiIndex):
                     self._indexPage(writer, page)
 
             writer.commit()
+        self.logger.debug("...done updating index.")
 
     def search(self, query):
         with self.ix.searcher() as searcher:
@@ -103,8 +100,18 @@ class WhooshWikiIndex(WikiIndex):
                 page_infos.append(page_info)
             return page_infos
 
+    def _getSchema(self):
+        schema = Schema(
+                url=ID(stored=True),
+                title=TEXT(stored=True),
+                content=TEXT,
+                path=STORED,
+                time=STORED
+                )
+        return schema
+
     def _indexPage(self, writer, page):
-        self.logger.debug("Indexing: %s" % page.url)
+        self.logger.debug("Indexing '%s'." % page.url)
         writer.add_document(
             url=unicode(page.url),
             title=unicode(page.title),
@@ -113,3 +120,6 @@ class WhooshWikiIndex(WikiIndex):
             time=os.path.getmtime(page._meta['path'])
             )
 
+    def _unindexPage(self, writer, url):
+        self.logger.debug("Removing '%s' from index." % url)
+        writer.delete_by_term('url', url)

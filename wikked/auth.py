@@ -3,6 +3,8 @@ import logging
 
 
 class User(object):
+    """ A user with an account on the wiki.
+    """
     def __init__(self, username, password):
         self.username = username
         self.password = password
@@ -25,6 +27,8 @@ class User(object):
 
 
 class UserManager(object):
+    """ A class that keeps track of users and their permissions.
+    """
     def __init__(self, config, logger=None):
         if logger is None:
             logger = logging.getLogger('wikked.auth')
@@ -49,11 +53,11 @@ class UserManager(object):
         return self._isAllowedForMeta(page, 'writers', username)
 
     def _isAllowedForMeta(self, page, meta_name, username):
-        if (self._permissions[meta_name] is not None and 
+        if (self._permissions[meta_name] is not None and
                 username not in self._permissions[meta_name]):
             return False
-        if meta_name in page.all_meta['user']:
-            allowed = [r.strip() for r in re.split(r'[ ,;]', page.all_meta['user'][meta_name])]
+        if meta_name in page.all_meta:
+            allowed = [r.strip() for r in re.split(r'[ ,;]', page.all_meta[meta_name])]
             if username is None:
                 return 'anonymous' in allowed
             else:
@@ -78,7 +82,7 @@ class UserManager(object):
                 groups = config.items('groups')
 
             for user in config.items('users'):
-                user_info = { 'username': user[0], 'password': user[1], 'groups': [] }
+                user_info = {'username': user[0], 'password': user[1], 'groups': []}
                 for group in groups:
                     users_in_group = [u.strip() for u in re.split(r'[ ,;]', group[1])]
                     if user[0] in users_in_group:
@@ -89,4 +93,3 @@ class UserManager(object):
         user = User(user_info['username'], user_info['password'])
         user.groups = list(user_info['groups'])
         return user
-

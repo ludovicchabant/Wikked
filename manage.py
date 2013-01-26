@@ -1,9 +1,14 @@
-import os.path
-import logging
-from flask.ext.script import Manager, Command, prompt, prompt_pass
+
+# Configure a simpler log format.
+from wikked import settings
+settings.LOG_FORMAT = "[%(levelname)s]: %(message)s"
+
+# Create the app and the wiki.
 from wikked.web import app, wiki
+from wikked.page import Page, DatabasePage
 
-
+# Create the manager.
+from flask.ext.script import Manager, prompt, prompt_pass
 manager = Manager(app)
 
 
@@ -14,6 +19,7 @@ def users():
     for user in wiki.auth.getUsers():
         print " - " + user.username
     print ""
+
 
 @manager.command
 def new_user():
@@ -28,21 +34,37 @@ def new_user():
 
 
 @manager.command
-def reset_index():
-    """ Re-generates the index, if search is broken
-        somehow in your wiki.
+def reset():
+    """ Re-generates the database and the full-text-search index.
     """
+    wiki.db.reset(wiki.getPages(from_db=False, factory=Page.factory))
     wiki.index.reset(wiki.getPages())
+
+
+@manager.command
+def update():
+    """ Updates the database and the full-text-search index with any
+        changed/new files.
+    """
+    wiki.db.update(wiki.getPages(from_db=False, factory=Page.factory))
+    wiki.index.update(wiki.getPages())
 
 
 @manager.command
 def list():
     """ Lists page names in the wiki.
     """
-    for url in wiki.getPageUrls():
+    for url in wiki.db.getPageUrls():
         print url
+
+
+@manager.command
+def get(url):
+    """ Gets a page that matches the given URL.
+    """
+    page = wiki.getPage(url)
+    print page.text
 
 
 if __name__ == "__main__":
     manager.run()
-

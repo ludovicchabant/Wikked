@@ -1,18 +1,12 @@
 import time
 import os.path
-from flask import (
-        Response, 
-        render_template, url_for, redirect, abort, request, flash,
-        jsonify
-        )
-from flask.ext.login import login_required, login_user, logout_user, current_user
+from flask import render_template, abort, request, g, jsonify
+from flask.ext.login import login_user, logout_user, current_user
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
-from web import app, wiki
+from web import app, login_manager
 from wiki import Page
-from auth import User
-from forms import RegistrationForm, EditPageForm
 from fs import PageNotFoundError
 import scm
 
@@ -21,14 +15,19 @@ DONT_CHECK = 0
 CHECK_FOR_READ = 1
 CHECK_FOR_WRITE = 2
 
+COERCE_META = {
+    'redirect': Page.title_to_url
+    }
+
 
 def get_page_or_none(url):
     try:
-        page = wiki.getPage(url)
+        page = g.wiki.getPage(url)
         page._ensureMeta()
         return page
     except PageNotFoundError:
         return None
+
 
 def get_page_or_404(url, check_perms=DONT_CHECK):
     page = get_page_or_none(url)
@@ -49,6 +48,19 @@ def is_page_writable(page, user=current_user):
     return page.wiki.auth.isPageWritable(page, user.get_id())
 
 
+def get_page_meta(page, local_only=False):
+    if local_only:
+        meta = dict(page.local_meta)
+    else:
+        meta = dict(page.all_meta)
+    meta['title'] = page.title
+    meta['url'] = page.url
+    for name in COERCE_META:
+        if name in meta:
+            meta[name] = COERCE_META(meta[name])
+    return meta
+
+
 def get_history_data(history):
     hist_data = []
     for i, rev in enumerate(reversed(history)):
@@ -62,10 +74,10 @@ def get_history_data(history):
             'pages': []
             }
         for f in rev.files:
-            f_info = wiki.fs.getPageInfo(f['path'])
+            f_info = g.wiki.fs.getPageInfo(f['path'])
             if f_info is None:
                 continue
-            page = wiki.getPage(f_info['url'])
+            page = g.wiki.getPage(f_info['url'])
             if not is_page_readable(page):
                 continue
             rev_data['pages'].append({
@@ -79,7 +91,7 @@ def get_history_data(history):
 
 def make_auth_response(data):
     if current_user.is_authenticated():
-        data['auth'] = { 
+        data['auth'] = {
                 'username': current_user.username,
                 'is_admin': current_user.is_admin()
                 }
@@ -103,28 +115,28 @@ def search():
 
 @app.route('/api/list')
 def api_list_all_pages():
-    return list_pages(None)
+    return api_list_pages(None)
 
 
 @app.route('/api/list/<path:url>')
 def api_list_pages(url):
-    pages = filter(is_page_readable, wiki.getPages(url))
-    page_metas = [page.all_meta for page in pages]
-    result = { 'path': url, 'pages': list(page_metas) }
+    pages = filter(is_page_readable, g.wiki.getPages(url))
+    page_metas = [get_page_meta(page) for page in pages]
+    result = {'path': url, 'pages': list(page_metas)}
     return make_auth_response(result)
 
 
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
-    result = { 'path': url, 'meta': page.all_meta, 'text': page.formatted_text }
+    result = {'meta': get_page_meta(page), 'text': page.text}
     return make_auth_response(result)
 
 
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
-    result = { 'path': url, 'meta': page.all_meta, 'text': page.raw_text }
+    result = {'meta': get_page_meta(page), 'text': page.raw_text}
     return make_auth_response(result)
 
 
@@ -135,8 +147,8 @@ def api_read_page_rev(url):
         abort(400)
     page = get_page_or_404(url, CHECK_FOR_READ)
     page_rev = page.getRevision(rev)
-    meta = dict(page.all_meta, rev=rev)
-    result = { 'path': url, 'meta': meta, 'text': page_rev }
+    meta = dict(get_page_meta(page, True), rev=rev)
+    result = {'meta': meta, 'text': page_rev}
     return make_auth_response(result)
 
 
@@ -153,10 +165,10 @@ def api_diff_page(url):
         formatter = get_formatter_by_name('html')
         diff = highlight(diff, lexer, formatter)
     if rev2 is None:
-        meta = dict(page.all_meta, change=rev1)
+        meta = dict(get_page_meta(page, True), change=rev1)
     else:
-        meta = dict(page.all_meta, rev1=rev1, rev2=rev2)
-    result = { 'path': url, 'meta': meta, 'diff': diff }
+        meta = dict(get_page_meta(page, True), rev1=rev1, rev2=rev2)
+    result = {'meta': meta, 'diff': diff}
     return make_auth_response(result)
 
 
@@ -164,10 +176,9 @@ def api_diff_page(url):
 def api_get_state(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
     state = page.getState()
-    return make_auth_response({ 
-        'path': url, 
-        'meta': page.all_meta, 
-        'state': scm.STATE_NAMES[state] 
+    return make_auth_response({
+        'meta': get_page_meta(page, True),
+        'state': scm.STATE_NAMES[state]
         })
 
 
@@ -183,9 +194,9 @@ def api_get_outgoing_links(url):
                 'title': other.title
                 })
         else:
-            links.append({ 'url': link, 'missing': True })
+            links.append({'url': link, 'missing': True})
 
-    result = { 'path': url, 'meta': page.all_meta, 'out_links': links }
+    result = {'meta': get_page_meta(page, True), 'out_links': links}
     return make_auth_response(result)
 
 
@@ -198,12 +209,12 @@ def api_get_incoming_links(url):
         if other is not None and is_page_readable(other):
             links.append({
                 'url': link,
-                'meta': other.all_meta
+                'title': other.title
                 })
         else:
-            links.append({ 'url': link, 'missing': True })
+            links.append({'url': link, 'missing': True})
 
-    result = { 'path': url, 'meta': page.all_meta, 'in_links': links }
+    result = {'meta': get_page_meta(page, True), 'in_links': links}
     return make_auth_response(result)
 
 
@@ -213,21 +224,18 @@ def api_edit_page(url):
         page = get_page_or_none(url)
         if page is None:
             result = {
-                    'path': url,
                     'meta': {
                         'url': url,
                         'name': os.path.basename(url),
-                        'title': Page.url_to_title(url),
-                        'user': {}
+                        'title': Page.url_to_title(url)
                         },
                     'text': ''
                     }
         else:
             if not is_page_writable(page):
                 abort(401)
-            result = { 
-                    'path': url, 
-                    'meta': page.all_meta, 
+            result = {
+                    'meta': get_page_meta(page, True),
                     'text': page.raw_text
                     }
         result['commit_meta'] = {
@@ -253,8 +261,8 @@ def api_edit_page(url):
             'author': author,
             'message': message
             }
-    wiki.setPage(url, page_fields)
-    result = { 'path': url, 'saved': 1 }
+    g.wiki.setPage(url, page_fields)
+    result = {'saved': 1}
     return make_auth_response(result)
 
 
@@ -271,18 +279,18 @@ def api_delete_page(url):
 @app.route('/api/orphans')
 def api_special_orphans():
     orphans = []
-    for page in filter(is_page_readable, wiki.getPages()):
+    for page in filter(is_page_readable, g.wiki.getPages()):
         if len(page.in_links) == 0:
-            orphans.append({ 'path': page.url, 'meta': page.all_meta })
-    result = { 'orphans': orphans }
+            orphans.append({'path': page.url, 'meta': get_page_meta(page, True)})
+    result = {'orphans': orphans}
     return make_auth_response(result)
 
 
 @app.route('/api/history')
 def api_site_history():
-    history = wiki.getHistory()
+    history = g.wiki.getHistory()
     hist_data = get_history_data(history)
-    result = { 'history': hist_data }
+    result = {'history': hist_data}
     return make_auth_response(result)
 
 
@@ -291,18 +299,19 @@ def api_page_history(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
     history = page.getHistory()
     hist_data = get_history_data(history)
-    result = { 'url': url, 'meta': page.all_meta, 'history': hist_data }
+    result = {'url': url, 'meta': get_page_meta(page, True), 'history': hist_data}
     return make_auth_response(result)
 
 
 @app.route('/api/search')
 def api_search():
     query = request.args.get('q')
+
     def is_hit_readable(hit):
         page = get_page_or_none(hit['url'])
         return page is None or is_page_readable(page)
-    hits = filter(is_hit_readable, wiki.index.search(query))
-    result = { 'query': query, 'hits': hits }
+    hits = filter(is_hit_readable, g.wiki.index.search(query))
+    result = {'query': query, 'hits': hits}
     return make_auth_response(result)
 
 
@@ -310,8 +319,8 @@ def api_search():
 def api_admin_reindex():
     if not current_user.is_authenticated() or not current_user.is_admin():
         return login_manager.unauthorized()
-    wiki.index.reset(wiki.getPages())
-    result = { 'ok': 1 }
+    g.wiki.index.reset(g.wiki.getPages())
+    result = {'ok': 1}
     return make_auth_response(result)
 
 
@@ -321,11 +330,11 @@ def api_user_login():
     password = request.form.get('password')
     remember = request.form.get('remember')
 
-    user = wiki.auth.getUser(username)
+    user = g.wiki.auth.getUser(username)
     if user is not None:
         if app.bcrypt.check_password_hash(user.password, password):
             login_user(user, remember=bool(remember))
-            result = { 'username': username, 'logged_in': 1 }
+            result = {'username': username, 'logged_in': 1}
             return make_auth_response(result)
     abort(401)
 
@@ -333,7 +342,7 @@ def api_user_login():
 @app.route('/api/user/is_logged_in')
 def api_user_is_logged_in():
     if current_user.is_authenticated():
-        result = { 'logged_in': True }
+        result = {'logged_in': True}
         return make_auth_response(result)
     abort(401)
 
@@ -341,15 +350,14 @@ def api_user_is_logged_in():
 @app.route('/api/user/logout', methods=['POST'])
 def api_user_logout():
     logout_user()
-    result = { 'ok': 1 }
+    result = {'ok': 1}
     return make_auth_response(result)
 
 
 @app.route('/api/user/info/<name>')
 def api_user_info(name):
-    user = wiki.auth.getUser(name)
+    user = g.wiki.auth.getUser(name)
     if user is not None:
-        result = { 'username': user.username, 'groups': user.groups }
+        result = {'username': user.username, 'groups': user.groups}
         return make_auth_response(result)
     abort(404)
-
