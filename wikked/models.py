@@ -1,4 +1,0 @@
-
-class Page(object):
-    pass
-
