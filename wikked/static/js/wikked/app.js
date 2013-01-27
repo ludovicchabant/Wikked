@@ -32,8 +32,8 @@ define([
         readPage: function(path) {
             path_clean = this.stripQuery(path);
             no_redirect = this.getQueryVariable('no_redirect', path);
-            var view = new Views.PageReadView({ 
-                el: $('#app'), 
+            var view = new Views.PageReadView({
+                el: $('#app'),
                 model: new Models.PageReadModel({ path: path_clean })
             });
             if (no_redirect) {
@@ -47,7 +47,7 @@ define([
             this.readPage('main-page');
         },
         editPage: function(path) {
-            var view = new Views.PageEditView({ 
+            var view = new Views.PageEditView({
                 el: $('#app'),
                 model: new Models.PageEditModel({ path: path })
             });
@@ -76,7 +76,7 @@ define([
         readPageRevision: function(path, rev) {
             var view = new Views.PageRevisionView({
                 el: $('#app'),
-                rev: rev, 
+                rev: rev,
                 model: new Models.PageRevisionModel({ path: path, rev: rev })
             });
             view.model.setApp(this);
@@ -122,6 +122,7 @@ define([
                 model: new Models.LoginModel()
             });
             view.model.setApp(this);
+            view.render();
             this.navigate('/login');
         },
         doLogout: function() {
@@ -140,10 +141,24 @@ define([
                 model: new Models.SpecialPagesModel()
             });
             view.model.setApp(this);
+            view.render();
             this.navigate('/special');
         },
         showSpecialPage: function(page) {
-            var view = new Views.GenericSpecialPageView({
+            var viewType = false;
+            switch (page) {
+                case "changes":
+                    viewType = Views.SpecialChangesView;
+                    break;
+                case "orphans":
+                    viewType = Views.SpecialOrphansView;
+                    break;
+            }
+            if (viewType === false) {
+                console.error("Unsupported special page: ", page);
+                return;
+            }
+            var view = new viewType({
                 el: $('#app'),
                 model: new Models.GenericSpecialPageModel({ page: page })
             });

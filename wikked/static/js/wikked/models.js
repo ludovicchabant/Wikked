@@ -109,7 +109,7 @@ define([
                     $model.app.navigate('/', { trigger: true });
                 })
                 .error(function() {
-                    alert("Error while logging in...");
+                    $model.set('has_error', true);
                 });
         }
     });
@@ -159,11 +159,11 @@ define([
             this.set('content', new Handlebars.SafeString(text));
         }
     });
-    
+
     var PageStateModel = exports.PageStateModel = PageModel.extend({
         urlRoot: '/api/state/'
     });
-    
+
     var MasterPageModel = exports.MasterPageModel = PageModel.extend({
         initialize: function() {
             this.nav = new NavigationModel({ id: this.id });
@@ -216,8 +216,14 @@ define([
         initialize: function() {
             PageReadModel.__super__.initialize.apply(this, arguments);
             this.on('change', this._onChange, this);
+
+            // Add extra links to the footer.
+            var model = this;
+            this.footer.addExtraUrl('Pages Linking Here', function() { return '/#/inlinks/' + model.id; }, 1);
+            this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
         },
         _onChange: function() {
+            // Handle redirects.
             if (this.getMeta('redirect') && !this.get('no_redirect')) {
                 var oldPath = this.get('path');
                 this.set('path', this.getMeta('redirect'));
@@ -228,11 +234,6 @@ define([
                 });
                 this.app.navigate('/read/' + this.getMeta('redirect'), { replace: true });
             }
-        },
-        _onChangePath: function(path) {
-            PageReadModel.__super__._onChangePath.apply(this, arguments);
-            this.footer.addExtraUrl('Pages Linking Here', '/#/inlinks/' + path, 1);
-            this.footer.addExtraUrl('JSON', '/api/read/' + path);
         }
     });
 

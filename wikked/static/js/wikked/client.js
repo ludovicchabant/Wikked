@@ -132,7 +132,7 @@ define([
                 if (
                     directory === ".." && directories.length && prev !== ".." && prev !== "." && prev !== undefined && (prev !== "" || keepBlanks)) {
                     directories.pop();
-                prev = directories.slice(-1)[0]
+                prev = directories.slice(-1)[0];
             } else {
                 if (prev === ".") directories.pop();
                 directories.push(directory);
@@ -158,7 +158,7 @@ define([
             if (link[0] == '/') {
                 abs_link = link.substring(1);
             } else {
-                raw_abs_link = this.baseUrl + link
+                raw_abs_link = this.baseUrl + link;
                 abs_link = normalizeArray(raw_abs_link.split('/')).join('/');
             }
             ansi_link = removeDiacritics(abs_link);
@@ -166,7 +166,7 @@ define([
         },
         formatText: function(text) {
             var $f = this;
-            text = text.replace(/^\[\[((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+)\:\s*(.*)\]\]\s*$/gm, function(m, a, b, c) {
+            text = text.replace(/^\{\{((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+)\:\s*(.*)\}\}\s*$/gm, function(m, a, b, c) {
                 if (!c) {
                     c = 'true';
                 }

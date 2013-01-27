@@ -8,9 +8,31 @@ define([
         'handlebars',
         './client',
         './models',
-        './util'
+        './util',
+        'text!/tpl/read-page.html',
+        'text!/tpl/edit-page.html',
+        'text!/tpl/history-page.html',
+        'text!/tpl/revision-page.html',
+        'text!/tpl/diff-page.html',
+        'text!/tpl/inlinks-page.html',
+        'text!/tpl/nav.html',
+        'text!/tpl/footer.html',
+        'text!/tpl/search-results.html',
+        'text!/tpl/login.html',
+        'text!/tpl/error-unauthorized.html',
+        'text!/tpl/error-not-found.html',
+        'text!/tpl/error-unauthorized-edit.html',
+        'text!/tpl/state-warning.html',
+        'text!/tpl/special-nav.html',
+        'text!/tpl/special-pages.html',
+        'text!/tpl/special-changes.html',
+        'text!/tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars, Client, Models, Util) {
+    function($, _, Backbone, Handlebars, Client, Models, Util,
+        tplReadPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
+        tplNav, tplFooter, tplSearchResults, tplLogin,
+        tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
+        tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialOrphans) {
 
     var exports = {};
 
@@ -23,24 +45,24 @@ define([
                 var $view = this;
                 this.model.on("change", function() { $view._onModelChange(); });
             }
+            if (this.templateSource !== undefined) {
+                this.template = Handlebars.compile(_.result(this, 'templateSource'));
+            }
             return this;
         },
         render: function(view) {
-            if (this.templateName !== undefined) {
-                this.renderTemplate(_.result(this, 'templateName'), this.renderCallback);
+            console.log("Rendering!");
+            if (this.template !== undefined) {
+                this.renderTemplate(this.template);
+                if (this.renderCallback !== undefined) {
+                    this.renderCallback();
+                }
             }
             this.renderTitle(this.titleFormat);
             return this;
         },
-        renderTemplate: function(tpl_name, callback) {
-            var $view = this;
-            Util.TemplateLoader.get(tpl_name, function(src) {
-                var template = Handlebars.compile(src);
-                $view.$el.html(template($view.model.toJSON()));
-                if (callback !== undefined) {
-                    callback.call($view, $view, $view.model);
-                }
-            });
+        renderTemplate: function(tpl) {
+            this.$el.html(tpl(this.model.toJSON()));
         },
         renderTitle: function(formatter) {
             var title = this.model.title();
@@ -50,100 +72,100 @@ define([
             document.title = title;
         },
         _onModelChange: function() {
+            console.log("Model changed!");
             this.render();
         }
     });
     _.extend(PageView, Backbone.Events);
 
     var NavigationView = exports.NavigationView = PageView.extend({
-        templateName: 'nav',
+        templateSource: tplNav,
         initialize: function() {
             NavigationView.__super__.initialize.apply(this, arguments);
-            this.render();
             return this;
         },
         render: function() {
-            this.renderTemplate(this.templateName);
+            console.log("Rendering navigation!");
+            this.renderTemplate(this.template);
+            this.origPageEl = $('#app .page');
+            return this;
         },
-        postRender: function() {
-            var model = this.model;
-            this.$('#search').submit(function(e) {
-                e.preventDefault();
-                model.doSearch(this);
-                return false;
-            });
-            var $view = this;
-            Util.TemplateLoader.get('search-results', function(src) {
-                var template = Handlebars.compile(src);
-                var origPageEl = $('#app .page');
-
-                $view.$('#search .search-query')
-                    .on('input', function() {
-                        var curPreviewEl = $('#app .page[class~="preview-search-results"]');
-
-                        // Restore the original content if the query is now
-                        // empty. Otherwise, run a search and render only the
-                        // `.page` portion of the results page.
-                        var query = $(this).val();
-                        if (query && query.length > 0) {
-                            model.doPreviewSearch(query, function(data) {
-                                data.is_instant = true;
-                                var resultList = $(template(data));
-                                var inner = $('.page', resultList)
-                                    .addClass('preview-search-results')
-                                    .detach();
-                                if (origPageEl.is(':visible')) {
-                                    inner.insertAfter(origPageEl);
-                                    origPageEl.hide();
-                                } else {
-                                    curPreviewEl.replaceWith(inner);
-                                }
-                            });
-                        } else {
-                            curPreviewEl.remove();
-                            origPageEl.show();
-                        }
-                    })
-                    .keyup(function(e) {
-                        if (e.keyCode == 27) {
-                            // Clear search on `Esc`.
-                            $(this).val('').trigger('input');
-                        }
-                    });
-            });
+        events: {
+            "submit #search": "_submitSearch",
+            "input #search>.search-query": "_previewSearch",
+            "keyup #search>.search-query": "_searchQueryChanged"
+        },
+        _submitSearch: function(e) {
+            e.preventDefault();
+            this.model.doSearch(e.currentTarget);
+            return false;
+        },
+        _previewSearch: function(e) {
+            // Restore the original content if the query is now
+            // empty. Otherwise, run a search and render only the
+            // `.page` portion of the results page.
+            var origPageEl = this.origPageEl;
+            var curPreviewEl = $('#app .page[class~="preview-search-results"]');
+            var query = $(e.currentTarget).val();
+            if (query && query.length > 0) {
+                var template = Handlebars.compile(tplSearchResults);
+                this.model.doPreviewSearch(query, function(data) {
+                    data.is_instant = true;
+                    var resultList = $(template(data));
+                    var inner = $('.page', resultList)
+                        .addClass('preview-search-results')
+                        .detach();
+                    if (origPageEl.is(':visible')) {
+                        inner.insertAfter(origPageEl);
+                        origPageEl.hide();
+                    } else {
+                        curPreviewEl.replaceWith(inner);
+                    }
+                });
+            } else {
+                curPreviewEl.remove();
+                origPageEl.show();
+            }
+        },
+        _searchQueryChanged: function(e) {
+            if (e.keyCode == 27) {
+                // Clear search on `Esc`.
+                $(e.currentTarget).val('').trigger('input');
+            }
         }
     });
 
     var FooterView = exports.FooterView = PageView.extend({
-        templateName:  'footer',
+        templateSource: tplFooter,
         initialize: function() {
             FooterView.__super__.initialize.apply(this, arguments);
-            this.render();
             return this;
         },
         render: function() {
-            this.renderTemplate('footer');
-        },
-        postRender: function() {
+            console.log("Rendering footer!");
+            this.renderTemplate(this.template);
+            return this;
         }
     });
 
     var LoginView = exports.LoginView = PageView.extend({
-        templateName: 'login',
+        templateSource: tplLogin,
         initialize: function() {
             LoginView.__super__.initialize.apply(this, arguments);
-            this.render();
             return this;
         },
         render: function() {
-            this.renderTemplate('login', function(view, model) {
-                this.$('#login').submit(function(e) {
-                    e.preventDefault();
-                    model.doLogin(this);
-                    return false;
-                });
-            });
+            this.renderTemplate(this.template);
             document.title = 'Login';
+            return this;
+        },
+        events: {
+            "submit #login": "_submitLogin"
+        },
+        _submitLogin: function(e) {
+            e.preventDefault();
+            this.model.doLogin(e.currentTarget);
+            return false;
         }
     });
 
@@ -152,23 +174,22 @@ define([
             MasterPageView.__super__.initialize.apply(this, arguments);
             this.nav = this._createNavigation(this.model.nav);
             this.footer = this._createFooter(this.model.footer);
-            this.render();
             return this;
         },
-        renderCallback: function(view, model) {
-            this.nav.$el.prependTo(this.$el);
-            this.nav.postRender();
-            this.footer.$el.appendTo(this.$el);
-            this.footer.postRender();
+        renderCallback: function() {
+            this.$el.prepend('<div id="nav"></div>');
+            this.$el.append('<div id="footer"></div>');
+            this.nav.setElement(this.$('#nav')).render();
+            this.footer.setElement(this.$('#footer')).render();
         },
-        templateName: function() {
+        templateSource: function() {
             switch (this.model.get('error_code')) {
                 case 401:
-                    return 'error-unauthorized';
+                    return tplErrorNotAuthorized;
                 case 404:
-                    return 'error-not-found';
+                    return tplErrorNotFound;
                 default:
-                    return _.result(this, 'defaultTemplateName');
+                    return _.result(this, 'defaultTemplateSource');
             }
         },
         _createNavigation: function(model) {
@@ -180,12 +201,15 @@ define([
     });
 
     var PageReadView = exports.PageReadView = MasterPageView.extend({
-        defaultTemplateName: 'read-page',
+        defaultTemplateSource: tplReadPage,
         initialize: function() {
+            console.log("Initializing PageReadView");
             PageReadView.__super__.initialize.apply(this, arguments);
+            this.warningTemplate = Handlebars.compile(tplStateWarning);
             return this;
         },
-        renderCallback: function(view, model) {
+        renderCallback: function() {
+            console.log("Rendering PageReadView: " + this.model.get('path'));
             PageReadView.__super__.renderCallback.apply(this, arguments);
             // Replace all wiki links with proper hyperlinks using the JS app's
             // URL scheme.
@@ -197,21 +221,38 @@ define([
                     jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
             });
         },
-        _fetchState: function() {
+        events: {
+            "click .wiki-link": "_navigateLink"
+        },
+        _navigateLink: function(e) {
+            var url = $(e.currentTarget).attr('data-wiki-url');
+            this.model.app.navigate('/read/' + url);
+            this.model.set('path', url);
+            this.model.fetch();
+            e.preventDefault();
+            return false;
+        },
+        _lastFetchedStatePath: false,
+        _onModelChange: function() {
+            PageReadView.__super__._onModelChange.apply(this, arguments);
+
+            // Fetch the state if the current page changed.
+            if (this._lastFetchedStatePath == this.model.get('path'))
+                return;
+            this._lastFetchedStatePath = this.model.get('path');
+
+            var stateTpl = this.warningTemplate;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
             stateModel.fetch({
                 success: function(model, response, options) {
                     if (model.get('state') == 'new' || model.get('state') == 'modified') {
-                        Util.TemplateLoader.get('state-warning', function(src) {
-                            var template = Handlebars.compile(src);
-                            var warning = $(template(model.toJSON()));
-                            warning.css('display', 'none');
-                            warning.prependTo($('#app .page'));
-                            warning.slideDown();
-                            $('.dismiss', warning).click(function() {
-                                warning.slideUp();
-                                return false;
-                            });
+                        var warning = $(stateTpl(model.toJSON()));
+                        warning.css('display', 'none');
+                        warning.prependTo($('#app .page'));
+                        warning.slideDown();
+                        $('.dismiss', warning).click(function() {
+                            warning.slideUp();
+                            return false;
                         });
                     }
                 }
@@ -220,15 +261,13 @@ define([
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
-        templateName: function() {
-            switch (this.model.get('error_code')) {
-                case 401:
-                    return 'error-unauthorized-edit';
-                default:
-                    return 'edit-page';
+        templateSource: function() {
+            if (this.model.get('error_code') == 401) {
+                return tplErrorUnauthorizedEdit;
             }
+            return tplEditPage;
         },
-        renderCallback: function(view, model) {
+        renderCallback: function() {
             PageEditView.__super__.renderCallback.apply(this, arguments);
 
             // Create the Markdown editor.
@@ -242,42 +281,43 @@ define([
             editor.run();
             var editor_control = this.$('textarea#wmd-input');
             editor_control.outerWidth(this.$('.wmd-input-wrapper').innerWidth());
-
+        },
+        events: {
+            "mousedown .wmd-input-grip": "_inputGripMouseDown",
+            "click .wmd-preview-wrapper>h3>a": "_togglePreview",
+            "submit #page-edit": "_submitEditedPage"
+        },
+        _inputGripMouseDown: function(e) {
             // Input area resizing with the grip.
             var last_pageY;
-            this.$(".wmd-input-grip")
-                .mousedown(function(e) {
+            last_pageY = e.pageY;
+            $('body')
+                .on('mousemove.wikked.editor_resize', function(e) {
+                    editor_control.height(editor_control.height() + e.pageY - last_pageY);
                     last_pageY = e.pageY;
-                    $('body')
-                        .on('mousemove.wikked.editor_resize', function(e) {
-                            editor_control.height(editor_control.height() + e.pageY - last_pageY);
-                            last_pageY = e.pageY;
-                        })
-                        .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) {
-                            $('body').off('.wikked.editor_resize');
-                        });
+                })
+                .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) {
+                    $('body').off('.wikked.editor_resize');
                 });
-
+        },
+        _togglePreview: function(e) {
             // Show/hide live preview.
-            this.$('.wmd-preview-wrapper>h3>a').on('click', function(e) {
-                $('#wmd-preview').fadeToggle(function() {
-                    var icon = $('.wmd-preview-wrapper>h3>a i');
-                    if (icon.hasClass('icon-minus')) {
-                        icon.removeClass('icon-minus');
-                        icon.addClass('icon-plus');
-                    } else {
-                        icon.removeClass('icon-plus');
-                        icon.addClass('icon-minus');
-                    }
-                });
+            this.$('#wmd-preview').fadeToggle(function() {
+                var icon = this.$('.wmd-preview-wrapper>h3>a i');
+                if (icon.hasClass('icon-minus')) {
+                    icon.removeClass('icon-minus');
+                    icon.addClass('icon-plus');
+                } else {
+                    icon.removeClass('icon-plus');
+                    icon.addClass('icon-minus');
+                }
             });
-
+        },
+        _submitEditedPage: function(e) {
             // Make the model submit the form.
-            this.$('#page-edit').submit(function(e) {
-                e.preventDefault();
-                model.doEdit(this);
-                return false;
-            });
+            e.preventDefault();
+            this.model.doEdit(e.currentTarget);
+            return false;
         },
         titleFormat: function(title) {
             return 'Editing: ' + title;
@@ -285,14 +325,14 @@ define([
     });
 
     var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({
-        defaultTemplateName: 'history-page',
-        renderCallback: function(view, model) {
-            PageHistoryView.__super__.renderCallback.apply(this, arguments);
-            this.$('#diff-page').submit(function(e) {
-                e.preventDefault();
-                model.doDiff(this);
-                return false;
-            });
+        defaultTemplateSource: tplHistoryPage,
+        events: {
+            "submit #diff-page": "_submitDiffPage"
+        },
+        _submitDiffPage: function(e) {
+            e.preventDefault();
+            this.model.doDiff(this);
+            return false;
         },
         titleFormat: function(title) {
             return 'History: ' + title;
@@ -300,50 +340,47 @@ define([
     });
 
     var PageRevisionView = exports.PageRevisionView = MasterPageView.extend({
-        defaultTemplateName: 'revision-page',
+        defaultTemplateSource: tplRevisionPage,
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev') + ']';
         }
     });
 
     var PageDiffView = exports.PageDiffView = MasterPageView.extend({
-        defaultTemplateName: 'diff-page',
+        defaultTemplateSource: tplDiffPage,
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev1') + '-' + this.model.get('rev2') + ']';
         }
     });
 
     var IncomingLinksView = exports.IncomingLinksView = MasterPageView.extend({
-        defaultTemplateName: 'inlinks-page',
+        defaultTemplateSource: tplInLinksPage,
         titleFormat: function(title) {
             return 'Incoming Links: ' + title;
         }
     });
 
     var WikiSearchView = exports.WikiSearchView = MasterPageView.extend({
-        defaultTemplateName: 'search-results'
+        defaultTemplateSource: tplSearchResults
     });
 
     var SpecialNavigationView = exports.SpecialNavigationView = NavigationView.extend({
-        defaultTemplateName: 'special-nav'
+        templateSource: tplSpecialNav
     });
 
-    var SpecialPagesView = exports.SpecialPagesView = MasterPageView.extend({
-        defaultTemplateName: 'special-pages',
+    var SpecialMasterPageView = exports.SpecialMasterPageView = MasterPageView.extend({
         _createNavigation: function(model) {
-            model.set('show_root_link', false);
+            model.set('show_root_link', true);
             return new SpecialNavigationView({ model: model });
         }
     });
 
-    var GenericSpecialPageView = exports.GenericSpecialPageView = MasterPageView.extend({
-        defaultTemplateName: function() {
-            return 'special-' + this.model.get('page');
-        },
-        _createNavigation: function(model) {
-            model.set('show_root_link', true);
-            return new SpecialNavigationView({ model: model });
-        },
+    var SpecialPagesView = exports.SpecialPagesView = SpecialMasterPageView.extend({
+        defaultTemplateSource: tplSpecialPages
+    });
+
+    var SpecialChangesView = exports.SpecialChangesView = SpecialMasterPageView.extend({
+        defaultTemplateSource: tplSpecialChanges,
         _onModelChange: function() {
             var history = this.model.get('history');
             if (history) {
@@ -369,8 +406,12 @@ define([
                 }
                 this.model.set('history', history);
             }
-            this.render();
+            SpecialChangesView.__super__._onModelChange.apply(this, arguments);
         }
+    });
+
+    var SpecialOrphansView = exports.SpecialOrphansView = SpecialMasterPageView.extend({
+        defaultTemplateSource: tplSpecialOrphans
     });
 
     return exports;

@@ -44,9 +44,10 @@ require([
         'wikked/app',
         'wikked/handlebars',
         'backbone',
-        'bootstrap'
+        'bootstrap',
+        'text'
         ],
-    function(app, hb, Backbone) {
+    function(app, hb, Backbone, textExtension) {
 
     var router = new app.Router();
     Backbone.history.start();//{ pushState: true });

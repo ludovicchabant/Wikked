@@ -1,6 +1,16 @@
+<nav class="row">
+    <div class="span12">
+        <a href="/">Home</a>
+    </div>
+</nav>
 <div class="row">
     <div class="page span12">
         <h1>Login</h1>
+        {{#if has_error}}
+        <div class="alert alert-error">
+            <strong>Begone!</strong> Those credentials don't seem to work here.
+        </div>
+        {{/if}}
         <form id="login">
             <div class="control-group input-prepend">
                 <label for="username" class="control-label add-on">Username: </label>
@@ -18,4 +28,6 @@
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
     </div>
+</div>
+<div class="row meta">
 </div>
