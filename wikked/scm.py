@@ -18,8 +18,7 @@ ACTION_NAMES = ['add', 'delete', 'edit']
 
 
 class SourceControl(object):
-    def __init__(self, root, logger=None):
-        self.root = root
+    def __init__(self, logger=None):
         self.logger = logger
         if logger is None:
             self.logger = logging.getLogger('wikked.scm')
@@ -27,7 +26,7 @@ class SourceControl(object):
     def initRepo(self):
         raise NotImplementedError()
 
-    def getSpecialDirs(self):
+    def getSpecialFilenames(self):
         raise NotImplementedError()
 
     def getHistory(self, path=None):
@@ -68,7 +67,8 @@ class Revision(object):
 
 class MercurialSourceControl(SourceControl):
     def __init__(self, root, logger=None):
-        SourceControl.__init__(self, root, logger)
+        SourceControl.__init__(self, logger)
+        self.root = root
 
         self.hg = 'hg'
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
@@ -93,15 +93,15 @@ class MercurialSourceControl(SourceControl):
             self._run('add', ignore_path)
             self._run('commit', ignore_path, '-m', 'Created .hgignore.')
 
-    def getSpecialDirs(self):
-        specials = [ '.hg', '.hgignore', '.hgtags' ]
-        return [ os.path.join(self.root, d) for d in specials ]
+    def getSpecialFilenames(self):
+        specials = ['.hg', '.hgignore', '.hgtags']
+        return [os.path.join(self.root, d) for d in specials]
 
     def getHistory(self, path=None):
         if path is not None:
             st_out = self._run('status', path)
             if len(st_out) > 0 and st_out[0] == '?':
-                return [ Revision() ]
+                return [Revision()]
 
         log_args = []
         if path is not None:
@@ -131,7 +131,7 @@ class MercurialSourceControl(SourceControl):
 
     def diff(self, path, rev1, rev2):
         if rev2 is None:
-            diff_out = self._run('diff', '-c', rev1, '--git', path);
+            diff_out = self._run('diff', '-c', rev1, '--git', path)
         else:
             diff_out = self._run('diff', '-r', rev1, '-r', rev2, '--git', path)
         return diff_out
@@ -156,9 +156,9 @@ class MercurialSourceControl(SourceControl):
 
         # Commit and clean up the temp file.
         try:
-            commit_args = list(paths) + [ '-l', temp ]
+            commit_args = list(paths) + ['-l', temp]
             if 'author' in op_meta:
-                commit_args += [ '-u', op_meta['author'] ]
+                commit_args += ['-u', op_meta['author']]
             self._run('commit', *commit_args)
         finally:
             os.remove(temp)
@@ -194,16 +194,15 @@ class MercurialSourceControl(SourceControl):
         for j in range(i + 1, len(lines)):
             if lines[j] == '':
                 continue
-            rev.files.append({ 'path': lines[j][2:], 'action': self.actions[lines[j][0]] })
+            rev.files.append({'path': lines[j][2:], 'action': self.actions[lines[j][0]]})
 
         return rev
 
     def _run(self, cmd, *args, **kwargs):
-        exe = [ self.hg ]
+        exe = [self.hg]
         if 'norepo' not in kwargs or not kwargs['norepo']:
-            exe += [ '-R', self.root ]
+            exe += ['-R', self.root]
         exe.append(cmd)
         exe += args
         self.logger.debug("Running Mercurial: " + str(exe))
         return subprocess.check_output(exe)
-

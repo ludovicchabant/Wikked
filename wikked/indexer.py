@@ -8,8 +8,7 @@ from whoosh.qparser import QueryParser
 
 
 class WikiIndex(object):
-    def __init__(self, store_dir, logger=None):
-        self.store_dir = store_dir
+    def __init__(self, logger=None):
         self.logger = logger
         if logger is None:
             self.logger = logging.getLogger('wikked.index')
@@ -29,7 +28,8 @@ class WikiIndex(object):
 
 class WhooshWikiIndex(WikiIndex):
     def __init__(self, store_dir, logger=None):
-        WikiIndex.__init__(self, store_dir, logger)
+        WikiIndex.__init__(self, logger)
+        self.store_dir = store_dir
 
     def initIndex(self):
         if not os.path.isdir(self.store_dir):

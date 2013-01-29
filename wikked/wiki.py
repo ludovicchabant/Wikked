@@ -8,94 +8,129 @@ import markdown
 import textile
 import creole
 from page import Page, DatabasePage
-from cache import Cache
 from fs import FileSystem
-from db import SQLiteDatabase
+from db import SQLiteDatabase, conn_scope
 from scm import MercurialSourceControl
 from indexer import WhooshWikiIndex
 from auth import UserManager
 
 
+def passthrough_formatter(text):
+    """ Passthrough formatter. Pretty simple stuff.
+    """
+    return text
+
+
 class InitializationError(Exception):
+    """ An exception that can get raised while the wiki gets
+        initialized.
+    """
     pass
 
 
-class Wiki(object):
-    def __init__(self, root=None, logger=None):
+class WikiParameters(object):
+    """ An object that defines how a wiki gets initialized.
+    """
+    def __init__(self, root=None):
         if root is None:
             root = os.getcwd()
+        self.root = root
 
-        self.logger = logger
-        if logger is None:
-            self.logger = logging.getLogger('wikked.wiki')
-        self.logger.debug("Initializing wiki at: " + root)
+        self.formatters = {
+            markdown.markdown: ['md', 'mdown', 'markdown'],
+            textile.textile: ['tl', 'text', 'textile'],
+            creole.creole2html: ['cr', 'creole'],
+            passthrough_formatter: ['txt', 'html']
+        }
+        self.config_path = os.path.join(self.root, '.wikirc')
+        self.index_path = os.path.join(self.root, '.wiki', 'index')
+        self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
 
         self.page_factory = DatabasePage.factory
-        self.use_db = True
-        self.formatters = {
-                markdown.markdown: ['md', 'mdown', 'markdown'],
-                textile.textile: ['tl', 'text', 'textile'],
-                creole.creole2html: ['cr', 'creole'],
-                self._passthrough: ['txt', 'html']
-                }
 
-        self.default_config_path = os.path.join(
-            os.path.dirname(__file__), 'resources', 'defaults.cfg')
-        self.config_path = os.path.join(root, '.wikirc')
-        self.config = self._loadConfig()
+    def logger_factory(self):
+        if getattr(self, 'logger', None):
+            return self.logger
+        return logging.getLogger('wikked.wiki')
 
-        self.fs = FileSystem(root, slugify=Page.title_to_url)
-        self.auth = UserManager(self.config, logger=self.logger)
-        self.index = WhooshWikiIndex(os.path.join(root, '.wiki', 'index'),
-            logger=self.logger)
-        self.db = SQLiteDatabase(self, logger=self.logger)
-        self.scm = self._createScm()
-        self.cache = self._createJsonCache()
+    def config_factory(self):
+        return open(self.config_path)
 
-        self.fs.page_extensions = list(set(
-            itertools.chain(*self.formatters.itervalues())))
-        self.fs.excluded.append(self.config_path)
-        self.fs.excluded.append(os.path.join(root, '.wiki'))
-        if self.scm is not None:
-            self.fs.excluded += self.scm.getSpecialDirs()
+    def fs_factory(self, config):
+        return FileSystem(self.root, slugify=Page.title_to_url, logger=self.logger_factory())
 
-    def _createScm(self):
-        scm_type = self.config.get('wiki', 'scm')
+    def index_factory(self, config):
+        return WhooshWikiIndex(self.index_path, logger=self.logger_factory())
+
+    def db_factory(self, config):
+        return SQLiteDatabase(self.db_path, logger=self.logger_factory())
+
+    def scm_factory(self, config):
+        scm_type = config.get('wiki', 'scm')
         if scm_type == 'hg':
-            return MercurialSourceControl(self.fs.root, self.logger)
+            return MercurialSourceControl(self.root, logger=self.logger_factory())
         else:
             raise InitializationError("No such source control: " + scm_type)
 
-    def _createJsonCache(self):
-        if (not self.config.has_option('wiki', 'cache') or
-                self.config.getboolean('wiki', 'cache')):
-            return Cache(os.path.join(self.fs.root, '.wiki', 'cache'))
-        else:
-            return None
+    def getSpecialFilenames(self):
+        yield self.config_path
+        yield os.path.join(self.root, '.wiki')
 
-    def _loadConfig(self):
-        config = SafeConfigParser()
-        config.readfp(open(self.default_config_path))
-        config.read(self.config_path)
-        return config
+
+class Wiki(object):
+    """ The wiki class! This is where the magic happens.
+    """
+    def __init__(self, parameters):
+        """ Creates a new wiki instance. It won't be fully functional
+            until you call `start`, which does the actual initialization.
+            This gives you a chance to customize a few more things before
+            getting started.
+        """
+        if parameters is None:
+            raise ValueError("No parameters were given to the wiki.")
+
+        self.logger = parameters.logger_factory()
+        self.logger.debug("Initializing wiki.")
+
+        self.config = self._loadConfig(parameters)
+
+        self.formatters = parameters.formatters
+        self.page_factory = DatabasePage.factory
+
+        self.fs = parameters.fs_factory(self.config)
+        self.index = parameters.index_factory(self.config)
+        self.db = parameters.db_factory(self.config)
+        self.scm = parameters.scm_factory(self.config)
+
+        self.auth = UserManager(self.config, logger=self.logger)
+
+        self.fs.page_extensions = list(set(
+            itertools.chain(*self.formatters.itervalues())))
+        self.fs.excluded += parameters.getSpecialFilenames()
+        self.fs.excluded += self.scm.getSpecialFilenames()
 
     def start(self, update=True):
-        if self.scm is not None:
-            self.scm.initRepo()
-        if self.index is not None:
-            self.index.initIndex()
-        if self.db is not None:
-            self.db.initDb()
+        """ Properly initializes the wiki and all its sub-systems.
+        """
+        self.scm.initRepo()
+        self.index.initIndex()
+        self.db.initDb()
 
         if update:
-            pass
+            with conn_scope(self.db):
+                self.db.update(self.getPages(from_db=False, factory=Page.factory))
+                self.index.update(self.getPages())
 
-    @property
-    def root(self):
-        return self.fs.root
+    def stop(self):
+        self.db.close()
 
     def getPageUrls(self, subdir=None, from_db=True):
-        if from_db and self.db:
+        """ Returns all the page URLs in the wiki, or in the given
+            sub-directory.
+            By default, it queries the DB, but it can query the file-system
+            directly if `from_db` is `False`.
+        """
+        if from_db:
             for url in self.db.getPageUrls(subdir):
                 yield url
         else:
@@ -103,17 +138,29 @@ class Wiki(object):
                 yield info['url']
 
     def getPages(self, subdir=None, from_db=True, factory=None):
+        """ Gets all the pages in the wiki, or in the given sub-directory.
+            By default it will use the DB to fetch the list of pages, but it
+            can scan the file-system directly if `from_db` is `False`. If
+            that's the case, it's probably a good idea to provide a custom
+            `factory` for creating `Page` instances, since by default it will
+            use `DatabasePage` which also uses the DB to load its information.
+        """
         if factory is None:
             factory = self.page_factory
         for url in self.getPageUrls(subdir, from_db):
             yield factory(self, url)
 
     def getPage(self, url, factory=None):
+        """ Gets the page for a given URL.
+        """
         if factory is None:
             factory = self.page_factory
         return factory(self, url)
 
     def setPage(self, url, page_fields):
+        """ Updates or creates a page for a given URL.
+        """
+        # Validate the parameters.
         if 'author' not in page_fields:
             raise ValueError(
                 "No author specified for editing page '%s'." % url)
@@ -121,14 +168,14 @@ class Wiki(object):
             raise ValueError(
                 "No commit message specified for editing page '%s'." % url)
 
+        # Save the new/modified text.
         do_commit = False
         path = self.fs.getPhysicalPagePath(url)
-
         if 'text' in page_fields:
-            with open(path, 'w') as f:
-                f.write(page_fields['text'])
+            self.fs.setPage(path, page_fields['text'])
             do_commit = True
 
+        # Commit the file to the source-control.
         if do_commit:
             commit_meta = {
                     'author': page_fields['author'],
@@ -136,21 +183,37 @@ class Wiki(object):
                     }
             self.scm.commit([path], commit_meta)
 
-        if self.db is not None:
-            self.db.update([self.getPage(url)])
-        if self.index is not None:
-            self.index.update([self.getPage(url)])
+        # Update the DB and index with the new/modified page.
+        self.db.update([self.getPage(url)])
+        self.index.update([self.getPage(url)])
 
     def pageExists(self, url, from_db=True):
+        """ Returns whether a page exists at the given URL.
+            By default it will query the DB, but it can query the underlying
+            file-system directly if `from_db` is `False`.
+        """
         if from_db:
             return self.db.pageExists(url)
         return self.fs.pageExists(url)
 
     def getHistory(self):
+        """ Shorthand method to get the history from the source-control.
+        """
         return self.scm.getHistory()
 
-    def _passthrough(self, content):
-        return content
+    def _loadConfig(self, parameters):
+        # Merge the default settings with any settings provided by
+        # the parameters.
+        default_config_path = os.path.join(
+            os.path.dirname(__file__), 'resources', 'defaults.cfg')
+        config = SafeConfigParser()
+        config.readfp(open(default_config_path))
+
+        fp = parameters.config_factory()
+        config.readfp(fp)
+        fp.close()
+
+        return config
 
 
 def reloader_stat_loop(wiki, interval=1):

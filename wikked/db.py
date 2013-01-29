@@ -28,9 +28,7 @@ class conn_scope(object):
 class Database(object):
     """ The base class for a database cache.
     """
-    def __init__(self, wiki, logger=None):
-        self.wiki = wiki
-
+    def __init__(self, logger=None):
         if logger is None:
             logger = logging.getLogger('wikked.db')
         self.logger = logger
@@ -65,60 +63,46 @@ class Database(object):
     def getLinksTo(self, url):
         raise NotImplementedError()
 
-    def getConfigValues(self, section):
-        raise NotImplementedError()
-
-    def getConfigValue(self, section, name):
-        raise NotImplementedError()
-
 
 class SQLiteDatabase(Database):
     """ A database cache based on SQLite.
     """
     schema_version = 1
 
-    def __init__(self, wiki, logger=None):
-        Database.__init__(self, wiki, logger)
-        self.db_path = os.path.join(wiki.root, '.wiki', 'wiki.db')
+    def __init__(self, db_path, logger=None):
+        Database.__init__(self, logger)
+        self.db_path = db_path
         self.conn = None
 
     def initDb(self):
         create_schema = False
-        if not os.path.isdir(os.path.dirname(self.db_path)):
-            # No database on disk... create one.
-            self.logger.debug("Creating SQL database.")
-            os.makedirs(os.path.dirname(self.db_path))
-            create_schema = True
-        else:
-            # The existing schema is outdated, re-create it.
-            schema_version = self._getSchemaVersion()
-            if schema_version < self.schema_version:
+        if self.db_path != ':memory:':
+            if not os.path.isdir(os.path.dirname(self.db_path)):
+                # No database on disk... create one.
+                self.logger.debug("Creating SQL database.")
+                os.makedirs(os.path.dirname(self.db_path))
                 create_schema = True
+            else:
+                # The existing schema is outdated, re-create it.
+                schema_version = self._getSchemaVersion()
+                if schema_version < self.schema_version:
+                    create_schema = True
+        else:
+            create_schema = True
         if create_schema:
             with conn_scope(self):
                 self._createSchema()
 
-        # Cache the configuration.
-        cache_config = False
-        config_time = self._getInfoTime('config_time')
-        if os.path.isfile(self.wiki.config_path):
-            if (config_time is None or
-                config_time <= datetime.datetime.fromtimestamp(
-                    os.path.getmtime(self.wiki.config_path))):
-                cache_config = True
-        elif config_time is not None:
-            cache_config = True
-        if cache_config:
-            self._cacheConfig(self.wiki.config)
-
     def open(self):
         if self.conn is None:
+            self.logger.debug("Opening connection")
             self.conn = sqlite3.connect(self.db_path,
                 detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
             self.conn.row_factory = sqlite3.Row
 
     def close(self):
         if self.conn is not None:
+            self.logger.debug("Closing connection")
             self.conn.close()
             self.conn = None
 
@@ -154,15 +138,9 @@ class SQLiteDatabase(Database):
             self.conn.commit()
 
             for page in pages:
-                # We want the page's path, but getting it may load all kinds
-                # of metadata that is time-consuming, so we shortcut the
-                # system by querying the file-system directly.
-                fs_meta = self.wiki.fs.getPage(page.url)
-                if (fs_meta['path'] in to_update or
-                    fs_meta['path'] not in already_added):
+                if (page.path in to_update or
+                    page.path not in already_added):
                     self._addPage(page, c)
-
-            # TODO: update any page with a query in it.
 
             self.conn.commit()
             self.logger.debug("...done updating SQL database.")
@@ -224,14 +202,6 @@ class SQLiteDatabase(Database):
                 sources.append(r['source'])
             return sources
 
-    def getConfigValues(self, section):
-        with conn_scope(self):
-            pass
-
-    def getConfigValue(self, section, name):
-        with conn_scope(self):
-            pass
-
     def _createSchema(self):
         self.logger.debug("Creating SQL schema...")
         c = self.conn.cursor()
@@ -258,11 +228,6 @@ class SQLiteDatabase(Database):
         c.execute('''CREATE TABLE meta
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
              page_id INTEGER,
-             name TEXT,
-             value TEXT)''')
-        c.execute('''DROP TABLE IF EXISTS config''')
-        c.execute('''CREATE TABLE config
-            (section TEXT,
              name TEXT,
              value TEXT)''')
         c.execute('''DROP TABLE IF EXISTS info''')
@@ -318,21 +283,6 @@ class SQLiteDatabase(Database):
             if row is None:
                 return 0
             return row[0]
-
-    def _cacheConfig(self, config):
-        self.logger.debug("Re-caching configuration into SQL database.")
-        with conn_scope(self):
-            c = self.conn.cursor()
-            c.execute('''DELETE FROM config''')
-            for section in config.sections():
-                items = config.items(section)
-                for item in items:
-                    c.execute('''INSERT INTO config
-                        (section, name, value) VALUES (?, ?, ?)''',
-                        (section, item[0], item[1]))
-            c.execute('''INSERT OR REPLACE INTO info (name, time_value)
-                VALUES ("config_time", ?)''', (datetime.datetime.now(),))
-            self.conn.commit()
 
     def _addPage(self, page, c):
         self.logger.debug("Adding page '%s' to SQL database." % page.url)

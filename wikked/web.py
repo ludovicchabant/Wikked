@@ -1,5 +1,5 @@
 from flask import Flask, abort, g
-from wiki import Wiki
+from wiki import Wiki, WikiParameters
 
 # Create the main app.
 app = Flask("wikked")
@@ -8,7 +8,9 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
 def create_wiki():
-    wiki = Wiki(root=app.config.get('WIKI_ROOT'), logger=app.logger)
+    params = WikiParameters(root=app.config.get('WIKI_ROOT'))
+    params.logger = app.logger
+    wiki = Wiki(params)
     wiki.start()
     return wiki
 
