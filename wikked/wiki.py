@@ -46,6 +46,7 @@ class WikiParameters(object):
         self.index_path = os.path.join(self.root, '.wiki', 'index')
         self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
 
+        self.use_db = True
         self.page_factory = DatabasePage.factory
 
     def logger_factory(self):
@@ -95,6 +96,7 @@ class Wiki(object):
         self.config = self._loadConfig(parameters)
 
         self.formatters = parameters.formatters
+        self.use_db = parameters.use_db
         self.page_factory = DatabasePage.factory
 
         self.fs = parameters.fs_factory(self.config)
@@ -124,12 +126,14 @@ class Wiki(object):
     def stop(self):
         self.db.close()
 
-    def getPageUrls(self, subdir=None, from_db=True):
+    def getPageUrls(self, subdir=None, from_db=None):
         """ Returns all the page URLs in the wiki, or in the given
             sub-directory.
             By default, it queries the DB, but it can query the file-system
             directly if `from_db` is `False`.
         """
+        if from_db is None:
+            from_db = self.use_db
         if from_db:
             for url in self.db.getPageUrls(subdir):
                 yield url
@@ -137,7 +141,7 @@ class Wiki(object):
             for info in self.fs.getPageInfos(subdir):
                 yield info['url']
 
-    def getPages(self, subdir=None, from_db=True, factory=None):
+    def getPages(self, subdir=None, from_db=None, factory=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
             By default it will use the DB to fetch the list of pages, but it
             can scan the file-system directly if `from_db` is `False`. If
@@ -145,6 +149,8 @@ class Wiki(object):
             `factory` for creating `Page` instances, since by default it will
             use `DatabasePage` which also uses the DB to load its information.
         """
+        if from_db is None:
+            from_db = self.use_db
         if factory is None:
             factory = self.page_factory
         for url in self.getPageUrls(subdir, from_db):
@@ -187,11 +193,13 @@ class Wiki(object):
         self.db.update([self.getPage(url)])
         self.index.update([self.getPage(url)])
 
-    def pageExists(self, url, from_db=True):
+    def pageExists(self, url, from_db=None):
         """ Returns whether a page exists at the given URL.
             By default it will query the DB, but it can query the underlying
             file-system directly if `from_db` is `False`.
         """
+        if from_db is None:
+            from_db = self.use_db
         if from_db:
             return self.db.pageExists(url)
         return self.fs.pageExists(url)
