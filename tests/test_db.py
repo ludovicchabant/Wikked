@@ -31,7 +31,12 @@ class DatabaseTest(WikkedTest):
             db_factory=self._dbFactory,
             fs_factory=self._fsFactory
             )
+
+        # Open the DB before we do anything so that it will be closed
+        # only on `tearDown` (memory DBs are discarded when the
+        # connection is closed.
         wiki.db.open()
+
         wiki.start()
         return wiki
 

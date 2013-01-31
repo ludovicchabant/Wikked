@@ -8,6 +8,7 @@ from mock import MockWikiParameters
 
 class WikkedTest(unittest.TestCase):
     def setUp(self):
+        # Directory you can use for temporary files.
         self.root = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             'test_data')

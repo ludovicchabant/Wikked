@@ -19,6 +19,7 @@ class MockWikiParameters(object):
 
         self.config_text = ""
         self.special_filenames = []
+        self.use_db = False
 
         self.logger_factory = lambda: logging.getLogger('wikked.tests')
         self.page_factory = lambda wiki, url: MockPage(wiki, url)
@@ -44,6 +45,7 @@ class MockDatabase(Database):
     def __init__(self, content=None, logger=None):
         Database.__init__(self, logger)
         self.content = content
+        self.conn = None
         self._open_count = 0
 
     def initDb(self):
@@ -51,12 +53,15 @@ class MockDatabase(Database):
 
     def open(self):
         self._open_count += 1
+        self.conn = 'MOCK_CONNECTION'
 
     def close(self):
         self._open_count -= 1
         if self._open_count < 0:
             raise Exception(
                 "The database was closed more times than it was open.")
+        elif self._open_count == 0:
+            self.conn = None
 
     def reset(self, pages):
         pass
@@ -93,26 +98,36 @@ class MockFileSystem():
 
     def getPageInfos(self, subdir=None):
         node = self._getNode(subdir)
+        if node is None:
+            raise PageNotFoundError()
         for n in self._getChildren(node):
             yield self._getPageInfo(n)
 
     def getPageInfo(self, path):
         node = self._getNode(path)
+        if node is None:
+            raise PageNotFoundError()
         return self._getPageInfo(node)
 
     def getPage(self, url):
         path = self._getPath(url, True)
         node = self._getNode(path)
+        if node is None:
+            raise PageNotFoundError()
         return self._getPageInfo(node, True)
 
     def setPage(self, path, content):
-        pass
+        raise NotImplementedError()
 
     def pageExists(self, url):
-        return False
+        try:
+            self._getPath(url, True)
+            return True
+        except PageNotFoundError:
+            return False
 
     def getPhysicalNamespacePath(self, url):
-        return None
+        raise NotImplementedError()
 
     def _getPageInfo(self, node, with_content=False):
         path_split = os.path.splitext(node['path'])
@@ -129,6 +144,8 @@ class MockFileSystem():
         node = self.structure
         if path:
             for n in path.split('/'):
+                if n not in node:
+                    return None
                 node = node[n]
         else:
             path = ''
