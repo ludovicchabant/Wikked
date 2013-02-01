@@ -4,6 +4,11 @@ from wikked.page import Page
 
 
 class PageTest(WikkedTest):
+    def _getWikiFromStructure(self, structure):
+        wiki = self.getWiki(use_db=False, fs_factory=lambda cfg: MockFileSystem(structure))
+        wiki.start()
+        return wiki
+
     def testSimplePage(self):
         self.wiki = self._getWikiFromStructure({
             'foo.txt': 'A test page.'
@@ -58,11 +63,6 @@ class PageTest(WikkedTest):
         self.assertEqual("Follow a link to the <a class=\"wiki-link\" data-wiki-url=\"sandbox\">Sandbox</a>. Or to <a class=\"wiki-link missing\" data-wiki-url=\"other-sandbox\">this page</a>.", page.formatted_text)
         self.assertEqual(set(['sandbox', 'other-sandbox']), set(page.local_links))
 
-    def _getWikiFromStructure(self, structure):
-        wiki = self.getWiki(use_db=False, fs_factory=lambda cfg: MockFileSystem(structure))
-        wiki.start()
-        return wiki
-
     def testPageRelativeOutLinks(self):
         self.wiki = self._getWikiFromStructure({
             'first.txt': "Go to [[First Sibling]].",
@@ -80,4 +80,38 @@ class PageTest(WikkedTest):
         self.assertEqual(['first', 'sub_dir/second-sibling'], second.local_links)
         second2 = Page(self.wiki, 'sub_dir/second-sibling')
         self.assertEqual(['sub_dir/second'], second2.local_links)
+
+    def testPageInclude(self):
+        self.wiki = self._getWikiFromStructure({
+            'Foo.txt': "A test page.\n{{include: trans-desc}}\n",
+            'Trans Desc.txt': "BLAH\n"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual(['trans-desc'], foo.local_includes)
+        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"trans-desc\"></div>\n", foo.formatted_text)
+        self.assertEqual("A test page.\nBLAH\n\n", foo.text)
+
+    def testPageIncludeWithMeta(self):
+        self.wiki = self._getWikiFromStructure({
+            'Foo.txt': "A test page.\n{{include: trans-desc}}\n",
+            'Trans Desc.txt': "BLAH: [[Somewhere]]\n{{bar: 42}}\n{{__secret: love}}\n{{+given: hope}}"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual(['trans-desc'], foo.local_includes)
+        self.assertEqual([], foo.local_links)
+        self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
+        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"trans-desc\"></div>\n", foo.formatted_text)
+        self.assertEqual("A test page.\nBLAH: <a class=\"wiki-link missing\" data-wiki-url=\"somewhere\">Somewhere</a>\n\n\n\n", foo.text)
+        self.assertEqual(['trans-desc'], foo.all_includes)
+        self.assertEqual(['somewhere'], foo.all_links)
+        self.assertEqual({'bar': '42', 'given': 'hope', 'include': 'trans-desc'}, foo.all_meta)
+
+    def testPageIncludeWithTemplating(self):
+        self.wiki = self._getWikiFromStructure({
+            'Foo.txt': "A test page.\n{{include: greeting|name=Dave|what=drink}}\n",
+            'Greeting.txt': "Hello {{name}}, would you like a {{what}}?"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"greeting\">name=Dave|what=drink</div>\n", foo.formatted_text)
+        self.assertEqual("A test page.\nHello Dave, would you like a drink?\n", foo.text)
 

@@ -111,10 +111,16 @@ class PageFormatter(object):
         return text
 
     def _processInclude(self, ctx, value):
-        included_url = ctx.getAbsoluteUrl(value)
+        pipe_idx = value.find('|')
+        if pipe_idx < 0:
+            included_url = ctx.getAbsoluteUrl(value)
+            parameters = ''
+        else:
+            included_url = ctx.getAbsoluteUrl(value[:pipe_idx])
+            parameters = value[pipe_idx + 1:]
         ctx.included_pages.append(included_url)
         # Includes are run on the fly.
-        return '<div class="wiki-include">%s</div>\n' % included_url
+        return '<div class="wiki-include" data-wiki-url="%s">%s</div>\n' % (included_url, parameters)
 
     def _processQuery(self, ctx, query):
         # Queries are run on the fly.
@@ -177,12 +183,12 @@ class PageResolver(object):
 
     def run(self):
         def repl(m):
-            meta_name = str(m.group(1))
-            meta_value = str(m.group(2))
+            meta_name = str(m.group('name'))
+            meta_value = str(m.group('value'))
             if meta_name == 'query':
                 return self._runQuery(meta_value)
             elif meta_name == 'include':
-                return self._runInclude(meta_value)
+                return self._runInclude(str(m.group('url')), meta_value)
             return ''
 
         self.ctx.url_trail = [self.page.url]
@@ -191,17 +197,30 @@ class PageResolver(object):
         self.ctx.meta = self.page.local_meta
 
         text = self.page.formatted_text
-        return re.sub(r'^<div class="wiki-([a-z]+)">(.*)</div>$', repl, text,
+        return re.sub(r'^<div class="wiki-(?P<name>[a-z]+)"( data-wiki-url="(?P<url>[^"]+)")?>(?P<value>.*)</div>$', repl, text,
             flags=re.MULTILINE)
 
-    def _runInclude(self, include_url):
+    def _runInclude(self, include_url, include_args):
         if include_url in self.ctx.url_trail:
             raise CircularIncludeError("Circular include detected at: %s" % include_url, self.ctx.url_trail)
+
+        parameters = None
+        if include_args:
+            parameters = {}
+            arg_pattern = r"(^|\|)(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)=(?P<value>[^\|]+)"
+            for m in re.finditer(arg_pattern, include_args):
+                key = str(m.group('name')).lower()
+                parameters[key] = str(m.group('value'))
+
         page = self.wiki.getPage(include_url)
         child_ctx = ResolvingContext()
         child = PageResolver(page, child_ctx)
         text = child.run()
         self.ctx.add(child_ctx)
+
+        if parameters:
+            text = self._renderTemplate(text, parameters)
+
         return text
 
     def _runQuery(self, query):
@@ -210,12 +229,12 @@ class PageResolver(object):
         meta_query = {}
         arg_pattern = r"(^|\|)(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)="\
             r"(?P<value>[^\|]+)"
-        for m in re.findall(arg_pattern, query):
-            key = m[1].lower()
+        for m in re.finditer(arg_pattern, query):
+            key = m.group('name').lower()
             if key not in parameters:
-                meta_query[key] = m[2]
+                meta_query[key] = m.group('value')
             else:
-                parameters[key] = m[2]
+                parameters[key] = m.group('value')
 
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
@@ -234,14 +253,11 @@ class PageResolver(object):
         # Combine normal templates to build the output.
         text = parameters['header']
         for p in matched_pages:
-            item_str = parameters['item']
             tokens = {
                     'url': p.url,
                     'title': p.title
                     }
-            for tk, tv in tokens.iteritems():
-                item_str = item_str.replace('{{%s}}' % tk, tv)
-            text += item_str
+            text += self._renderTemplate(parameters['item'], tokens)
         text += parameters['footer']
 
         return text
@@ -266,3 +282,9 @@ class PageResolver(object):
             p = self.wiki.getPage(url)
             if self._isPageMatch(p, name, value, level + 1):
                 return True
+
+    def _renderTemplate(self, text, parameters):
+        for token, value in parameters.iteritems():
+            text = text.replace('{{%s}}' % token, value)
+        return text
+
