@@ -5,7 +5,8 @@ settings.LOG_FORMAT = "[%(levelname)s]: %(message)s"
 
 # Create the app and the wiki.
 from wikked.web import app, wiki
-from wikked.page import Page, DatabasePage
+from wikked.page import Page
+from wikked.db import conn_scope
 
 # Create the manager.
 from flask.ext.script import Manager, prompt, prompt_pass
@@ -37,8 +38,9 @@ def new_user():
 def reset():
     """ Re-generates the database and the full-text-search index.
     """
-    wiki.db.reset(wiki.getPages(from_db=False, factory=Page.factory))
-    wiki.index.reset(wiki.getPages())
+    with conn_scope(wiki.db):
+        wiki.db.reset(wiki.getPages(from_db=False, factory=Page.factory))
+        wiki.index.reset(wiki.getPages())
 
 
 @manager.command
@@ -46,8 +48,9 @@ def update():
     """ Updates the database and the full-text-search index with any
         changed/new files.
     """
-    wiki.db.update(wiki.getPages(from_db=False, factory=Page.factory))
-    wiki.index.update(wiki.getPages())
+    with conn_scope(wiki.db):
+        wiki.db.update(wiki.getPages(from_db=False, factory=Page.factory))
+        wiki.index.update(wiki.getPages())
 
 
 @manager.command
