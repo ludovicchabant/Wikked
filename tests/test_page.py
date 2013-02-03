@@ -1,4 +1,4 @@
-from tests import WikkedTest
+from tests import WikkedTest, format_link, format_include
 from mock import MockFileSystem
 from wikked.page import Page
 
@@ -60,7 +60,11 @@ class PageTest(WikkedTest):
         page = Page(self.wiki, 'test_links')
         self.assertEqual('test_links', page.url)
         self.assertEqual("Follow a link to the [[Sandbox]]. Or to [[this page|Other Sandbox]].", page.raw_text)
-        self.assertEqual("Follow a link to the <a class=\"wiki-link\" data-wiki-url=\"sandbox\">Sandbox</a>. Or to <a class=\"wiki-link missing\" data-wiki-url=\"other-sandbox\">this page</a>.", page.formatted_text)
+        self.assertEqual(
+                "Follow a link to the %s. Or to %s." % (
+                    format_link('Sandbox', 'sandbox'),
+                    format_link('this page', 'other-sandbox', True)),
+                page.formatted_text)
         self.assertEqual(set(['sandbox', 'other-sandbox']), set(page.local_links))
 
     def testPageRelativeOutLinks(self):
@@ -88,7 +92,9 @@ class PageTest(WikkedTest):
             })
         foo = Page(self.wiki, 'foo')
         self.assertEqual(['trans-desc'], foo.local_includes)
-        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"trans-desc\"></div>\n", foo.formatted_text)
+        self.assertEqual(
+                "A test page.\n%s" % format_include('trans-desc'),
+                foo.formatted_text)
         self.assertEqual("A test page.\nBLAH\n\n", foo.text)
 
     def testPageIncludeWithMeta(self):
@@ -100,8 +106,12 @@ class PageTest(WikkedTest):
         self.assertEqual(['trans-desc'], foo.local_includes)
         self.assertEqual([], foo.local_links)
         self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
-        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"trans-desc\"></div>\n", foo.formatted_text)
-        self.assertEqual("A test page.\nBLAH: <a class=\"wiki-link missing\" data-wiki-url=\"somewhere\">Somewhere</a>\n\n\n\n", foo.text)
+        self.assertEqual(
+                "A test page.\n%s" % format_include('trans-desc'),
+                foo.formatted_text)
+        self.assertEqual(
+                "A test page.\nBLAH: %s\n\n\n\n" % format_link('Somewhere', 'somewhere', True),
+                foo.text)
         self.assertEqual(['trans-desc'], foo.all_includes)
         self.assertEqual(['somewhere'], foo.all_links)
         self.assertEqual({'bar': '42', 'given': 'hope', 'include': 'trans-desc'}, foo.all_meta)
@@ -112,6 +122,56 @@ class PageTest(WikkedTest):
             'Greeting.txt': "Hello {{name}}, would you like a {{what}}?"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual("A test page.\n<div class=\"wiki-include\" data-wiki-url=\"greeting\">name=Dave|what=drink</div>\n", foo.formatted_text)
+        self.assertEqual(
+            "A test page.\n%s" % format_include('greeting', 'name=Dave|what=drink'),
+            foo.formatted_text)
         self.assertEqual("A test page.\nHello Dave, would you like a drink?\n", foo.text)
+
+    def testGivenOnlyInclude(self):
+        self.wiki = self._getWikiFromStructure({
+            'Base.txt': "The base page.\n{{include: Template 1}}",
+            'Template 1.txt': "TEMPLATE!\n{{+include: Template 2}}",
+            'Template 2.txt': "MORE TEMPLATE!"
+            })
+        tpl1 = Page(self.wiki, 'template-1')
+        self.assertEqual(
+                "TEMPLATE!\n%s" % format_include('template-2', mod='+'),
+                tpl1.formatted_text)
+        self.assertEqual("TEMPLATE!\n\n", tpl1.text)
+        base = Page(self.wiki, 'base')
+        self.assertEqual("The base page.\nTEMPLATE!\nMORE TEMPLATE!\n\n", base.text)
+
+    def testDoublePageIncludeWithMeta(self):
+        return
+        self.wiki = self._getWikiFromStructure({
+            'Base.txt': "The base page.\n{{include: Template 1}}",
+            'Wrong.txt': "{{include: Template 2}}",
+            'Template 1.txt': "{{foo: bar}}\n{{+category: blah}}\n{{+include: Template 2}}\n{{__secret1: ssh}}",
+            'Template 2.txt': "{{+category: yolo}}",
+            'Query 1.txt': "{{query: category=yolo}}",
+            'Query 2.txt': "{{query: category=blah}}"
+            })
+        base = Page(self.wiki, 'base')
+        self.assertEqual({
+            'foo': 'bar', 
+            'category': ['blah', 'yolo']
+            }, base.all_meta)
+        tpl1 = Page(self.wiki, 'template-1')
+        self.assertEqual({
+            'foo': 'bar',
+            '+category': 'blah',
+            '+include': 'template-2',
+            '__secret': 'ssh'
+            }, tpl1.all_meta)
+        self.assertEqual(
+                "\n\n%s\n\n" % format_include('template-2'),
+                tpl1.text)
+        q1 = Page(self.wiki, 'query-1')
+        self.assertEqual(
+                "<ul>\n<li>%s</li>\n<li>%s</li>\n</ul>" % (format_link('Base', 'base'), format_link('Wrong', 'wrong')),
+                q1.text)
+        q2 = Page(self.wiki, 'query-2')
+        self.assertEqual(
+                "<ul>\n<li>%s</li>\n</ul>" % format_link('Base', 'base'),
+                q2.text)
 

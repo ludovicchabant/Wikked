@@ -31,3 +31,24 @@ class WikkedTest(unittest.TestCase):
 
     def getParameters(self):
         return MockWikiParameters()
+
+
+def format_link(title, url, missing=False, mod=None):
+    res = '<a class=\"wiki-link'
+    if missing:
+        res += ' missing'
+    res += '\" data-wiki-url=\"' + url + '\"'
+    if mod:
+        res += ' data-wiki-mod=\"' + mod + '\"'
+    res += '>' + title + '</a>'
+    return res
+
+def format_include(url, args=None, mod=None):
+    res = '<div class=\"wiki-include\" data-wiki-url=\"' + url + '\"'
+    if mod:
+        res += ' data-wiki-mod=\"' + mod + '\"'
+    res += '>'
+    if args:
+        res += args
+    res += "</div>\n"
+    return res

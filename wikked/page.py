@@ -3,10 +3,7 @@ import os.path
 import re
 import datetime
 import unicodedata
-from formatter import (
-    PageFormatter, FormattingContext,
-    PageResolver, ResolvingContext
-    )
+from formatter import PageFormatter, FormattingContext, PageResolver
 
 
 class Page(object):
@@ -132,13 +129,13 @@ class Page(object):
         if self._ext_meta is not None:
             return
 
+        r = PageResolver(self)
+        out = r.run()
         self._ext_meta = {}
-        ctx = ResolvingContext()
-        r = PageResolver(self, ctx)
-        self._ext_meta['text'] = r.run()
-        self._ext_meta['meta'] = ctx.meta
-        self._ext_meta['links'] = ctx.out_links
-        self._ext_meta['includes'] = ctx.included_pages
+        self._ext_meta['text'] = out.text
+        self._ext_meta['meta'] = out.meta
+        self._ext_meta['links'] = out.out_links
+        self._ext_meta['includes'] = out.included_pages
 
     @staticmethod
     def title_to_url(title):
