@@ -3,10 +3,8 @@ import os.path
 import time
 import logging
 import itertools
+import importlib
 from ConfigParser import SafeConfigParser
-import markdown
-import textile
-import creole
 from page import Page, DatabasePage
 from fs import FileSystem
 from db import SQLiteDatabase, conn_scope
@@ -16,8 +14,7 @@ from auth import UserManager
 
 
 def passthrough_formatter(text):
-    """ Passthrough formatter. Pretty simple stuff.
-    """
+    """ Passthrough formatter. Pretty simple stuff. """
     return text
 
 
@@ -35,13 +32,9 @@ class WikiParameters(object):
         if root is None:
             root = os.getcwd()
         self.root = root
+        
+        self.formatters = self.getFormatters()
 
-        self.formatters = {
-            markdown.markdown: ['md', 'mdown', 'markdown'],
-            textile.textile: ['tl', 'text', 'textile'],
-            creole.creole2html: ['cr', 'creole'],
-            passthrough_formatter: ['txt', 'html']
-        }
         self.config_path = os.path.join(self.root, '.wikirc')
         self.index_path = os.path.join(self.root, '.wiki', 'index')
         self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
@@ -76,6 +69,21 @@ class WikiParameters(object):
     def getSpecialFilenames(self):
         yield self.config_path
         yield os.path.join(self.root, '.wiki')
+
+    def getFormatters(self):
+        formatters = {passthrough_formatter: ['txt', 'html']}
+        self.tryAddFormatter(formatters, 'markdown', 'markdown', ['md', 'mdown', 'markdown'])
+        self.tryAddFormatter(formatters, 'textile', 'textile', ['tl', 'text', 'textile'])
+        self.tryAddFormatter(formatters, 'creole', 'creole2html', ['cr', 'creole'])
+        return formatters
+
+    def tryAddFormatter(self, formatters, module_name, module_func, extensions):
+        try:
+            module = importlib.import_module(module_name)
+            func = getattr(module, module_func)
+            formatters[func] = extensions
+        except ImportError:
+            pass
 
 
 class Wiki(object):
