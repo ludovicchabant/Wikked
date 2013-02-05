@@ -19,7 +19,9 @@ if app.config['DEBUG']:
     from werkzeug import SharedDataMiddleware
     import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-      '/': os.path.join(os.path.dirname(__file__), 'static'),
+      '/': os.path.join(
+          os.path.dirname(os.path.dirname(__file__)),
+          'static'),
       '/files': os.path.join(wiki_root)
     })
 
