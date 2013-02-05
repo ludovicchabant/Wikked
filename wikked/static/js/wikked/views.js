@@ -51,7 +51,6 @@ define([
             return this;
         },
         render: function(view) {
-            console.log("Rendering!");
             if (this.template !== undefined) {
                 this.renderTemplate(this.template);
                 if (this.renderCallback !== undefined) {
@@ -72,7 +71,6 @@ define([
             document.title = title;
         },
         _onModelChange: function() {
-            console.log("Model changed!");
             this.render();
         }
     });
@@ -85,7 +83,6 @@ define([
             return this;
         },
         render: function() {
-            console.log("Rendering navigation!");
             this.renderTemplate(this.template);
             this.origPageEl = $('#app .page');
             return this;
@@ -142,7 +139,6 @@ define([
             return this;
         },
         render: function() {
-            console.log("Rendering footer!");
             this.renderTemplate(this.template);
             return this;
         }
@@ -203,13 +199,11 @@ define([
     var PageReadView = exports.PageReadView = MasterPageView.extend({
         defaultTemplateSource: tplReadPage,
         initialize: function() {
-            console.log("Initializing PageReadView");
             PageReadView.__super__.initialize.apply(this, arguments);
             this.warningTemplate = Handlebars.compile(tplStateWarning);
             return this;
         },
         renderCallback: function() {
-            console.log("Rendering PageReadView: " + this.model.get('path'));
             PageReadView.__super__.renderCallback.apply(this, arguments);
             // Replace all wiki links with proper hyperlinks using the JS app's
             // URL scheme.
@@ -232,14 +226,12 @@ define([
             e.preventDefault();
             return false;
         },
-        _lastFetchedStatePath: false,
         _onModelChange: function() {
             PageReadView.__super__._onModelChange.apply(this, arguments);
 
             // Fetch the state if the current page changed.
-            if (this._lastFetchedStatePath == this.model.get('path'))
+            if (!this.model.hasChanged('path'))
                 return;
-            this._lastFetchedStatePath = this.model.get('path');
 
             var stateTpl = this.warningTemplate;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
