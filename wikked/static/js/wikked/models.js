@@ -161,7 +161,11 @@ define([
     });
 
     var PageStateModel = exports.PageStateModel = PageModel.extend({
-        urlRoot: '/api/state/'
+        urlRoot: '/api/state/',
+        _onChangePath: function(path) {
+            PageStateModel.__super__._onChangePath.apply(this, arguments);
+            this.set('url_edit', '/#/edit/' + path);
+        }
     });
 
     var MasterPageModel = exports.MasterPageModel = PageModel.extend({
