@@ -3,7 +3,8 @@ import os.path
 import re
 import datetime
 import unicodedata
-from formatter import PageFormatter, FormattingContext, PageResolver
+import pystache
+from formatter import PageFormatter, FormattingContext, PageResolver, CircularIncludeError
 
 
 class Page(object):
@@ -129,13 +130,31 @@ class Page(object):
         if self._ext_meta is not None:
             return
 
-        r = PageResolver(self)
-        out = r.run()
-        self._ext_meta = {}
-        self._ext_meta['text'] = out.text
-        self._ext_meta['meta'] = out.meta
-        self._ext_meta['links'] = out.out_links
-        self._ext_meta['includes'] = out.included_pages
+        try:
+            r = PageResolver(self)
+            out = r.run()
+            self._ext_meta = {}
+            self._ext_meta['text'] = out.text
+            self._ext_meta['meta'] = out.meta
+            self._ext_meta['links'] = out.out_links
+            self._ext_meta['includes'] = out.included_pages
+        except CircularIncludeError as cie:
+            template_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'templates',
+                    'circular_include_error.html'
+                    )
+            with open(template_path, 'r') as f:
+                template = pystache.compile(f.read())
+            self._ext_meta = {
+                    'text': template({
+                        'message': str(cie),
+                        'url_trail': cie.url_trail
+                        }),
+                    'meta': {},
+                    'links': [],
+                    'includes': []
+                    }
 
     @staticmethod
     def title_to_url(title):

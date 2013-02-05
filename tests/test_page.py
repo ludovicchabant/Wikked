@@ -85,6 +85,13 @@ class PageTest(WikkedTest):
         second2 = Page(self.wiki, 'sub_dir/second-sibling')
         self.assertEqual(['sub_dir/second'], second2.local_links)
 
+    def testGenericUrl(self):
+        self.wiki = self._getWikiFromStructure({
+            'foo.txt': "URL: [[url:/blah/boo/image.png]]"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual("URL: /files/blah/boo/image.png", foo.formatted_text)
+
     def testPageInclude(self):
         self.wiki = self._getWikiFromStructure({
             'Foo.txt': "A test page.\n{{include: trans-desc}}\n",

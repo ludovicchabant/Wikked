@@ -2,6 +2,7 @@
 # Configure a simpler log format.
 from wikked import settings
 settings.LOG_FORMAT = "[%(levelname)s]: %(message)s"
+settings.UPDATE_WIKI_ON_START = False
 
 # Create the app and the wiki.
 from wikked.web import app, wiki
@@ -65,8 +66,9 @@ def list():
 def get(url):
     """ Gets a page that matches the given URL.
     """
-    page = wiki.getPage(url)
-    print page.text
+    with conn_scope(wiki.db):
+        page = wiki.getPage(url)
+        print page.text
 
 
 if __name__ == "__main__":

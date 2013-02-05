@@ -1,3 +1,4 @@
+import os
 from flask import Flask, abort, g
 from wiki import Wiki, WikiParameters
 
@@ -7,37 +8,19 @@ app.config.from_object('wikked.settings')
 app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
-def create_wiki():
-    params = WikiParameters(root=app.config.get('WIKI_ROOT'))
-    params.logger = app.logger
-    wiki = Wiki(params)
-    wiki.start()
-    return wiki
-
-wiki = create_wiki()
+# Find the wiki root.
+wiki_root = app.config.get('WIKI_ROOT')
+if not wiki_root:
+    wiki_root = os.getcwd()
 
 
-# Set the wiki as a request global, and open/close the database.
-@app.before_request
-def before_request():
-    if getattr(wiki, 'db', None):
-        wiki.db.open()
-    g.wiki = wiki
-
-
-@app.teardown_request
-def teardown_request(exception):
-    if wiki is not None:
-        if getattr(wiki, 'db', None):
-            wiki.db.close()
-
-
-# Make is serve static content in DEBUG mode.
+# Make the app serve static content and wiki assets in DEBUG mode.
 if app.config['DEBUG']:
     from werkzeug import SharedDataMiddleware
     import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-      '/': os.path.join(os.path.dirname(__file__), 'static')
+      '/': os.path.join(os.path.dirname(__file__), 'static'),
+      '/files': os.path.join(wiki_root)
     })
 
 
@@ -49,6 +32,22 @@ if app.config.get('LOG_FORMAT'):
     handler.setFormatter(logging.Formatter(app.config['LOG_FORMAT']))
     app.logger.handlers = []
     app.logger.addHandler(handler)
+
+
+# Set the wiki as a request global, and open/close the database.
+# NOTE: this must happen before the login extension is registered
+#       because it will also add a `before_request` callback, and
+#       that will call our authentication handler that needs
+#       access to the context instance for the wiki.
+@app.before_request
+def before_request():
+    wiki.db.open()
+    g.wiki = wiki
+
+
+@app.teardown_request
+def teardown_request(exception):
+    wiki.db.close()
 
 
 # Login extension.
@@ -67,5 +66,17 @@ from flaskext.bcrypt import Bcrypt
 app.bcrypt = Bcrypt(app)
 
 
+# Create the wiki.
+def create_wiki(update_on_start=True):
+    params = WikiParameters(root=wiki_root)
+    params.logger = app.logger
+    wiki = Wiki(params)
+    wiki.start(update_on_start)
+    return wiki
+
+wiki = create_wiki(bool(app.config.get('UPDATE_WIKI_ON_START')))
+
+
 # Import the views.
 import views
+

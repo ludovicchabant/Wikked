@@ -2,6 +2,7 @@ import os
 import os.path
 import re
 import types
+import pystache
 
 
 def get_meta_name_and_modifiers(name):
@@ -46,7 +47,7 @@ class BaseContext(object):
     def urldir(self):
         return os.path.dirname(self.url)
 
-    def getAbsoluteUrl(self, url):
+    def getAbsoluteUrl(self, url, do_slugify=True):
         if url.startswith('/'):
             # Absolute page URL.
             abs_url = url[1:]
@@ -56,7 +57,7 @@ class BaseContext(object):
             # on Windows, so we need to convert that back.
             raw_abs_url = os.path.join(self.urldir, url)
             abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
-        if self.slugify is not None:
+        if do_slugify and self.slugify is not None:
             abs_url = self.slugify(abs_url)
         return abs_url
 
@@ -102,8 +103,8 @@ class PageFormatter(object):
 
     def _processWikiMeta(self, ctx, text):
         def repl(m):
-            meta_name = str(m.group(1)).lower()
-            meta_value = str(m.group(3))
+            meta_name = str(m.group('name')).lower()
+            meta_value = str(m.group('value'))
             if meta_value is not None and len(meta_value) > 0:
                 if meta_name not in ctx.meta:
                     ctx.meta[meta_name] = meta_value
@@ -121,36 +122,58 @@ class PageFormatter(object):
                 return self._processQuery(ctx, meta_modifier, meta_value)
             return ''
 
-        text = re.sub(r'^\{\{((__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(.*)\}\}\s*$', repl, text, flags=re.MULTILINE)
+        # Single line meta.
+        text = re.sub(
+                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)\}\}\s*$',
+                repl,
+                text,
+                flags=re.MULTILINE)
+        # Multi-line meta.
+        text = re.sub(
+                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)^\}\}\s*$',
+                repl,
+                text,
+                flags=re.MULTILINE | re.DOTALL)
         return text
 
     def _processWikiLinks(self, ctx, text):
         s = self
 
-        # [[display name|Whatever/PageName]]
+        # [[url:Something/Blah.ext]]
         def repl1(m):
-            return s._formatWikiLink(ctx, m.group(1), m.group(2))
-        text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl1, text)
+            url = m.group(1).strip()
+            if url.startswith('/'):
+                return '/files' + url
+            abs_url = os.path.join('/files', ctx.urldir, url)
+            abs_url = os.path.normpath(abs_url).replace('\\', '/')
+            return abs_url
+        text = re.sub(r'\[\[url\:([^\]]+)\]\]', repl1, text)
+
+        # [[display name|Whatever/PageName]]
+        def repl2(m):
+            return s._formatWikiLink(ctx, m.group(1).strip(), m.group(2).strip())
+        text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl2, text)
 
         # [[Namespace/PageName]]
-        def repl2(m):
+        def repl3(m):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
             return s._formatWikiLink(ctx, b, url)
-        text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl2, text)
+        text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl3, text)
 
         return text
 
     def _processInclude(self, ctx, modifier, value):
+        # Includes are run on the fly.
         pipe_idx = value.find('|')
         if pipe_idx < 0:
-            included_url = ctx.getAbsoluteUrl(value)
+            included_url = ctx.getAbsoluteUrl(value.strip())
             parameters = ''
         else:
-            included_url = ctx.getAbsoluteUrl(value[:pipe_idx])
-            parameters = value[pipe_idx + 1:]
+            included_url = ctx.getAbsoluteUrl(value[:pipe_idx].strip())
+            parameters = value[pipe_idx + 1:].replace('\n', '')
         ctx.included_pages.append(included_url)
-        # Includes are run on the fly.
+
         url_attr = ' data-wiki-url="%s"' % included_url
         mod_attr = ''
         if modifier:
@@ -159,10 +182,26 @@ class PageFormatter(object):
 
     def _processQuery(self, ctx, modifier, query):
         # Queries are run on the fly.
+        # But we pre-process arguments that reference other pages,
+        # so that we get the absolute URLs right away.
+        processed_args = ''
+        arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
+            r"(?P<value>[^\|]+)"
+        for m in re.finditer(arg_pattern, query):
+            name = str(m.group('name')).strip()
+            value = str(m.group('value')).strip()
+            if re.match(r'^\[\[.*\]\]$', value):
+                url = value[2:-2]
+                abs_url = ctx.getAbsoluteUrl(url)
+                value = '[[%s]]' % abs_url
+            if len(processed_args) > 0:
+                processed_args += '|'
+            processed_args += '%s=%s' % (name, value)
+
         mod_attr = ''
         if modifier:
             mod_attr = ' data-wiki-mod="%s"' % modifier
-        return '<div class="wiki-query"%s>%s</div>\n' % (mod_attr, query)
+        return '<div class="wiki-query"%s>%s</div>\n' % (mod_attr, processed_args)
 
     def _formatWikiLink(self, ctx, display, url):
         abs_url = ctx.getAbsoluteUrl(url)
@@ -226,11 +265,11 @@ class PageResolver(object):
         `include` or `query`.
     """
     default_parameters = {
-        'header': "<ul>",
-        'footer': "</ul>",
-        'item': "<li><a class=\"wiki-link\" data-wiki-url=\"{{url}}\">" +
-            "{{title}}</a></li>",
-        'empty': "<p>No page matches the query.</p>"
+        '__header': "<ul>\n",
+        '__footer': "</ul>\n",
+        '__item': "<li><a class=\"wiki-link\" data-wiki-url=\"{{url}}\">" +
+            "{{title}}</a></li>\n",
+        '__empty': "<p>No page matches the query.</p>\n"
         }
 
     def __init__(self, page, ctx=None):
@@ -268,7 +307,7 @@ class PageResolver(object):
         self.output.text = re.sub(r'^<div class="wiki-(?P<name>[a-z]+)"'
                 r'(?P<opts>( data-wiki-([a-z]+)="([^"]+)")*)'
                 r'>(?P<value>.*)</div>$',
-                repl, 
+                repl,
                 self.page.formatted_text,
                 flags=re.MULTILINE)
         return self.output
@@ -288,10 +327,10 @@ class PageResolver(object):
         parameters = None
         if args:
             parameters = {}
-            arg_pattern = r"(^|\|)(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)=(?P<value>[^\|]+)"
+            arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*=(?P<value>[^\|]+)"
             for m in re.finditer(arg_pattern, args):
                 key = str(m.group('name')).lower()
-                parameters[key] = str(m.group('value'))
+                parameters[key] = m.group('value').strip()
 
         # Re-run the resolver on the included page to get its final
         # formatted text.
@@ -317,14 +356,14 @@ class PageResolver(object):
         # Parse the query.
         parameters = dict(self.default_parameters)
         meta_query = {}
-        arg_pattern = r"(^|\|)(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)="\
+        arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
             r"(?P<value>[^\|]+)"
         for m in re.finditer(arg_pattern, query):
             key = m.group('name').lower()
-            if key not in parameters:
-                meta_query[key] = m.group('value')
+            if key in parameters:
+                parameters[key] = str(m.group('value'))
             else:
-                parameters[key] = m.group('value')
+                meta_query[key] = str(m.group('value'))
 
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
@@ -338,33 +377,44 @@ class PageResolver(object):
 
         # No match: return the 'empty' template.
         if len(matched_pages) == 0:
-            return parameters['empty']
+            return self._valueOrPageText(parameters['__empty'])
 
         # Combine normal templates to build the output.
-        text = parameters['header']
+        text = self._valueOrPageText(parameters['__header'])
         for p in matched_pages:
             tokens = {
                     'url': p.url,
                     'title': p.title
                     }
-            text += self._renderTemplate(parameters['item'], tokens)
-        text += parameters['footer']
+            tokens.update(p.local_meta)
+            text += self._renderTemplate(
+                    self._valueOrPageText(parameters['__item']),
+                    tokens)
+        text += self._valueOrPageText(parameters['__footer'])
 
         return text
+
+    def _valueOrPageText(self, value):
+        if re.match(r'^\[\[.*\]\]$', value):
+            page = self.wiki.getPage(value[2:-2])
+            return page.text
+        return value
 
     def _isPageMatch(self, page, name, value, level=0):
         # Check the page's local meta properties.
         actual = page.local_meta.get(name)
-        if ((type(actual) is list and value in actual) or
-            (actual == value)):
+        if (actual is not None and
+                ((type(actual) is list and value in actual) or
+                (actual == value))):
             return True
 
         # If this is an include, also look for 'include-only'
         # meta properties.
         if level > 0:
             actual = page.local_meta.get('+' + name)
-            if ((type(actual) is list and value in actual) or
-                (actual == value)):
+            if (actual is not None and
+                    ((type(actual) is list and value in actual) or
+                    (actual == value))):
                 return True
 
         # Recurse into included pages.
@@ -373,8 +423,9 @@ class PageResolver(object):
             if self._isPageMatch(p, name, value, level + 1):
                 return True
 
+        return False
+
     def _renderTemplate(self, text, parameters):
-        for token, value in parameters.iteritems():
-            text = text.replace('{{%s}}' % token, value)
-        return text
+        renderer = pystache.Renderer(search_dirs=[])
+        return renderer.render(text, parameters)
 
