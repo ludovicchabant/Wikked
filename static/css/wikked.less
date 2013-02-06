@@ -1,16 +1,12 @@
 // Includes
-@import "/bootstrap/css/bootstrap.min.css";
+@import "/bootstrap/less/bootstrap.less";
 @import "/css/syntax.css";
 @import "/css/wmd.css";
 
 // Constants
-@baseFontSize: 18px;
-@baseLineHeight: (@baseFontSize * 1.5);
-@smallFontSize: 16px;
-@smallerFontSize: 12px;
-
-@colorNavLink: rgb(128, 128, 128);
-@colorNavLinkHover: rgb(96, 96, 96);
+@wikiLinkColor: #12f;
+@wikiLinkColorHover: #36f;
+@wikiLinkColorMissing: #f12;
 
 @colorBlueDark: #48577D;
 @colorBlueMedium: #7690CF;
@@ -20,14 +16,10 @@
 @colorGrayBlueMedium: #9197A6;
 @colorGrayBlueDark: #43464C;
 
-@colorGrayLight: #EEE;
-@colorGrayMedium: #AAA;
-@colorGrayDark: #666;
-
 @colorCode: #523C37;
 
-@backgroundPage: white;
-@backgroundPageSpecial: #E5D19E;
+@pageBackground: white;
+@pageBackgroundSpecial: #E5D19E;
 
 // Macros
 .box-shadow(@style, @c) {
@@ -40,73 +32,19 @@
 body {
     background: url('../img/gray_jean.png');
     //background-image: url(http://basehold.it/i/27);
-    font-size: @baseFontSize;
-    color: #333;
-}
-p {
-    font-size: @baseFontSize;
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: @baseLineHeight;
-}
-h1 {
-    font-size: (@baseFontSize * 2);
-    line-height: (@baseLineHeight * 2);
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-h2 {
-    font-size: (@baseFontSize * 1.5);
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-h3 {
-    font-size: (@baseFontSize * 1.2);
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-h4 {
-    font-size: @baseFontSize;
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-h5 {
-    font-size: (@baseFontSize / 1.1);
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-h6 {
-    font-size: (@baseFontSize / 1.2);
-    line-height: @baseLineHeight;
-    margin-top: @baseLineHeight;
-    margin-bottom: 0;
-}
-pre {
-    margin-top: @baseLineHeight;
-    margin-bottom: @baseLineHeight;
-}
-sup, sub {
-    line-height: 0;
-}
-li {
-    line-height: @baseLineHeight;
 }
 
 // Global classes
 a.wiki-link {
-    color: #12f;
     text-decoration: none;
-    &:link { color: #12f; }
-    &:visited { color: #12f; }
-    &:hover { color: #36f; }
-    &:active { color: #12f; }
+    color: @wikiLinkColor;
+    &:link { color: @wikiLinkColor; }
+    &:visited { color: @wikiLinkColor; }
+    &:hover { color: @wikiLinkColorHover; text-decoration: underline; }
+    &:active { color: @wikiLinkColor; }
 }
 a.wiki-link.missing {
-    color: #f12;
+    color: @wikiLinkColorMissing;
 }
 .decorator {
     text-transform: uppercase;
@@ -115,47 +53,56 @@ a.wiki-link.missing {
     letter-spacing: 0.1em;
     color: @colorBlueDark;
     .rev_id {
-        font-family: monospace;
+        font-family: @monoFontFamily;
         color: @colorCode;
     }
 }
 
+div.alert {
+    font-size: @fontSizeSmall;
+}
+
 .container {
     nav, .meta {
-        color: @colorNavLink;
-        font-size: @smallFontSize;
+        color: @grayLight;
+        font-size: @fontSizeSmall;
         line-height: (@baseLineHeight * 2);
         a {
             padding: 0 1em;
             display: inline-block;
             text-decoration: none;
-            color: @colorNavLink;
-            &:link { color: @colorNavLink; }
-            &:visited { color: @colorNavLink; }
-            &:hover { color: @colorNavLinkHover; }
-            &:active { color: @colorNavLink; }
+            color: @grayLight;
+            &:link { color: @grayLight; }
+            &:visited { color: @grayLight; }
+            &:hover { color: @linkColorHover; }
+            &:active { color: @grayLight; }
         }
     }
     .page {
         .box-shadow(0 0 10px, rgb(210, 210, 210));
         padding: @baseLineHeight;
-        background: @backgroundPage;
+        background: @pageBackground;
     }
     .page.special {
-        background: @backgroundPageSpecial;
+        background: @pageBackgroundSpecial;
     }
 
     .page>pre {
         margin-top: @baseLineHeight;
     }
     .meta {
-        font-size: @smallerFontSize;
+        font-size: @fontSizeMini;
     }
 }
 
-form.search {
+form.form-search {
     display: inline-block;
     margin: 0;
+    
+    .search-query {
+        font-size: @fontSizeSmall;
+        height: @fontSizeSmall * 1.5;
+    }
 }
 ul.search-results {
     list-style: none;
@@ -164,8 +111,8 @@ ul.search-results {
 form.page-edit {
     textarea {
         height: 10em;
-        font-size: 1em;
-        font-family: "Lucida Console", Monaco, Consolas, "Courier New", monospace;
+        font-size: @baseFontSize;
+        font-family: @monoFontFamily;
         margin-bottom: 0;
         border-radius: 0;
     }
@@ -174,8 +121,8 @@ form.page-edit {
     padding: 1em 0;
 
     .wmd-input-grip { 
-        background: @colorGrayLight;
-        border: 1px solid @colorGrayMedium;
+        background: @grayLighter;
+        border: 1px solid @grayLight;
         border-width: 0 1px 1px 1px;
         height: 12px;
         cursor: ns-resize;

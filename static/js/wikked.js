@@ -10,7 +10,7 @@ require.config({
         underscore: 'underscore-min',
         backbone: 'backbone-min',
         handlebars: 'handlebars-1.0.rc.1',
-        bootstrap: '/bootstrap/js/bootstrap.min'
+        bootstrap_modal: '/bootstrap/js/bootstrap-modal'
     },
     shim: {
         'jquery': {
@@ -26,7 +26,7 @@ require.config({
         'handlebars': {
             exports: 'Handlebars'
         },
-        'bootstrap': {
+        'bootstrap_modal': {
             deps: ['jquery']
         }
     }
@@ -44,7 +44,6 @@ require([
         'wikked/app',
         'wikked/handlebars',
         'backbone',
-        'bootstrap',
         'text'
         ],
     function(app, hb, Backbone, textExtension) {
