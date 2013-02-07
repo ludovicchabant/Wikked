@@ -226,13 +226,7 @@ define([
             e.preventDefault();
             return false;
         },
-        _onModelChange: function() {
-            PageReadView.__super__._onModelChange.apply(this, arguments);
-
-            // Fetch the state if the current page changed.
-            if (!this.model.hasChanged('path'))
-                return;
-
+        _checkPageState: function() {
             var stateTpl = this.warningTemplate;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
             stateModel.fetch({
@@ -249,6 +243,16 @@ define([
                     }
                 }
             });
+        },
+        _firstRender: true,
+        _onModelChange: function() {
+            PageReadView.__super__._onModelChange.apply(this, arguments);
+
+            // Fetch the state if the current page changed.
+            if (this.model.hasChanged('path') || this._firstRender) {
+                this._checkPageState();
+                this._firstRender = false;
+            }
         }
     });
 
