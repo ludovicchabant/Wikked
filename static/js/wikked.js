@@ -6,11 +6,12 @@
 require.config({
     urlArgs: "bust=" + (new Date()).getTime(),
     paths: {
-        jquery: 'jquery-1.8.3.min',
-        underscore: 'underscore-min',
-        backbone: 'backbone-min',
-        handlebars: 'handlebars-1.0.rc.1',
-        bootstrap_modal: '/bootstrap/js/bootstrap-modal'
+        jquery: 'js/jquery-1.8.3.min',
+        underscore: 'js/underscore-min',
+        backbone: 'js/backbone-min',
+        handlebars: 'js/handlebars-1.0.rc.1',
+        bootstrap_modal: '/bootstrap/js/bootstrap-modal',
+        text: 'js/text'
     },
     shim: {
         'jquery': {
@@ -41,8 +42,8 @@ require.config({
  * by anybody, but need to be evaluated.
  */
 require([
-        'wikked/app',
-        'wikked/handlebars',
+        'js/wikked/app',
+        'js/wikked/handlebars',
         'backbone',
         'text'
         ],

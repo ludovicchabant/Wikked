@@ -6,27 +6,27 @@ define([
         'underscore',
         'backbone',
         'handlebars',
-        './client',
-        './models',
-        './util',
-        'text!/tpl/read-page.html',
-        'text!/tpl/edit-page.html',
-        'text!/tpl/history-page.html',
-        'text!/tpl/revision-page.html',
-        'text!/tpl/diff-page.html',
-        'text!/tpl/inlinks-page.html',
-        'text!/tpl/nav.html',
-        'text!/tpl/footer.html',
-        'text!/tpl/search-results.html',
-        'text!/tpl/login.html',
-        'text!/tpl/error-unauthorized.html',
-        'text!/tpl/error-not-found.html',
-        'text!/tpl/error-unauthorized-edit.html',
-        'text!/tpl/state-warning.html',
-        'text!/tpl/special-nav.html',
-        'text!/tpl/special-pages.html',
-        'text!/tpl/special-changes.html',
-        'text!/tpl/special-orphans.html'
+        'js/wikked/client',
+        'js/wikked/models',
+        'js/wikked/util',
+        'text!tpl/read-page.html',
+        'text!tpl/edit-page.html',
+        'text!tpl/history-page.html',
+        'text!tpl/revision-page.html',
+        'text!tpl/diff-page.html',
+        'text!tpl/inlinks-page.html',
+        'text!tpl/nav.html',
+        'text!tpl/footer.html',
+        'text!tpl/search-results.html',
+        'text!tpl/login.html',
+        'text!tpl/error-unauthorized.html',
+        'text!tpl/error-not-found.html',
+        'text!tpl/error-unauthorized-edit.html',
+        'text!tpl/state-warning.html',
+        'text!tpl/special-nav.html',
+        'text!tpl/special-pages.html',
+        'text!tpl/special-changes.html',
+        'text!tpl/special-orphans.html'
         ],
     function($, _, Backbone, Handlebars, Client, Models, Util,
         tplReadPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
@@ -289,6 +289,7 @@ define([
             last_pageY = e.pageY;
             $('body')
                 .on('mousemove.wikked.editor_resize', function(e) {
+                    var editor_control = $('textarea#wmd-input');
                     editor_control.height(editor_control.height() + e.pageY - last_pageY);
                     last_pageY = e.pageY;
                 })

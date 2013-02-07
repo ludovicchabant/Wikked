@@ -5,8 +5,8 @@ define([
         'jquery',
         'underscore',
         'backbone',
-        './views',
-        './models'
+        'js/wikked/views',
+        'js/wikked/models'
         ],
     function($, _, Backbone, Views, Models) {
 
