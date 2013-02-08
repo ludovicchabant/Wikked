@@ -91,7 +91,13 @@ class FileSystem(object):
             return None
         if self.page_extensions is not None and ext not in self.page_extensions:
             return None
-        url = self.slugify(name)
+
+        url = ''
+        parts = unicode(name).lower().split(os.sep)
+        for i, part in enumerate(parts):
+            if i > 0:
+                url += '/'
+            url += self.slugify(part)
         return {
                 'url': url,
                 'path': path

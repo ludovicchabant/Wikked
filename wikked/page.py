@@ -151,7 +151,7 @@ class Page(object):
             unicodedata.normalize('NFD', unicode(title))
             if unicodedata.category(c) != 'Mn'))
         # Now replace spaces and punctuation with a hyphen.
-        return re.sub(r'[^A-Za-z0-9_\.\-\(\)/]+', '-', ansi_title.lower())
+        return re.sub(r'[^A-Za-z0-9_\.\-\(\)]+', '-', ansi_title.lower())
 
     @staticmethod
     def url_to_title(url):
