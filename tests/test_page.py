@@ -21,7 +21,6 @@ class PageTest(WikkedTest):
         self.assertEqual('A test page.', page.text)
         self.assertEqual({}, page.local_meta)
         self.assertEqual([], page.local_links)
-        self.assertEqual([], page.local_includes)
 
     def testPageMeta(self):
         self.wiki = self._getWikiFromStructure({
@@ -35,7 +34,6 @@ class PageTest(WikkedTest):
         self.assertEqual('A page with simple meta.\n\n', page.text)
         self.assertEqual({'bar': 'baz', 'is_test': True}, page.local_meta)
         self.assertEqual([], page.local_links)
-        self.assertEqual([], page.local_includes)
 
     def testPageTitleMeta(self):
         self.wiki = self._getWikiFromStructure({
@@ -49,7 +47,6 @@ class PageTest(WikkedTest):
         self.assertEqual('A page with a custom title.\n', page.text)
         self.assertEqual({'title': 'TEST-TITLE'}, page.local_meta)
         self.assertEqual([], page.local_links)
-        self.assertEqual([], page.local_includes)
 
     def testPageOutLinks(self):
         self.wiki = self._getWikiFromStructure({
@@ -98,7 +95,7 @@ class PageTest(WikkedTest):
             'Trans Desc.txt': "BLAH\n"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual(['trans-desc'], foo.local_includes)
+        self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
         self.assertEqual(
                 "A test page.\n%s" % format_include('trans-desc'),
                 foo.formatted_text)
@@ -110,7 +107,6 @@ class PageTest(WikkedTest):
             'Trans Desc.txt': "BLAH: [[Somewhere]]\n{{bar: 42}}\n{{__secret: love}}\n{{+given: hope}}"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual(['trans-desc'], foo.local_includes)
         self.assertEqual([], foo.local_links)
         self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
         self.assertEqual(
@@ -119,7 +115,6 @@ class PageTest(WikkedTest):
         self.assertEqual(
                 "A test page.\nBLAH: %s\n\n\n\n" % format_link('Somewhere', 'somewhere', True),
                 foo.text)
-        self.assertEqual(['trans-desc'], foo.all_includes)
         self.assertEqual(['somewhere'], foo.all_links)
         self.assertEqual({'bar': '42', 'given': 'hope', 'include': 'trans-desc'}, foo.all_meta)
 

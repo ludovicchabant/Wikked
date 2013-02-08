@@ -214,11 +214,6 @@ class SQLiteDatabase(Database):
              title TEXT,
              raw_text TEXT,
              formatted_text TEXT)''')
-        c.execute('''DROP TABLE IF EXISTS includes''')
-        c.execute('''CREATE TABLE includes
-            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-             source TEXT,
-             target TEXT)''')
         c.execute('''DROP TABLE IF EXISTS links''')
         c.execute('''CREATE TABLE links
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -312,11 +307,6 @@ class SQLiteDatabase(Database):
                 (source, target) VALUES (?, ?)''',
                 (page.url, link_url))
 
-        for inc_url in page.local_includes:
-            c.execute('''INSERT INTO includes
-                (source, target) VALUES (?, ?)''',
-                (page.url, inc_url))
-
     def _removePage(self, page_id, c):
         c.execute('''SELECT url FROM pages WHERE id=?''', (page_id,))
         row = c.fetchone()
@@ -325,7 +315,6 @@ class SQLiteDatabase(Database):
         c.execute('''DELETE FROM pages WHERE id=?''', (page_id,))
         c.execute('''DELETE FROM meta WHERE page_id=?''', (page_id,))
         c.execute('''DELETE FROM links WHERE source=?''', (row['url'],))
-        c.execute('''DELETE FROM includes WHERE source=?''', (row['url'],))
 
     def _getPage(self, row, c):
         db_page = {
@@ -336,7 +325,6 @@ class SQLiteDatabase(Database):
             'content': row['raw_text'],
             'formatted': row['formatted_text'],
             'links': [],
-            'includes': [],
             'meta': {}
             }
 
@@ -344,11 +332,6 @@ class SQLiteDatabase(Database):
             WHERE source=?''', (row['url'],))
         for r in c.fetchall():
             db_page['links'].append(r['target'])
-
-        c.execute('''SELECT target FROM includes
-            WHERE source=?''', (row['url'],))
-        for r in c.fetchall():
-            db_page['includes'].append(r['target'])
 
         c.execute('''SELECT page_id, name, value
             FROM meta WHERE page_id=?''', (row['id'],))

@@ -52,11 +52,6 @@ class Page(object):
         return self._meta['links']
 
     @property
-    def local_includes(self):
-        self._ensureMeta()
-        return self._meta['includes']
-
-    @property
     def all_meta(self):
         self._ensureExtendedMeta()
         return self._ext_meta['meta']
@@ -65,11 +60,6 @@ class Page(object):
     def all_links(self):
         self._ensureExtendedMeta()
         return self._ext_meta['links']
-
-    @property
-    def all_includes(self):
-        self._ensureExtendedMeta()
-        return self._ext_meta['includes']
 
     @property
     def in_links(self):
@@ -117,7 +107,6 @@ class Page(object):
         meta['formatted'] = f.formatText(ctx, meta['content'])
         meta['meta'] = ctx.meta
         meta['links'] = ctx.out_links
-        meta['includes'] = ctx.included_pages
 
         # Add some common meta.
         meta['title'] = re.sub(r'\-', ' ', filename_split[0])
@@ -137,7 +126,6 @@ class Page(object):
             self._ext_meta['text'] = out.text
             self._ext_meta['meta'] = out.meta
             self._ext_meta['links'] = out.out_links
-            self._ext_meta['includes'] = out.included_pages
         except CircularIncludeError as cie:
             template_path = os.path.join(
                     os.path.dirname(__file__),
@@ -152,8 +140,7 @@ class Page(object):
                         'url_trail': cie.url_trail
                         }),
                     'meta': {},
-                    'links': [],
-                    'includes': []
+                    'links': []
                     }
 
     @staticmethod
@@ -205,8 +192,7 @@ class DatabasePage(Page):
                 'formatted': db_page['formatted'],
                 'meta': db_page['meta'],
                 'title': db_page['title'],
-                'links': db_page['links'],
-                'includes': db_page['includes']
+                'links': db_page['links']
                 }
         return meta
 

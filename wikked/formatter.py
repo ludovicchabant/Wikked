@@ -68,7 +68,6 @@ class FormattingContext(BaseContext):
         BaseContext.__init__(self, url, slugify)
         self.ext = ext
         self.out_links = []
-        self.included_pages = []
         self.meta = {}
 
 
@@ -79,6 +78,13 @@ class PageFormatter(object):
     """
     def __init__(self, wiki):
         self.wiki = wiki
+        self.coercers = {
+                'include': self._coerceInclude
+                }
+        self.processors = {
+                'include': self._processInclude,
+                'query': self._processQuery
+                }
 
     def formatText(self, ctx, text):
         text = self._preProcessWikiSyntax(ctx, text)
@@ -105,21 +111,31 @@ class PageFormatter(object):
         def repl(m):
             meta_name = str(m.group('name')).lower()
             meta_value = str(m.group('value'))
-            if meta_value is not None and len(meta_value) > 0:
-                if meta_name not in ctx.meta:
-                    ctx.meta[meta_name] = meta_value
-                elif isinstance(ctx.meta[meta_name], types.StringTypes):
-                    ctx.meta[meta_name] = [ctx.meta[meta_name], meta_value]
-                else:
-                    ctx.meta[meta_name].append(meta_value)
-            else:
-                ctx.meta[meta_name] = True
 
+            if meta_value is None or meta_value == '':
+                # No value provided: this is a "flag" meta.
+                ctx.meta[meta_name] = True
+                return ''
+
+            # If we actually have a value, coerce it, if applicable,
+            # and get the name without the modifier prefix.
             clean_meta_name, meta_modifier = get_meta_name_and_modifiers(meta_name)
-            if clean_meta_name == 'include':
-                return self._processInclude(ctx, meta_modifier, meta_value)
-            elif clean_meta_name == 'query':
-                return self._processQuery(ctx, meta_modifier, meta_value)
+            coerced_meta_value = meta_value
+            if clean_meta_name in self.coercers:
+                coerced_meta_value = self.coercers[clean_meta_name](ctx, meta_value)
+
+            # Then, set the value on the meta dictionary, or add it to
+            # other existing meta values with the same key.
+            if meta_name not in ctx.meta:
+                ctx.meta[meta_name] = coerced_meta_value
+            elif isinstance(ctx.meta[meta_name], types.StringTypes):
+                ctx.meta[meta_name] = [ctx.meta[meta_name], coerced_meta_value]
+            else:
+                ctx.meta[meta_name].append(coerced_meta_value)
+
+            # Process it, or remove it from the output text.
+            if clean_meta_name in self.processors:
+                return self.processors[clean_meta_name](ctx, meta_modifier, coerced_meta_value)
             return ''
 
         # Single line meta.
@@ -163,16 +179,24 @@ class PageFormatter(object):
 
         return text
 
+    def _coerceInclude(self, ctx, value):
+        pipe_idx = value.find('|')
+        if pipe_idx < 0:
+            return ctx.getAbsoluteUrl(value.strip())
+        else:
+            url = ctx.getAbsoluteUrl(value[:pipe_idx].strip())
+            parameters = value[pipe_idx + 1:].replace('\n', '')
+            return url + '|' + parameters
+
     def _processInclude(self, ctx, modifier, value):
         # Includes are run on the fly.
         pipe_idx = value.find('|')
         if pipe_idx < 0:
-            included_url = ctx.getAbsoluteUrl(value.strip())
+            included_url = value
             parameters = ''
         else:
-            included_url = ctx.getAbsoluteUrl(value[:pipe_idx].strip())
-            parameters = value[pipe_idx + 1:].replace('\n', '')
-        ctx.included_pages.append(included_url)
+            included_url = value[:pipe_idx]
+            parameters = value[pipe_idx + 1:]
 
         url_attr = ' data-wiki-url="%s"' % included_url
         mod_attr = ''
@@ -236,15 +260,12 @@ class ResolveOutput(object):
         self.text = ''
         self.meta = {}
         self.out_links = []
-        self.included_pages = []
         if page:
             self.meta = dict(page.local_meta)
             self.out_links = list(page.local_links)
-            self.included_pages = list(page.local_includes)
 
     def add(self, other):
         self.out_links += other.out_links
-        self.included_pages += other.included_pages
         for original_key, val in other.meta.iteritems():
             # Ignore internal properties. Strip include-only properties
             # from their prefix.
@@ -402,23 +423,44 @@ class PageResolver(object):
 
     def _isPageMatch(self, page, name, value, level=0):
         # Check the page's local meta properties.
-        actual = page.local_meta.get(name)
-        if (actual is not None and
-                ((type(actual) is list and value in actual) or
-                (actual == value))):
-            return True
-
-        # If this is an include, also look for 'include-only'
-        # meta properties.
+        meta_keys = [name]
         if level > 0:
-            actual = page.local_meta.get('+' + name)
+            # If this is an include, also look for 'include-only'
+            # meta properties.
+            meta_keys.append('+' + name)
+        for key in meta_keys:
+            actual = page.local_meta.get(key)
             if (actual is not None and
                     ((type(actual) is list and value in actual) or
                     (actual == value))):
                 return True
 
+        # Gather included pages' URLs.
+        # If this is an include, also look for `+include`'d pages,
+        # and if not, `__include`'d pages.
+        include_meta_values = []
+        include_meta_keys = ['include']
+        if level > 0:
+            include_meta_keys.append('+include')
+        else:
+            include_meta_keys.append('__include')
+        for key in include_meta_keys:
+            i = page.local_meta.get(key)
+            if i is not None:
+                if (type(i) is list):
+                    include_meta_values += i
+                else:
+                    include_meta_values.append(i)
+        included_urls = []
+        for v in include_meta_values:
+            pipe_idx = v.find('|')
+            if pipe_idx > 0:
+                included_urls.append(v[:pipe_idx])
+            else:
+                included_urls.append(v)
+
         # Recurse into included pages.
-        for url in page.local_includes:
+        for url in included_urls:
             p = self.wiki.getPage(url)
             if self._isPageMatch(p, name, value, level + 1):
                 return True
