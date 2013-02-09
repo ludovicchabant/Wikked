@@ -58,7 +58,12 @@ class BaseContext(object):
             raw_abs_url = os.path.join(self.urldir, url)
             abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
         if do_slugify and self.slugify is not None:
-            abs_url = self.slugify(abs_url)
+            abs_url_parts = abs_url.split('/')
+            abs_url = ''
+            for i, part in enumerate(abs_url_parts):
+                if i > 0:
+                    abs_url += '/'
+                abs_url += self.slugify(part)
         return abs_url
 
 
