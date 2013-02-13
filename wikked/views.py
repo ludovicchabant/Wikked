@@ -57,7 +57,7 @@ def get_page_meta(page, local_only=False):
     meta['url'] = page.url
     for name in COERCE_META:
         if name in meta:
-            meta[name] = COERCE_META(meta[name])
+            meta[name] = COERCE_META[name](meta[name])
     return meta
 
 
@@ -218,7 +218,7 @@ def api_get_incoming_links(url):
     return make_auth_response(result)
 
 
-@app.route('/api/edit/<path:url>', methods=['GET', 'PUT', 'POST'])
+@app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
 def api_edit_page(url):
     if request.method == 'GET':
         page = get_page_or_none(url)
@@ -263,6 +263,28 @@ def api_edit_page(url):
             }
     g.wiki.setPage(url, page_fields)
     result = {'saved': 1}
+    return make_auth_response(result)
+
+
+@app.route('/api/revert/<path:url>', methods=['POST'])
+def api_revert_page(url):
+    if not 'rev' in request.form:
+        abort(400)
+    rev = request.form['rev']
+    author = request.remote_addr
+    if 'author' in request.form and len(request.form['author']) > 0:
+        author = request.form['author']
+    message = 'Reverted %s to revision %s' % (url, rev)
+    if 'message' in request.form and len(request.form['message']) > 0:
+        message = request.form['message']
+
+    page_fields = {
+            'rev': rev,
+            'author': author,
+            'message': message
+            }
+    g.wiki.revertPage(url, page_fields)
+    result = {'reverted': 1}
     return make_auth_response(result)
 
 
