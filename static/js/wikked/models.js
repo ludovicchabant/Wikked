@@ -48,7 +48,7 @@ define([
                 });
         },
         doSearch: function(form) {
-            this.app.navigate('/search/' + $(form.q).val(), { trigger: true });
+            this.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
         _onChangePath: function(path) {
             this.set({
@@ -81,7 +81,7 @@ define([
         defaults: function() {
             return {
                 url_extras: [
-                    { name: 'Home', url: '/' },
+                    { name: 'Home', url: '/#/' },
                     { name: 'Special Pages', url: '/#/special' }
                 ]
             };
@@ -106,7 +106,7 @@ define([
             var $model = this;
             $.post('/api/user/login', $(form).serialize())
                 .success(function() {
-                    $model.app.navigate('/', { trigger: true });
+                    $model.navigate('/', { trigger: true });
                 })
                 .error(function() {
                     $model.set('has_error', true);
@@ -227,16 +227,17 @@ define([
             this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
         },
         _onChange: function() {
-            // Handle redirects.
-            if (this.getMeta('redirect') && !this.get('no_redirect')) {
+            if (this.getMeta('redirect') && 
+                !this.get('no_redirect') &&
+                !this.get('redirected_from')) {
+                // Handle redirects.
                 var oldPath = this.get('path');
-                this.set('path', this.getMeta('redirect'));
-                this.fetch({
-                    success: function(model) {
-                        model.set('redirected_from', oldPath);
-                    }
+                this.set({
+                    'path': this.getMeta('redirect'),
+                    'redirected_from': oldPath
                 });
-                this.app.navigate('/read/' + this.getMeta('redirect'), { replace: true });
+                this.fetch();
+                this.navigate('/read/' + this.getMeta('redirect'), { replace: true, trigger: false });
             }
         }
     });
@@ -252,9 +253,10 @@ define([
         doEdit: function(form) {
             var $model = this;
             var path = this.get('path');
+            this.navigate('/read/' + path, { trigger: true });
             $.post('/api/edit/' + path, $(form).serialize())
                 .success(function(data) {
-                    $model.app.navigate('/read/' + path, { trigger: true });
+                    $model.navigate('/read/' + path, { trigger: true });
                 })
                 .error(function() {
                     alert('Error saving page...');
@@ -268,7 +270,7 @@ define([
         doDiff: function(form) {
             var rev1 = $('input[name=rev1]:checked', form).val();
             var rev2 = $('input[name=rev2]:checked', form).val();
-            this.app.navigate('/diff/r/' + this.get('path') + '/' + rev1 + '/' + rev2, { trigger: true });
+            this.navigate('/diff/r/' + this.get('path') + '/' + rev1 + '/' + rev2, { trigger: true });
         },
         _onChangePath: function(path) {
             PageHistoryModel.__super__._onChangePath.apply(this, arguments);
@@ -298,6 +300,17 @@ define([
             });
             this._onChangeRev(this.get('rev'));
             return this;
+        },
+        doRevert: function(form) {
+            var $model = this;
+            var path = this.get('path');
+            $.post('/api/revert/' + path, $(form).serialize())
+                .success(function(data) {
+                    $model.navigate('/read/' + path, { trigger: true });
+                })
+                .error(function() {
+                    alert('Error reverting page...');
+                });
         },
         _onChangeRev: function(rev) {
             var setmap = { disp_rev: rev };

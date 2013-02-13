@@ -50,6 +50,16 @@ define([
             }
             return this;
         },
+        dispose: function() {
+            this.remove();
+            this.unbind();
+            if (this.model) {
+                this.model.unbind();
+            }
+            if (this._onDispose) {
+                this._onDispose();
+            }
+        },
         render: function(view) {
             if (this.template !== undefined) {
                 this.renderTemplate(this.template);
@@ -214,8 +224,29 @@ define([
                 else
                     jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
             });
+            // If we've already rendered the content, and we need to display
+            // a warning, do so now.
+            if (this.model.get('content')) {
+                this._showPageStateWarning();
+            }
         },
-        events: {
+        _showPageStateWarning: function() {
+            if (this._pageState === undefined)
+                return;
+
+            var state = this._pageState.get('state');
+            if (state == 'new' || state == 'modified') {
+                var warning = $(this.warningTemplate(this._pageState.toJSON()));
+                warning.css('display', 'none');
+                warning.prependTo($('#app .page'));
+                warning.slideDown();
+                $('.dismiss', warning).click(function() {
+                    warning.slideUp();
+                    return false;
+                });
+            }
+        },
+        /*events: {
             "click .wiki-link": "_navigateLink"
         },
         _navigateLink: function(e) {
@@ -225,21 +256,17 @@ define([
             this.model.fetch();
             e.preventDefault();
             return false;
-        },
+        },*/
         _checkPageState: function() {
-            var stateTpl = this.warningTemplate;
+            var $view = this;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
             stateModel.fetch({
                 success: function(model, response, options) {
-                    if (model.get('state') == 'new' || model.get('state') == 'modified') {
-                        var warning = $(stateTpl(model.toJSON()));
-                        warning.css('display', 'none');
-                        warning.prependTo($('#app .page'));
-                        warning.slideDown();
-                        $('.dismiss', warning).click(function() {
-                            warning.slideUp();
-                            return false;
-                        });
+                    $view._pageState = model;
+                    // If we've already rendered the content, display
+                    // the warning, if any, now.
+                    if ($view.model && $view.model.get('content')) {
+                        $view._showPageStateWarning();
                     }
                 }
             });
@@ -328,7 +355,7 @@ define([
         },
         _submitDiffPage: function(e) {
             e.preventDefault();
-            this.model.doDiff(this);
+            this.model.doDiff(e.currentTarget);
             return false;
         },
         titleFormat: function(title) {
@@ -340,6 +367,14 @@ define([
         defaultTemplateSource: tplRevisionPage,
         titleFormat: function(title) {
             return title + ' [' + this.model.get('rev') + ']';
+        },
+        events: {
+            "submit #page-revert": "_submitPageRevert"
+        },
+        _submitPageRevert: function(e) {
+            e.preventDefault();
+            this.model.doRevert(e.currentTarget);
+            return false;
         }
     });
 
