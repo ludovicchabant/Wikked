@@ -175,30 +175,61 @@ class Wiki(object):
         """ Updates or creates a page for a given URL.
         """
         # Validate the parameters.
+        if 'text' not in page_fields:
+            raise ValueError(
+                    "No text specified for editing page '%s'." % url)
         if 'author' not in page_fields:
             raise ValueError(
-                "No author specified for editing page '%s'." % url)
+                    "No author specified for editing page '%s'." % url)
         if 'message' not in page_fields:
             raise ValueError(
-                "No commit message specified for editing page '%s'." % url)
+                    "No commit message specified for editing page '%s'." % url)
 
         # Save the new/modified text.
-        do_commit = False
         path = self.fs.getPhysicalPagePath(url)
-        if 'text' in page_fields:
-            self.fs.setPage(path, page_fields['text'])
-            do_commit = True
+        self.fs.setPage(path, page_fields['text'])
 
         # Commit the file to the source-control.
-        if do_commit:
-            commit_meta = {
-                    'author': page_fields['author'],
-                    'message': page_fields['message']
-                    }
-            self.scm.commit([path], commit_meta)
+        commit_meta = {
+                'author': page_fields['author'],
+                'message': page_fields['message']
+                }
+        self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the new/modified page.
-        self.db.update([self.getPage(url)])
+        self.db.update([self.getPage(url, factory=Page.factory)])
+        self.index.update([self.getPage(url)])
+
+    def revertPage(self, url, page_fields):
+        """ Reverts the page with the given URL to an older revision.
+        """
+        # Validate the parameters.
+        if 'rev' not in page_fields:
+            raise ValueError(
+                    "No revision specified for reverting page '%s'." % url)
+        if 'author' not in page_fields:
+            raise ValueError(
+                    "No author specified for reverting page '%s'." % url)
+        if 'message' not in page_fields:
+            raise ValueError(
+                    "No commit message specified for reverting page '%s'." % url)
+
+        # Get the revision.
+        path = self.fs.getPhysicalPagePath(url)
+        rev_text = self.scm.getRevision(path, page_fields['rev'])
+
+        # Write to the file and commit.
+        self.fs.setPage(path, rev_text)
+
+        # Commit to source-control.
+        commit_meta = {
+                'author': page_fields['author'],
+                'message': page_fields['message']
+                }
+        self.scm.commit([path], commit_meta)
+
+        # Update the DB and index with the modified page.
+        self.db.update([self.getPage(url, factory=Page.factory)])
         self.index.update([self.getPage(url)])
 
     def pageExists(self, url, from_db=None):
