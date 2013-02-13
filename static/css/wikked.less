@@ -82,6 +82,7 @@ div.alert {
         .box-shadow(0 0 10px, rgb(210, 210, 210));
         padding: @baseLineHeight;
         background: @pageBackground;
+        overflow: hidden;
     }
     .page.special {
         background: @pageBackgroundSpecial;
@@ -169,4 +170,45 @@ form.page-edit {
 b.match {
     padding: 0 0.2em;
     background: #ffeb84;
+}
+
+// Page alerts
+.page .alert {
+    float: right;
+    margin-left: -100%;
+    top: -@baseLineHeight;
+    position: relative;
+    width: 50%;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+}
+
+// Corner ribbon
+.makeRibbon(@bgColor) {
+    background-color: @bgColor;
+    overflow: hidden;
+    transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
+    -moz-transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
+    -webkit-transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
+    box-shadow: 0 0 1em #888;
+    -moz-box-shadow: 0 0 1em #888;
+    -webkit-box-shadow: 0 0 1em #888;
+}
+.makeRibbonContent(@borderColor, @textColor) {
+    border: 1px solid @borderColor;
+    color: @textColor;
+    display: block;
+    margin: 0.05em 0 0.05em 0;
+    padding: 0.5em 3.5em;
+    text-align: center;
+    text-shadow: 0 0 0.5em #444;
+}
+.ribbon {
+    .makeRibbon(#a00);
+    margin-bottom: @baseFontSize * -2.6 - 4px;
+
+    .ribbon-inner {
+        .makeRibbonContent(#faa, #fff);
+    }
 }
