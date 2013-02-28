@@ -34,6 +34,8 @@ define([
                 this.el.html(view.el);
                 if (autoFetch || autoFetch === undefined) {
                     view.model.fetch();
+                } else {
+                    view.render();
                 }
             }
 
@@ -166,7 +168,7 @@ define([
             var view = new Views.SpecialPagesView({
                 model: new Models.SpecialPagesModel()
             });
-            this.viewManager.switchView(view);
+            this.viewManager.switchView(view, false);
             this.navigate('/special');
         },
         showSpecialPage: function(page) {
