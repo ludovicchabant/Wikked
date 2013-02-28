@@ -6,31 +6,37 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Rev.</th>
-                        <th>Date</th>
-                        <th>Author</th>
-                        <th>Changes</th>
-                        <th>Comment</th>
-                        <th><button id="diff-revs" class="btn btn-primary">Show Diff.</button></th>
+                        <th>Revision</th>
+                        <th>Information</th>
                     </tr>
                 </thead>
                 <tbody>
                     {{#eachr history}}
                     <tr>
-                        <td>{{rev_id}}</td>
-                        <td>{{date timestamp}}</td>
-                        <td>{{author}}</td>
+                        <td>{{rev_name}}</td>
                         <td>
-                            {{#each changes}}
-                            <a href="/#/read/{{url}}">{{url}}</a> 
-                            {{#if is_edit}}(edit) {{/if}}
-                            {{#if is_add}}(added) {{/if}}
-                            {{#if is_delete}}(deleted) {{/if}}
-                            <br/>
-                            {{/each}}
+                            <dl class="dl-horizontal">
+                                <dt>Date</dt>
+                                <dd>{{date_from_now timestamp}}</dd>
+                                <dt>Author</dt>
+                                <dd>{{author}}</dd>
+                                <dt>Pages</dt>
+                                <dd>
+                                    <ul class="unstyled">
+                                        {{#each changes}}
+                                        <li>
+                                            <a href="/#/read/{{url}}">{{url}}</a> 
+                                            {{#if is_edit}}(edit) {{/if}}
+                                            {{#if is_add}}(added) {{/if}}
+                                            {{#if is_delete}}(deleted) {{/if}}
+                                        </li>
+                                        {{/each}}
+                                    </ul>
+                                </dd>
+                                <dt>Comment</dt>
+                                <dd>{{description}}</dd>
+                            </dl>
                         </td>
-                        <td>{{description}}</td>
-                        <td></td>
                     </tr>
                     {{/eachr}}
                 </tbody>

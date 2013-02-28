@@ -71,6 +71,11 @@ class MercurialBaseSourceControl(SourceControl):
     def __init__(self, root, logger=None):
         SourceControl.__init__(self, logger)
         self.root = root
+        self.actions = {
+                'A': ACTION_ADD,
+                'R': ACTION_DELETE,
+                'M': ACTION_EDIT
+                }
 
     def initRepo(self):
         # Make a Mercurial repo if there's none.
@@ -107,11 +112,6 @@ class MercurialSourceControl(SourceControl):
 
         self.hg = 'hg'
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
-        self.actions = {
-                'A': ACTION_ADD,
-                'R': ACTION_DELETE,
-                'M': ACTION_EDIT
-                }
 
     def getHistory(self, path=None):
         if path is not None:
@@ -211,7 +211,10 @@ class MercurialSourceControl(SourceControl):
         for j in range(i + 1, len(lines)):
             if lines[j] == '':
                 continue
-            rev.files.append({'path': lines[j][2:], 'action': self.actions[lines[j][0]]})
+            rev.files.append({
+                'path': lines[j][2:],
+                'action': self.actions[lines[j][0]]
+                })
 
         return rev
 
@@ -230,10 +233,12 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             if len(status) > 0 and status[0] == '?':
                 return []
 
+        needs_files = False
         if path is not None:
-            repo_revs = self.client.log(files=[path])
+            repo_revs = self.client.log(files=[path], follow=True)
         else:
-            repo_revs = self.client.log()
+            needs_files = True
+            repo_revs = self.client.log(follow=True)
         revisions = []
         for rev in repo_revs:
             r = Revision(rev.node)
@@ -241,6 +246,13 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             r.author = rev.author
             r.timestamp = time.mktime(rev.date.timetuple())
             r.description = rev.desc
+            if needs_files:
+                rev_statuses = self.client.status(change=rev.node)
+                for rev_status in rev_statuses:
+                    r.files.append({
+                        'path': rev_status[1],
+                        'action': self.actions[rev_status[0]]
+                        })
             revisions.append(r)
         return revisions
 
