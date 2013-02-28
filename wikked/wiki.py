@@ -8,7 +8,7 @@ from ConfigParser import SafeConfigParser
 from page import Page, DatabasePage
 from fs import FileSystem
 from db import SQLiteDatabase, conn_scope
-from scm import MercurialSourceControl
+from scm import MercurialCommandServerSourceControl
 from indexer import WhooshWikiIndex
 from auth import UserManager
 
@@ -62,7 +62,7 @@ class WikiParameters(object):
     def scm_factory(self, config):
         scm_type = config.get('wiki', 'scm')
         if scm_type == 'hg':
-            return MercurialSourceControl(self.root, logger=self.logger_factory())
+            return MercurialCommandServerSourceControl(self.root, logger=self.logger_factory())
         else:
             raise InitializationError("No such source control: " + scm_type)
 

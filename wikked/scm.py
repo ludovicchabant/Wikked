@@ -1,6 +1,7 @@
 import re
 import os
 import os.path
+import time
 import logging
 import tempfile
 import subprocess
@@ -51,6 +52,7 @@ class SourceControl(object):
 class Revision(object):
     def __init__(self, rev_id=-1):
         self.rev_id = rev_id
+        self.rev_name = rev_id
         self.author = None
         self.timestamp = 0
         self.description = None
@@ -65,18 +67,10 @@ class Revision(object):
         return self.rev_id != -1
 
 
-class MercurialSourceControl(SourceControl):
+class MercurialBaseSourceControl(SourceControl):
     def __init__(self, root, logger=None):
         SourceControl.__init__(self, logger)
         self.root = root
-
-        self.hg = 'hg'
-        self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
-        self.actions = {
-                'A': ACTION_ADD,
-                'R': ACTION_DELETE,
-                'M': ACTION_EDIT
-                }
 
     def initRepo(self):
         # Make a Mercurial repo if there's none.
@@ -97,11 +91,33 @@ class MercurialSourceControl(SourceControl):
         specials = ['.hg', '.hgignore', '.hgtags']
         return [os.path.join(self.root, d) for d in specials]
 
+    def _run(self, cmd, *args, **kwargs):
+        exe = [self.hg]
+        if 'norepo' not in kwargs or not kwargs['norepo']:
+            exe += ['-R', self.root]
+        exe.append(cmd)
+        exe += args
+        self.logger.debug("Running Mercurial: " + str(exe))
+        return subprocess.check_output(exe)
+
+
+class MercurialSourceControl(SourceControl):
+    def __init__(self, root, logger=None):
+        MercurialBaseSourceControl.__init__(self, root, logger)
+
+        self.hg = 'hg'
+        self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
+        self.actions = {
+                'A': ACTION_ADD,
+                'R': ACTION_DELETE,
+                'M': ACTION_EDIT
+                }
+
     def getHistory(self, path=None):
         if path is not None:
             st_out = self._run('status', path)
             if len(st_out) > 0 and st_out[0] == '?':
-                return [Revision()]
+                return []
 
         log_args = []
         if path is not None:
@@ -178,6 +194,7 @@ class MercurialSourceControl(SourceControl):
 
         rev = Revision()
         rev.rev_id = int(m.group(1))
+        rev.rev_name = rev.rev_id[:12]
         rev.rev_hash = m.group(2)
         rev.author = m.group(3)
         rev.timestamp = float(m.group(4))
@@ -198,11 +215,83 @@ class MercurialSourceControl(SourceControl):
 
         return rev
 
-    def _run(self, cmd, *args, **kwargs):
-        exe = [self.hg]
-        if 'norepo' not in kwargs or not kwargs['norepo']:
-            exe += ['-R', self.root]
-        exe.append(cmd)
-        exe += args
-        self.logger.debug("Running Mercurial: " + str(exe))
-        return subprocess.check_output(exe)
+
+class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
+    def __init__(self, root, logger=None):
+        MercurialBaseSourceControl.__init__(self, root, logger)
+
+        import hglib
+        self.client = hglib.open(self.root)
+
+    def getHistory(self, path=None):
+        if path is not None:
+            rel_path = os.path.relpath(path, self.root)
+            status = self.client.status(include=rel_path)
+            if len(status) > 0 and status[0] == '?':
+                return []
+
+        if path is not None:
+            repo_revs = self.client.log(files=[path])
+        else:
+            repo_revs = self.client.log()
+        revisions = []
+        for rev in repo_revs:
+            r = Revision(rev.node)
+            r.rev_name = rev.node[:12]
+            r.author = rev.author
+            r.timestamp = time.mktime(rev.date.timetuple())
+            r.description = rev.desc
+            revisions.append(r)
+        return revisions
+
+    def getState(self, path):
+        rel_path = os.path.relpath(path, self.root)
+        statuses = self.client.status(include=rel_path)
+        if len(statuses) == 0:
+            return STATE_COMMITTED
+        status = statuses[0]
+        if status[0] == '?' or status[0] == 'A':
+            return STATE_NEW
+        if status[0] == 'M':
+            return STATE_MODIFIED
+        raise Exception("Unsupported status: %s" % status)
+            
+    def getRevision(self, path, rev):
+        rel_path = os.path.relpath(path, self.root)
+        return self.client.cat(rel_path, rev=rev)
+
+    def diff(self, path, rev1, rev2):
+        rel_path = os.path.relpath(path, self.root)
+        if rev2 is None:
+            return self.client.diff(files=[rel_path], change=rev1, git=True)
+        return self.client.diff(files=[rel_path], revs=[rev1, rev2], git=True)
+
+    def commit(self, paths, op_meta):
+        if 'message' not in op_meta or not op_meta['message']:
+            raise ValueError("No commit message specified.")
+
+        # Get repo-relative paths.
+        rel_paths = [os.path.relpath(p, self.root) for p in paths]
+
+        # Check if any of those paths needs to be added.
+        status = self.client.status(unknown=True)
+        add_paths = []
+        for s in status:
+            if s[1] in rel_paths:
+                add_paths.append(s[1])
+        if len(add_paths) > 0:
+            self.client.add(*add_paths)
+
+        # Commit!
+        if 'author' in op_meta:
+            self.client.commit(*rel_paths, message=op_meta['message'], user=op_meta['author'])
+        else:
+            self.client.commit(*rel_paths, message=op_meta['message'])
+
+    def revert(self, paths=None):
+        if paths is not None:
+            rel_paths = [os.path.relpath(p, self.root) for p in paths]
+            self.client.revert(*rel_paths, clean=True)
+        else:
+            self.client.revert(all=True, clean=True)
+

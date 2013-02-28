@@ -61,30 +61,33 @@ def get_page_meta(page, local_only=False):
     return meta
 
 
-def get_history_data(history):
+def get_history_data(history, needs_files=False):
     hist_data = []
     for i, rev in enumerate(reversed(history)):
         rev_data = {
             'index': i + 1,
             'rev_id': rev.rev_id,
-            'rev_hash': rev.rev_hash,
+            'rev_name': rev.rev_name,
             'author': rev.author,
             'timestamp': rev.timestamp,
-            'description': rev.description,
-            'pages': []
+            'description': rev.description
             }
-        for f in rev.files:
-            f_info = g.wiki.fs.getPageInfo(f['path'])
-            if f_info is None:
-                continue
-            page = g.wiki.getPage(f_info['url'])
-            if not is_page_readable(page):
-                continue
-            rev_data['pages'].append({
-                'url': f_info['url'],
-                'action': scm.ACTION_NAMES[f['action']]
-                })
-        if len(rev_data['pages']) > 0:
+        if needs_files:
+            rev_data['pages'] = []
+            for f in rev.files:
+                f_info = g.wiki.fs.getPageInfo(f['path'])
+                if f_info is None:
+                    continue
+                page = g.wiki.getPage(f_info['url'])
+                if not is_page_readable(page):
+                    continue
+                rev_data['pages'].append({
+                    'url': f_info['url'],
+                    'action': scm.ACTION_NAMES[f['action']]
+                    })
+            if len(rev_data['pages']) > 0:
+                hist_data.append(rev_data)
+        else:
             hist_data.append(rev_data)
     return hist_data
 
@@ -311,7 +314,7 @@ def api_special_orphans():
 @app.route('/api/history')
 def api_site_history():
     history = g.wiki.getHistory()
-    hist_data = get_history_data(history)
+    hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
     return make_auth_response(result)
 
