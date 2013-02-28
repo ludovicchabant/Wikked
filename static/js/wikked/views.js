@@ -246,17 +246,6 @@ define([
                 });
             }
         },
-        /*events: {
-            "click .wiki-link": "_navigateLink"
-        },
-        _navigateLink: function(e) {
-            var url = $(e.currentTarget).attr('data-wiki-url');
-            this.model.app.navigate('/read/' + url);
-            this.model.set('path', url);
-            this.model.fetch();
-            e.preventDefault();
-            return false;
-        },*/
         _checkPageState: function() {
             var $view = this;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
