@@ -13,7 +13,7 @@
 
 // Core variables and mixins
 @import "variables.less"; // Modify this for custom colors, font-sizes, etc
-@import "custom_variables.less";
+@import "custom_variables.less"; // LOCAL MOD: Override default variables.
 @import "mixins.less";
 
 // Grid system and page structure
@@ -28,7 +28,8 @@
 @import "tables.less";
 
 // Components: common
-@import "sprites.less";
+//@import "sprites.less"; // LOCAL MOD: Don't use images for icons.
+@import "../../font-awesome/less/font-awesome.less"; // LOCAL MOD: Use FontAwesome for icons.
 @import "dropdowns.less";
 @import "wells.less";
 @import "component-animations.less";
