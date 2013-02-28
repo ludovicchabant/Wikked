@@ -10,8 +10,9 @@ require.config({
         underscore: 'js/underscore-min',
         backbone: 'js/backbone-min',
         handlebars: 'js/handlebars-1.0.rc.1',
-        bootstrap_modal: '/bootstrap/js/bootstrap-modal',
-        text: 'js/text'
+        moment: 'js/moment.min',
+        text: 'js/text',
+        bootstrap_modal: '/bootstrap/js/bootstrap-modal'
     },
     shim: {
         'jquery': {

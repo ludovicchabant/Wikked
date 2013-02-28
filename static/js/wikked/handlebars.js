@@ -2,7 +2,8 @@
  * Handlebars helpers and extensions.
  */
 define([
-        'handlebars'
+        'handlebars',
+        'moment'
         ],
     function(Handlebars) {
 
@@ -26,6 +27,20 @@ define([
             out += options.fn(context[i], { data: data });
         }
         return out;
+    });
+
+    /**
+     * 
+     */
+    Handlebars.registerHelper('each_or_this', function(context, options) {
+        if (context === undefined) {
+            return '';
+        }
+        data = undefined;
+        if (options.data) {
+            data = Handlebars.createFrame(options.data);
+        }
+        var out = '';
     });
 
     /**
@@ -58,9 +73,16 @@ define([
     /**
      * Format dates.
      */
-    Handlebars.registerHelper('date', function(timestamp) {
+    Handlebars.registerHelper('date', function(timestamp, options) {
         var date = new Date(timestamp * 1000);
-        return date.toDateString();
+        if ("format" in options.hash) {
+            return moment(date).format(options.hash.format);
+        }
+        return moment(date).format();
+    });
+    Handlebars.registerHelper('date_from_now', function(timestamp, options) {
+        var date = new Date(timestamp * 1000);
+        return moment(date).fromNow();
     });
 });
 
