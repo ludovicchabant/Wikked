@@ -1,12 +1,13 @@
 <article class="row">
     <div class="page span12">
         <h1>{{meta.title}} <span class="decorator">History</span></h1>
+        {{#if history}}
         <p>Here's the revision log for <a href="{{url_read}}">{{meta.title}}</a>.</p>
         <form id="diff-page">
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>Rev.</th>
+                        <th>Revision</th>
                         <th>Date</th>
                         <th>Author</th>
                         <th>Comment</th>
@@ -16,8 +17,8 @@
                 <tbody>
                     {{#eachr history}}
                     <tr>
-                        <td><a href="{{../url_rev}}/{{rev_id}}">{{rev_id}}</a></td>
-                        <td>{{timestamp}}</td>
+                        <td><a href="{{../url_rev}}/{{rev_id}}">{{rev_name}}</a></td>
+                        <td>{{date_from_now timestamp}}</td>
                         <td>{{author}}</td>
                         <td>{{description}}</td>
                         <td>
@@ -30,5 +31,8 @@
                 </tbody>
             </table>
         </form>
+        {{else}}
+        <p><i class="icon-warning-sign large big"></i> This page has not been committed to the repository yet. <a href="{{url_edit}}">Edit it</a> to do that now.</p>
+        {{/if}}
     </div>
 </article>
