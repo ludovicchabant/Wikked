@@ -133,7 +133,7 @@ define([
             return this;
         },
         url: function() {
-            var base = _.result(this, 'urlRoot') || _.result(this.collection, 'url') || urlError();
+            var base = _.result(this, 'urlRoot') || _.result(this.collection, 'url') || Backbone.urlError();
             if (this.isNew()) return base;
             return base + (base.charAt(base.length - 1) === '/' ? '' : '/') + this.id;
         },
@@ -275,6 +275,8 @@ define([
         _onChangePath: function(path) {
             PageHistoryModel.__super__._onChangePath.apply(this, arguments);
             this.set({
+                url_read: '/#/read/' + path,
+                url_edit: '/#/edit/' + path,
                 url_rev: '/#/revision/' + path,
                 url_diffc: '/#/diff/c/' + path,
                 url_diffr: '/#/diff/r/' + path
