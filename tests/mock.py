@@ -5,7 +5,7 @@ import codecs
 import logging
 import StringIO
 from wikked.page import Page
-from wikked.fs import PageNotFoundError
+from wikked.fs import PageInfo, PageNotFoundError
 from wikked.db import Database
 from wikked.indexer import WikiIndex
 from wikked.scm import SourceControl
@@ -132,12 +132,9 @@ class MockFileSystem():
     def _getPageInfo(self, node, with_content=False):
         path_split = os.path.splitext(node['path'])
         url = self.slugify(path_split[0])
-        info = {
-            'url': url,
-            'path': node['path']
-            }
+        info = PageInfo(url, node['path'])
         if with_content:
-            info['content'] = node['content']
+            info.content = node['content']
         return info
 
     def _getNode(self, path):

@@ -56,8 +56,8 @@ class UserManager(object):
         if (self._permissions[meta_name] is not None and
                 username not in self._permissions[meta_name]):
             return False
-        if meta_name in page.all_meta:
-            allowed = [r.strip() for r in re.split(r'[ ,;]', page.all_meta[meta_name])]
+        if meta_name in page.meta:
+            allowed = [r.strip() for r in re.split(r'[ ,;]', page.meta[meta_name][0])]
             if username is None:
                 return 'anonymous' in allowed
             else:

@@ -7,62 +7,59 @@ import pystache
 from formatter import PageFormatter, FormattingContext, PageResolver, CircularIncludeError
 
 
+class PageData(object):
+    def __init__(self):
+        self.path = None
+        self.title = None
+        self.raw_text = None
+        self.formatted_text = None
+        self.text = None
+        self.local_meta = {}
+        self.local_links = []
+        self.ext_meta = {}
+        self.ext_links = []
+        self.has_extended_data = False
+
+
 class Page(object):
     """ A wiki page.
     """
     def __init__(self, wiki, url):
         self.wiki = wiki
         self.url = url
-        self._meta = None
-        self._ext_meta = None
+        self._data = None
 
     @property
     def path(self):
-        self._ensureMeta()
-        return self._meta['path']
+        self._ensureData()
+        return self._data.path
 
     @property
     def title(self):
-        self._ensureMeta()
-        return self._meta['title']
+        self._ensureData()
+        return self._data.title
 
     @property
     def raw_text(self):
-        self._ensureMeta()
-        return self._meta['content']
-
-    @property
-    def formatted_text(self):
-        self._ensureMeta()
-        return self._meta['formatted']
+        self._ensureData()
+        return self._data.raw_text
 
     @property
     def text(self):
-        self._ensureExtendedMeta()
-        return self._ext_meta['text']
+        self._ensureExtendedData()
+        return self._data.text
 
     @property
-    def local_meta(self):
-        self._ensureMeta()
-        return self._meta['meta']
+    def meta(self):
+        self._ensureExtendedData()
+        return self._data.ext_meta
 
     @property
-    def local_links(self):
-        self._ensureMeta()
-        return self._meta['links']
+    def links(self):
+        self._ensureExtendedData()
+        return self._data.ext_links
 
-    @property
-    def all_meta(self):
-        self._ensureExtendedMeta()
-        return self._ext_meta['meta']
-
-    @property
-    def all_links(self):
-        self._ensureExtendedMeta()
-        return self._ext_meta['links']
-
-    @property
-    def in_links(self):
+    def getIncomingLinks(self):
         return self.wiki.db.getLinksTo(self.url)
 
     def getHistory(self):
@@ -77,55 +74,71 @@ class Page(object):
     def getDiff(self, rev1, rev2):
         return self.wiki.scm.diff(self.path, rev1, rev2)
 
-    def _ensureMeta(self):
-        if self._meta is not None:
+    def _getFormattedText(self):
+        self._ensureData()
+        return self._data.formatted_text
+
+    def _getLocalMeta(self):
+        self._ensureData()
+        return self._data.local_meta
+
+    def _getLocalLinks(self):
+        self._ensureData()
+        return self._data.local_links
+
+    def _ensureData(self):
+        if self._data is not None:
             return
 
-        self._meta = self._loadCachedMeta()
-        if self._meta is not None:
+        self._data = self._loadCachedData()
+        if self._data is not None:
             return
 
-        self._meta = self._loadOriginalMeta()
-        self._saveCachedMeta(self._meta)
+        self._data = self._loadOriginalData()
+        self._saveCachedData(self._data)
 
-    def _loadCachedMeta(self):
+    def _loadCachedData(self):
         return None
 
-    def _saveCachedMeta(self, meta):
+    def _saveCachedData(self, meta):
         pass
 
-    def _loadOriginalMeta(self):
+    def _loadOriginalData(self):
+        data = PageData()
+
         # Get info from the file-system.
-        meta = self.wiki.fs.getPage(self.url)
+        page_info = self.wiki.fs.getPage(self.url)
+        data.path = page_info.path
+        data.raw_text = page_info.content
 
         # Format the page and get the meta properties.
-        filename = os.path.basename(meta['path'])
+        filename = os.path.basename(data.path)
         filename_split = os.path.splitext(filename)
         extension = filename_split[1].lstrip('.')
         ctx = FormattingContext(self.url, extension, slugify=Page.title_to_url)
         f = PageFormatter(self.wiki)
-        meta['formatted'] = f.formatText(ctx, meta['content'])
-        meta['meta'] = ctx.meta
-        meta['links'] = ctx.out_links
+        data.formatted_text = f.formatText(ctx, data.raw_text)
+        data.local_meta = ctx.meta
+        data.local_links = ctx.out_links
 
         # Add some common meta.
-        meta['title'] = re.sub(r'\-', ' ', filename_split[0])
-        if 'title' in meta['meta']:
-            meta['title'] = meta['meta']['title']
+        data.title = re.sub(r'\-', ' ', filename_split[0])
+        if 'title' in data.local_meta:
+            data.title = data.local_meta['title'][0]
 
-        return meta
+        return data
 
-    def _ensureExtendedMeta(self):
-        if self._ext_meta is not None:
+    def _ensureExtendedData(self):
+        if self._data is not None and self._data.has_extended_data:
             return
 
+        self._ensureData()
         try:
             r = PageResolver(self)
             out = r.run()
-            self._ext_meta = {}
-            self._ext_meta['text'] = out.text
-            self._ext_meta['meta'] = out.meta
-            self._ext_meta['links'] = out.out_links
+            self._data.text = out.text
+            self._data.ext_meta = out.meta
+            self._data.ext_links = out.out_links
         except CircularIncludeError as cie:
             template_path = os.path.join(
                     os.path.dirname(__file__),
@@ -134,14 +147,10 @@ class Page(object):
                     )
             with open(template_path, 'r') as f:
                 template = pystache.compile(f.read())
-            self._ext_meta = {
-                    'text': template({
-                        'message': str(cie),
-                        'url_trail': cie.url_trail
-                        }),
-                    'meta': {},
-                    'links': []
-                    }
+            self._data.text = template({
+                    'message': str(cie),
+                    'url_trail': cie.url_trail
+                    })
 
     @staticmethod
     def title_to_url(title):
@@ -174,7 +183,7 @@ class DatabasePage(Page):
             raise Exception("The wiki doesn't have a database.")
         self.auto_update = wiki.config.get('wiki', 'auto_update')
 
-    def _loadCachedMeta(self):
+    def _loadCachedData(self):
         if self.wiki.db is None:
             return None
         db_page = self.wiki.db.getPage(self.url)
@@ -182,21 +191,19 @@ class DatabasePage(Page):
             return None
         if self.auto_update:
             path_time = datetime.datetime.fromtimestamp(
-                os.path.getmtime(db_page['path']))
-            if path_time >= db_page['time']:
+                os.path.getmtime(db_page.path))
+            if path_time >= db_page.time:
                 return None
-        meta = {
-                'url': self.url,
-                'path': db_page['path'],
-                'content': db_page['content'],
-                'formatted': db_page['formatted'],
-                'meta': db_page['meta'],
-                'title': db_page['title'],
-                'links': db_page['links']
-                }
-        return meta
+        data = PageData()
+        data.path = db_page.path
+        data.title = db_page.title
+        data.raw_text = db_page.raw_text
+        data.formatted_text = db_page.formatted_text
+        data.local_meta = db_page.meta
+        data.local_links = db_page.links
+        return data
 
-    def _saveCachedMeta(self, meta):
+    def _saveCachedData(self, meta):
         if self.wiki.db is not None:
             self.wiki.logger.debug(
                 "Updated database cache for page '%s'." % self.url)

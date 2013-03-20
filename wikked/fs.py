@@ -13,6 +13,17 @@ class PageNotFoundError(Exception):
     pass
 
 
+class PageInfo(object):
+    def __init__(self, url, path, content=None):
+        self.url = url
+        self.path = path
+        self.content = content
+
+    @property
+    def has_content(self):
+        return self.content is not None
+
+
 class FileSystem(object):
     """ A class responsible for mapping page URLs to
         file-system paths, and for scanning the file-system
@@ -59,11 +70,7 @@ class FileSystem(object):
         path = self.getPhysicalPagePath(url)
         with codecs.open(path, 'r', encoding='utf-8') as f:
             content = f.read()
-        return {
-                'url': url,
-                'path': path,
-                'content': content
-                }
+        return PageInfo(url, path, content)
 
     def setPage(self, path, content):
         with codecs.open(path, 'w', encoding='utf-8') as f:
@@ -98,10 +105,7 @@ class FileSystem(object):
             if i > 0:
                 url += '/'
             url += self.slugify(part)
-        return {
-                'url': url,
-                'path': path
-                }
+        return PageInfo(url, path, None)
 
     def _getPhysicalPath(self, url, is_file):
         if string.find(url, '..') >= 0:

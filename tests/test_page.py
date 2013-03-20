@@ -16,11 +16,11 @@ class PageTest(WikkedTest):
         page = Page(self.wiki, 'foo')
         self.assertEqual('foo', page.url)
         self.assertEqual('A test page.', page.raw_text)
-        self.assertEqual('A test page.', page.formatted_text)
+        self.assertEqual('A test page.', page._getFormattedText())
         self.assertEqual('foo', page.title)
         self.assertEqual('A test page.', page.text)
-        self.assertEqual({}, page.local_meta)
-        self.assertEqual([], page.local_links)
+        self.assertEqual({}, page._getLocalMeta())
+        self.assertEqual([], page._getLocalLinks())
 
     def testPageMeta(self):
         self.wiki = self._getWikiFromStructure({
@@ -29,11 +29,11 @@ class PageTest(WikkedTest):
         page = Page(self.wiki, 'foo')
         self.assertEqual('foo', page.url)
         self.assertEqual("A page with simple meta.\n{{bar: baz}}\n{{is_test: }}", page.raw_text)
-        self.assertEqual('A page with simple meta.\n\n', page.formatted_text)
+        self.assertEqual('A page with simple meta.\n\n', page._getFormattedText())
         self.assertEqual('foo', page.title)
         self.assertEqual('A page with simple meta.\n\n', page.text)
-        self.assertEqual({'bar': 'baz', 'is_test': True}, page.local_meta)
-        self.assertEqual([], page.local_links)
+        self.assertEqual({'bar': ['baz'], 'is_test': True}, page._getLocalMeta())
+        self.assertEqual([], page._getLocalLinks())
 
     def testPageTitleMeta(self):
         self.wiki = self._getWikiFromStructure({
@@ -42,11 +42,11 @@ class PageTest(WikkedTest):
         page = Page(self.wiki, 'test_title')
         self.assertEqual('test_title', page.url)
         self.assertEqual("A page with a custom title.\n{{title: TEST-TITLE}}", page.raw_text)
-        self.assertEqual('A page with a custom title.\n', page.formatted_text)
+        self.assertEqual('A page with a custom title.\n', page._getFormattedText())
         self.assertEqual('TEST-TITLE', page.title)
         self.assertEqual('A page with a custom title.\n', page.text)
-        self.assertEqual({'title': 'TEST-TITLE'}, page.local_meta)
-        self.assertEqual([], page.local_links)
+        self.assertEqual({'title': ['TEST-TITLE']}, page._getLocalMeta())
+        self.assertEqual([], page._getLocalLinks())
 
     def testPageOutLinks(self):
         self.wiki = self._getWikiFromStructure({
@@ -61,8 +61,8 @@ class PageTest(WikkedTest):
                 "Follow a link to the %s. Or to %s." % (
                     format_link('Sandbox', 'sandbox'),
                     format_link('this page', 'other-sandbox', True)),
-                page.formatted_text)
-        self.assertEqual(set(['sandbox', 'other-sandbox']), set(page.local_links))
+                page.text)
+        self.assertEqual(set(['sandbox', 'other-sandbox']), set(page._getLocalLinks()))
 
     def testPageRelativeOutLinks(self):
         self.wiki = self._getWikiFromStructure({
@@ -74,20 +74,20 @@ class PageTest(WikkedTest):
                 }
             })
         first = Page(self.wiki, 'first')
-        self.assertEqual(['first-sibling'], first.local_links)
+        self.assertEqual(['first-sibling'], first._getLocalLinks())
         first2 = Page(self.wiki, 'first-sibling')
-        self.assertEqual(['first', 'sub_dir/second'], first2.local_links)
+        self.assertEqual(['first', 'sub_dir/second'], first2._getLocalLinks())
         second = Page(self.wiki, 'sub_dir/second')
-        self.assertEqual(['first', 'sub_dir/second-sibling'], second.local_links)
+        self.assertEqual(['first', 'sub_dir/second-sibling'], second._getLocalLinks())
         second2 = Page(self.wiki, 'sub_dir/second-sibling')
-        self.assertEqual(['sub_dir/second'], second2.local_links)
+        self.assertEqual(['sub_dir/second'], second2._getLocalLinks())
 
     def testGenericUrl(self):
         self.wiki = self._getWikiFromStructure({
             'foo.txt': "URL: [[url:/blah/boo/image.png]]"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual("URL: /files/blah/boo/image.png", foo.formatted_text)
+        self.assertEqual("URL: /files/blah/boo/image.png", foo._getFormattedText())
 
     def testPageInclude(self):
         self.wiki = self._getWikiFromStructure({
@@ -95,10 +95,10 @@ class PageTest(WikkedTest):
             'Trans Desc.txt': "BLAH\n"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
+        self.assertEqual({'include': ['trans-desc']}, foo._getLocalMeta())
         self.assertEqual(
                 "A test page.\n%s" % format_include('trans-desc'),
-                foo.formatted_text)
+                foo._getFormattedText())
         self.assertEqual("A test page.\nBLAH\n\n", foo.text)
 
     def testPageIncludeWithMeta(self):
@@ -107,16 +107,16 @@ class PageTest(WikkedTest):
             'Trans Desc.txt': "BLAH: [[Somewhere]]\n{{bar: 42}}\n{{__secret: love}}\n{{+given: hope}}"
             })
         foo = Page(self.wiki, 'foo')
-        self.assertEqual([], foo.local_links)
-        self.assertEqual({'include': 'trans-desc'}, foo.local_meta)
+        self.assertEqual([], foo._getLocalLinks())
+        self.assertEqual({'include': ['trans-desc']}, foo._getLocalMeta())
         self.assertEqual(
                 "A test page.\n%s" % format_include('trans-desc'),
-                foo.formatted_text)
+                foo._getFormattedText())
         self.assertEqual(
                 "A test page.\nBLAH: %s\n\n\n\n" % format_link('Somewhere', 'somewhere', True),
                 foo.text)
-        self.assertEqual(['somewhere'], foo.all_links)
-        self.assertEqual({'bar': '42', 'given': 'hope', 'include': 'trans-desc'}, foo.all_meta)
+        self.assertEqual(['somewhere'], foo.links)
+        self.assertEqual({'bar': ['42'], 'given': ['hope'], 'include': ['trans-desc']}, foo.meta)
 
     def testPageIncludeWithTemplating(self):
         self.wiki = self._getWikiFromStructure({
@@ -126,7 +126,7 @@ class PageTest(WikkedTest):
         foo = Page(self.wiki, 'foo')
         self.assertEqual(
             "A test page.\n%s" % format_include('greeting', 'name=Dave|what=drink'),
-            foo.formatted_text)
+            foo._getFormattedText())
         self.assertEqual("A test page.\nHello Dave, would you like a drink?\n", foo.text)
 
     def testGivenOnlyInclude(self):
@@ -138,7 +138,7 @@ class PageTest(WikkedTest):
         tpl1 = Page(self.wiki, 'template-1')
         self.assertEqual(
                 "TEMPLATE!\n%s" % format_include('template-2', mod='+'),
-                tpl1.formatted_text)
+                tpl1._getFormattedText())
         self.assertEqual("TEMPLATE!\n\n", tpl1.text)
         base = Page(self.wiki, 'base')
         self.assertEqual("The base page.\nTEMPLATE!\nMORE TEMPLATE!\n\n", base.text)
@@ -155,16 +155,16 @@ class PageTest(WikkedTest):
             })
         base = Page(self.wiki, 'base')
         self.assertEqual({
-            'foo': 'bar', 
+            'foo': ['bar'], 
             'category': ['blah', 'yolo']
-            }, base.all_meta)
+            }, base.meta)
         tpl1 = Page(self.wiki, 'template-1')
         self.assertEqual({
-            'foo': 'bar',
-            '+category': 'blah',
-            '+include': 'template-2',
-            '__secret': 'ssh'
-            }, tpl1.all_meta)
+            'foo': ['bar'],
+            '+category': ['blah'],
+            '+include': ['template-2'],
+            '__secret': ['ssh']
+            }, tpl1.meta)
         self.assertEqual(
                 "\n\n%s\n\n" % format_include('template-2'),
                 tpl1.text)

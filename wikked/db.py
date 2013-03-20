@@ -64,6 +64,19 @@ class Database(object):
         raise NotImplementedError()
 
 
+
+class SQLitePageInfo(object):
+    def __init__(self, row):
+        self.url = row['url']
+        self.path = row['path']
+        self.time = row['time']
+        self.title = row['title']
+        self.raw_text = row['raw_text']
+        self.formatted_text = row['formatted_text']
+        self.links = []
+        self.meta = {}
+
+
 class SQLiteDatabase(Database):
     """ A database cache based on SQLite.
     """
@@ -286,10 +299,10 @@ class SQLiteDatabase(Database):
             (time, url, path, title, raw_text, formatted_text)
             VALUES (?, ?, ?, ?, ?, ?)''',
             (now, page.url, page.path, page.title,
-                page.raw_text, page.formatted_text))
+                page.raw_text, page._getFormattedText()))
         page_id = c.lastrowid
 
-        for name, value in page.local_meta.iteritems():
+        for name, value in page._getLocalMeta().iteritems():
             if isinstance(value, bool):
                 value = ""
             if isinstance(value, types.StringTypes):
@@ -302,7 +315,7 @@ class SQLiteDatabase(Database):
                         (page_id, name, value) VALUES (?, ?, ?)''',
                         (page_id, name, v))
 
-        for link_url in page.local_links:
+        for link_url in page._getLocalLinks():
             c.execute('''INSERT INTO links
                 (source, target) VALUES (?, ?)''',
                 (page.url, link_url))
@@ -317,21 +330,12 @@ class SQLiteDatabase(Database):
         c.execute('''DELETE FROM links WHERE source=?''', (row['url'],))
 
     def _getPage(self, row, c):
-        db_page = {
-            'url': row['url'],
-            'path': row['path'],
-            'time': row['time'],
-            'title': row['title'],
-            'content': row['raw_text'],
-            'formatted': row['formatted_text'],
-            'links': [],
-            'meta': {}
-            }
+        db_page = SQLitePageInfo(row)
 
         c.execute('''SELECT target FROM links
             WHERE source=?''', (row['url'],))
         for r in c.fetchall():
-            db_page['links'].append(r['target'])
+            db_page.links.append(r['target'])
 
         c.execute('''SELECT page_id, name, value
             FROM meta WHERE page_id=?''', (row['id'],))
@@ -340,11 +344,9 @@ class SQLiteDatabase(Database):
             if value == '':
                 value = True
             name = r['name']
-            if name not in db_page['meta']:
-                db_page['meta'][name] = value
-            elif db_page['meta'][name] is list:
-                db_page['meta'][name].append(value)
+            if name not in db_page.meta:
+                db_page.meta[name] = [value]
             else:
-                db_page['meta'][name] = [db_page['meta'][name], value]
+                db_page.meta[name].append(value)
 
         return db_page

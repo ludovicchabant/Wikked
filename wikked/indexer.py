@@ -44,7 +44,6 @@ class WhooshWikiIndex(WikiIndex):
         self.ix = create_in(self.store_dir, schema=self._getSchema())
         writer = self.ix.writer()
         for page in pages:
-            page._ensureMeta()
             self._indexPage(writer, page)
         writer.commit()
 
@@ -72,9 +71,7 @@ class WhooshWikiIndex(WikiIndex):
                         to_reindex.add(indexed_path)
 
             for page in pages:
-                page._ensureMeta()
-                page_path = page._meta['path']
-                if page_path in to_reindex or page_path not in already_indexed:
+                if page.path in to_reindex or page.path not in already_indexed:
                     self._indexPage(writer, page)
 
             writer.commit()
@@ -116,8 +113,8 @@ class WhooshWikiIndex(WikiIndex):
             url=unicode(page.url),
             title=unicode(page.title),
             content=unicode(page.raw_text),
-            path=page._meta['path'],
-            time=os.path.getmtime(page._meta['path'])
+            path=page.path,
+            time=os.path.getmtime(page.path)
             )
 
     def _unindexPage(self, writer, url):

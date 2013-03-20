@@ -1,7 +1,6 @@
 import os
 import os.path
 import re
-import types
 import pystache
 
 
@@ -132,9 +131,7 @@ class PageFormatter(object):
             # Then, set the value on the meta dictionary, or add it to
             # other existing meta values with the same key.
             if meta_name not in ctx.meta:
-                ctx.meta[meta_name] = coerced_meta_value
-            elif isinstance(ctx.meta[meta_name], types.StringTypes):
-                ctx.meta[meta_name] = [ctx.meta[meta_name], coerced_meta_value]
+                ctx.meta[meta_name] = [coerced_meta_value]
             else:
                 ctx.meta[meta_name].append(coerced_meta_value)
 
@@ -235,12 +232,15 @@ class PageFormatter(object):
     def _formatWikiLink(self, ctx, display, url):
         abs_url = ctx.getAbsoluteUrl(url)
         ctx.out_links.append(abs_url)
+        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (abs_url, display)
 
-        css_class = 'wiki-link'
-        if not self.wiki.pageExists(abs_url, from_db=False):
-            css_class += ' missing'
-        return '<a class="%s" data-wiki-url="%s">%s</a>' % (css_class, abs_url, display)
-
+    @staticmethod
+    def parseWikiLinks(text):
+        urls = []
+        pattern = r"<a class=\"[^\"]*\" data-wiki-url=\"(?P<url>[^\"]+)\">"
+        for m in re.finditer(pattern, text):
+            urls.append(str(m.group('url')))
+        return urls
 
 class ResolveContext(object):
     """ The context for resolving page queries. """
@@ -266,8 +266,8 @@ class ResolveOutput(object):
         self.meta = {}
         self.out_links = []
         if page:
-            self.meta = dict(page.local_meta)
-            self.out_links = list(page.local_links)
+            self.meta = dict(page._getLocalMeta())
+            self.out_links = list(page._getLocalLinks())
 
     def add(self, other):
         self.out_links += other.out_links
@@ -280,10 +280,8 @@ class ResolveOutput(object):
 
             if key not in self.meta:
                 self.meta[key] = val
-            elif self.meta[key] is list:
-                self.meta[key].append(val)
             else:
-                self.meta[key] = [self.meta[key], val]
+                self.meta[key].append(val)
 
 
 class PageResolver(object):
@@ -308,7 +306,23 @@ class PageResolver(object):
         return self.page.wiki
 
     def run(self):
-        def repl(m):
+        if not self.ctx:
+            self.ctx = ResolveContext(self.page.url)
+
+        # Resolve link states.
+        def repl1(m):
+            url = str(m.group('url'))
+            if self.wiki.pageExists(url):
+                return str(m.group())
+            return '<a class="wiki-link missing" data-wiki-url="%s">' % url
+        
+        formatted_text = re.sub(
+                r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
+                repl1,
+                self.page._getFormattedText())
+
+        # Resolve queries, includes, etc.
+        def repl2(m):
             meta_name = str(m.group('name'))
             meta_value = str(m.group('value'))
             meta_opts = {}
@@ -326,16 +340,15 @@ class PageResolver(object):
                 return self._runInclude(meta_opts, meta_value)
             return ''
 
-        if not self.ctx:
-            self.ctx = ResolveContext(self.page.url)
-
         self.output = ResolveOutput(self.page)
-        self.output.text = re.sub(r'^<div class="wiki-(?P<name>[a-z]+)"'
+        self.output.text = re.sub(
+                r'^<div class="wiki-(?P<name>[a-z]+)"'
                 r'(?P<opts>( data-wiki-([a-z]+)="([^"]+)")*)'
                 r'>(?P<value>.*)</div>$',
-                repl,
-                self.page.formatted_text,
+                repl2,
+                formatted_text,
                 flags=re.MULTILINE)
+
         return self.output
 
     def _runInclude(self, opts, args):
@@ -412,7 +425,7 @@ class PageResolver(object):
                     'url': p.url,
                     'title': p.title
                     }
-            tokens.update(p.local_meta)
+            tokens.update(p._getLocalMeta())
             text += self._renderTemplate(
                     self._valueOrPageText(parameters['__item']),
                     tokens)
@@ -434,7 +447,7 @@ class PageResolver(object):
             # meta properties.
             meta_keys.append('+' + name)
         for key in meta_keys:
-            actual = page.local_meta.get(key)
+            actual = page._getLocalMeta().get(key)
             if (actual is not None and
                     ((type(actual) is list and value in actual) or
                     (actual == value))):
@@ -450,7 +463,7 @@ class PageResolver(object):
         else:
             include_meta_keys.append('__include')
         for key in include_meta_keys:
-            i = page.local_meta.get(key)
+            i = page._getLocalMeta().get(key)
             if i is not None:
                 if (type(i) is list):
                     include_meta_values += i

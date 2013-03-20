@@ -8,6 +8,7 @@ from pygments.formatters import get_formatter_by_name
 from web import app, login_manager
 from wiki import Page
 from fs import PageNotFoundError
+from formatter import PageFormatter
 import scm
 
 
@@ -23,7 +24,6 @@ COERCE_META = {
 def get_page_or_none(url):
     try:
         page = g.wiki.getPage(url)
-        page._ensureMeta()
         return page
     except PageNotFoundError:
         return None
@@ -50,9 +50,9 @@ def is_page_writable(page, user=current_user):
 
 def get_page_meta(page, local_only=False):
     if local_only:
-        meta = dict(page.local_meta)
+        meta = dict(page._getLocalMeta())
     else:
-        meta = dict(page.all_meta)
+        meta = dict(page.meta)
     meta['title'] = page.title
     meta['url'] = page.url
     for name in COERCE_META:
@@ -78,11 +78,14 @@ def get_history_data(history, needs_files=False):
                 f_info = g.wiki.fs.getPageInfo(f['path'])
                 if f_info is None:
                     continue
-                page = g.wiki.getPage(f_info['url'])
-                if not is_page_readable(page):
-                    continue
+                page = g.wiki.getPage(f_info.url)
+                try:
+                    if not is_page_readable(page):
+                        continue
+                except PageNotFoundError:
+                    pass
                 rev_data['pages'].append({
-                    'url': f_info['url'],
+                    'url': f_info.url,
                     'action': scm.ACTION_NAMES[f['action']]
                     })
             if len(rev_data['pages']) > 0:
@@ -189,7 +192,7 @@ def api_get_state(url):
 def api_get_outgoing_links(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
     links = []
-    for link in page.out_links:
+    for link in page.links:
         other = get_page_or_none(link)
         if other is not None:
             links.append({
@@ -199,7 +202,7 @@ def api_get_outgoing_links(url):
         else:
             links.append({'url': link, 'missing': True})
 
-    result = {'meta': get_page_meta(page, True), 'out_links': links}
+    result = {'meta': get_page_meta(page), 'out_links': links}
     return make_auth_response(result)
 
 
@@ -207,7 +210,7 @@ def api_get_outgoing_links(url):
 def api_get_incoming_links(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
     links = []
-    for link in page.in_links:
+    for link in page.getIncomingLinks():
         other = get_page_or_none(link)
         if other is not None and is_page_readable(other):
             links.append({
@@ -217,7 +220,7 @@ def api_get_incoming_links(url):
         else:
             links.append({'url': link, 'missing': True})
 
-    result = {'meta': get_page_meta(page, True), 'in_links': links}
+    result = {'meta': get_page_meta(page), 'in_links': links}
     return make_auth_response(result)
 
 
@@ -303,10 +306,34 @@ def api_delete_page(url):
 
 @app.route('/api/orphans')
 def api_special_orphans():
+    run_queries = request.args.get('run_queries')
+
     orphans = []
-    for page in filter(is_page_readable, g.wiki.getPages()):
-        if len(page.in_links) == 0:
-            orphans.append({'path': page.url, 'meta': get_page_meta(page, True)})
+    pages_with_queries = []
+    for page in g.wiki.getPages():
+        try:
+            if not is_page_readable(page):
+                continue
+            if len(page.getIncomingLinks()) == 0:
+                orphans.append({'path': page.url, 'meta': get_page_meta(page)})
+        except Exception as e:
+            app.logger.error("Error while inspecting page: %s" % page.url)
+            app.logger.error("   %s" % e)
+            continue
+        if run_queries:
+            page_queries = page._getLocalMeta().get('query')
+            if page_queries is not None:
+                pages_with_queries.append(page)
+
+    if run_queries:
+        app.logger.debug("Running queries for %d pages." % len(pages_with_queries))
+        links_to_remove = set()
+        for page in pages_with_queries:
+            links = PageFormatter.parseWikiLinks(page.text)
+            links_to_remove |= set(links)
+        app.logger.debug( links_to_remove)
+        orphans = [o for o in orphans if o['path'] not in links_to_remove]
+        
     result = {'orphans': orphans}
     return make_auth_response(result)
 
@@ -324,7 +351,7 @@ def api_page_history(url):
     page = get_page_or_404(url, CHECK_FOR_READ)
     history = page.getHistory()
     hist_data = get_history_data(history)
-    result = {'url': url, 'meta': get_page_meta(page, True), 'history': hist_data}
+    result = {'url': url, 'meta': get_page_meta(page), 'history': hist_data}
     return make_auth_response(result)
 
 

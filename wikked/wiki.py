@@ -147,7 +147,7 @@ class Wiki(object):
                 yield url
         else:
             for info in self.fs.getPageInfos(subdir):
-                yield info['url']
+                yield info.url
 
     def getPages(self, subdir=None, from_db=None, factory=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
