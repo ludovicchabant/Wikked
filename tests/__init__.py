@@ -3,7 +3,7 @@ import os.path
 import shutil
 import unittest
 from wikked.wiki import Wiki
-from mock import MockWikiParameters
+from mock import MockWikiParameters, MockFileSystem
 
 
 class WikkedTest(unittest.TestCase):
@@ -31,6 +31,11 @@ class WikkedTest(unittest.TestCase):
 
     def getParameters(self):
         return MockWikiParameters()
+
+    def _getWikiFromStructure(self, structure):
+        wiki = self.getWiki(use_db=False, fs_factory=lambda cfg: MockFileSystem(structure))
+        wiki.start()
+        return wiki
 
 
 def format_link(title, url, missing=False, mod=None):

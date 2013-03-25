@@ -4,7 +4,8 @@ import re
 import datetime
 import unicodedata
 import pystache
-from formatter import PageFormatter, FormattingContext, PageResolver, CircularIncludeError
+from formatter import PageFormatter, FormattingContext
+from resolver import PageResolver, CircularIncludeError
 
 
 class PageData(object):
