@@ -253,7 +253,6 @@ class PageResolver(object):
                 return (page.url, page.text)
             return page.text
 
-        value = self._renderTemplate(value, None)
         if with_url:
             return (None, value)
         return value
@@ -338,5 +337,5 @@ def generate_read_url(value, title=None):
 def generate_edit_url(value, title=None):
     if title is None:
         title = value
-    return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (value, title)
+    return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
 
