@@ -9,6 +9,9 @@ class PageTest(WikkedTest):
             })
         page = Page(self.wiki, 'foo')
         self.assertEqual('foo', page.url)
+        self.assertEqual('foo.txt', page.path)
+        self.assertEqual('foo', page.filename)
+        self.assertEqual('txt', page.extension)
         self.assertEqual('A test page.', page.raw_text)
         self.assertEqual('A test page.', page._getFormattedText())
         self.assertEqual('foo', page.title)
@@ -25,7 +28,7 @@ class PageTest(WikkedTest):
         self.assertEqual("A page with simple meta.\n{{bar: baz}}\n{{is_test: }}", page.raw_text)
         self.assertEqual('A page with simple meta.\n\n', page._getFormattedText())
         self.assertEqual('foo', page.title)
-        self.assertEqual('A page with simple meta.\n\n', page.text)
+        self.assertEqual('A page with simple meta.\n', page.text)
         self.assertEqual({'bar': ['baz'], 'is_test': True}, page._getLocalMeta())
         self.assertEqual([], page._getLocalLinks())
 
@@ -38,7 +41,7 @@ class PageTest(WikkedTest):
         self.assertEqual("A page with a custom title.\n{{title: TEST-TITLE}}", page.raw_text)
         self.assertEqual('A page with a custom title.\n', page._getFormattedText())
         self.assertEqual('TEST-TITLE', page.title)
-        self.assertEqual('A page with a custom title.\n', page.text)
+        self.assertEqual('A page with a custom title.', page.text)
         self.assertEqual({'title': ['TEST-TITLE']}, page._getLocalMeta())
         self.assertEqual([], page._getLocalLinks())
 
@@ -83,3 +86,12 @@ class PageTest(WikkedTest):
         foo = Page(self.wiki, 'foo')
         self.assertEqual("URL: /files/blah/boo/image.png", foo._getFormattedText())
 
+    def testUrlTemplateFunctions(self):
+        self.wiki =self._getWikiFromStructure({
+            'foo.txt': "Here is {{read_url(__page.url, 'FOO')}}!"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual(
+            'Here is <a class="wiki-link" data-wiki-url="foo">FOO</a>!',
+            foo.text
+            )

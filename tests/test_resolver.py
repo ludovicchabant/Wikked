@@ -13,7 +13,7 @@ class ResolverTest(WikkedTest):
         self.assertEqual(
                 "A test page.\n%s" % format_include('trans-desc'),
                 foo._getFormattedText())
-        self.assertEqual("A test page.\nBLAH\n\n", foo.text)
+        self.assertEqual("A test page.\nBLAH", foo.text)
 
     def testPageIncludeWithMeta(self):
         self.wiki = self._getWikiFromStructure({
@@ -27,7 +27,7 @@ class ResolverTest(WikkedTest):
                 "A test page.\n%s" % format_include('trans-desc'),
                 foo._getFormattedText())
         self.assertEqual(
-                "A test page.\nBLAH: %s\n\n\n\n" % format_link('Somewhere', 'somewhere', True),
+                "A test page.\nBLAH: %s\n\n" % format_link('Somewhere', 'somewhere', True),
                 foo.text)
         self.assertEqual(['somewhere'], foo.links)
         self.assertEqual({'bar': ['42'], 'given': ['hope'], 'include': ['trans-desc']}, foo.meta)
@@ -41,18 +41,29 @@ class ResolverTest(WikkedTest):
         self.assertEqual(
             "A test page.\n%s" % format_include('greeting', 'name=Dave|what=drink'),
             foo._getFormattedText())
-        self.assertEqual("A test page.\nHello Dave, would you like a drink?\n", foo.text)
+        self.assertEqual("A test page.\nHello Dave, would you like a drink?", foo.text)
 
     def testPageIncludeWithNumberedTemplating(self):
         self.wiki = self._getWikiFromStructure({
             'Foo.txt': "A test page.\n{{include: greeting|Dave|Roger|Tom}}\n",
-            'Greeting.txt': "Hello {{1}}, {{2}} and {{3}}."
+            'Greeting.txt': "Hello {{__args[0]}}, {{__args[1]}} and {{__args[2]}}."
             })
         foo = Page(self.wiki, 'foo')
         self.assertEqual(
             "A test page.\n%s" % format_include('greeting', 'Dave|Roger|Tom'),
             foo._getFormattedText())
-        self.assertEqual("A test page.\nHello Dave, Roger and Tom.\n", foo.text)
+        self.assertEqual("A test page.\nHello Dave, Roger and Tom.", foo.text)
+
+    def testIncludeWithPageReferenceTemplating(self):
+        self.wiki =self._getWikiFromStructure({
+            'SelfRef.txt': "Here is {{read_url(__page.url, __page.title)}}!",
+            'Foo.txt': "Hello here.\n{{include: selfref}}\n"
+            })
+        foo = Page(self.wiki, 'foo')
+        self.assertEqual(
+            'Hello here.\nHere is <a class="wiki-link" data-wiki-url="foo">Foo</a>!',
+            foo.text
+            )
 
     def testGivenOnlyInclude(self):
         self.wiki = self._getWikiFromStructure({
@@ -64,9 +75,9 @@ class ResolverTest(WikkedTest):
         self.assertEqual(
                 "TEMPLATE!\n%s" % format_include('template-2', mod='+'),
                 tpl1._getFormattedText())
-        self.assertEqual("TEMPLATE!\n\n", tpl1.text)
+        self.assertEqual("TEMPLATE!\n", tpl1.text)
         base = Page(self.wiki, 'base')
-        self.assertEqual("The base page.\nTEMPLATE!\nMORE TEMPLATE!\n\n", base.text)
+        self.assertEqual("The base page.\nTEMPLATE!\nMORE TEMPLATE!", base.text)
 
     def testDoublePageIncludeWithMeta(self):
         return
@@ -80,7 +91,7 @@ class ResolverTest(WikkedTest):
             })
         base = Page(self.wiki, 'base')
         self.assertEqual({
-            'foo': ['bar'], 
+            'foo': ['bar'],
             'category': ['blah', 'yolo']
             }, base.meta)
         tpl1 = Page(self.wiki, 'template-1')

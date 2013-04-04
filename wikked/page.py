@@ -3,7 +3,6 @@ import os.path
 import re
 import datetime
 import unicodedata
-import pystache
 from formatter import PageFormatter, FormattingContext
 from resolver import PageResolver, CircularIncludeError
 
@@ -34,6 +33,16 @@ class Page(object):
     def path(self):
         self._ensureData()
         return self._data.path
+
+    @property
+    def extension(self):
+        self._ensureData()
+        return self._data.extension
+
+    @property
+    def filename(self):
+        self._ensureData()
+        return self._data.filename
 
     @property
     def title(self):
@@ -111,12 +120,14 @@ class Page(object):
         page_info = self.wiki.fs.getPage(self.url)
         data.path = page_info.path
         data.raw_text = page_info.content
+        split = os.path.splitext(data.path)
+        data.filename = split[0]
+        data.extension = split[1].lstrip('.')
 
         # Format the page and get the meta properties.
         filename = os.path.basename(data.path)
         filename_split = os.path.splitext(filename)
-        extension = filename_split[1].lstrip('.')
-        ctx = FormattingContext(self.url, extension, slugify=Page.title_to_url)
+        ctx = FormattingContext(self.url, slugify=Page.title_to_url)
         f = PageFormatter(self.wiki)
         data.formatted_text = f.formatText(ctx, data.raw_text)
         data.local_meta = ctx.meta
@@ -147,8 +158,9 @@ class Page(object):
                     'circular_include_error.html'
                     )
             with open(template_path, 'r') as f:
-                template = pystache.compile(f.read())
-            self._data.text = template({
+                env = jinja2.Environment()
+                template = env.from_string(f.read())
+            self._data.text = template.render({
                     'message': str(cie),
                     'url_trail': cie.url_trail
                     })
@@ -197,6 +209,9 @@ class DatabasePage(Page):
                 return None
         data = PageData()
         data.path = db_page.path
+        split = os.path.splitext(data.path)
+        data.filename = split[0]
+        data.extension = split[1]
         data.title = db_page.title
         data.raw_text = db_page.raw_text
         data.formatted_text = db_page.formatted_text

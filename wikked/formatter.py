@@ -4,13 +4,6 @@ import re
 from metautils import get_meta_name_and_modifiers
 
 
-class FormatterNotFound(Exception):
-    """ An exception raised when not formatter is found for the
-        current page.
-    """
-    pass
-
-
 class BaseContext(object):
     """ Base context for formatting pages. """
     def __init__(self, url, slugify=None):
@@ -43,9 +36,8 @@ class BaseContext(object):
 
 class FormattingContext(BaseContext):
     """ Context for formatting pages. """
-    def __init__(self, url, ext, slugify):
+    def __init__(self, url, slugify):
         BaseContext.__init__(self, url, slugify)
-        self.ext = ext
         self.out_links = []
         self.meta = {}
 
@@ -66,24 +58,12 @@ class PageFormatter(object):
                 }
 
     def formatText(self, ctx, text):
-        text = self._preProcessWikiSyntax(ctx, text)
-        formatter = self._getFormatter(ctx.ext)
-        text = formatter(text)
-        text = self._postProcessWikiSyntax(ctx, text)
-        return formatter(text)
-
-    def _getFormatter(self, extension):
-        for k, v in self.wiki.formatters.iteritems():
-            if extension in v:
-                return k
-        raise FormatterNotFound("No formatter mapped to file extension: " + extension)
-
-    def _preProcessWikiSyntax(self, ctx, text):
-        text = self._processWikiMeta(ctx, text)
-        text = self._processWikiLinks(ctx, text)
+        text = self._processWikiSyntax(ctx, text)
         return text
 
-    def _postProcessWikiSyntax(self, ctx, text):
+    def _processWikiSyntax(self, ctx, text):
+        text = self._processWikiMeta(ctx, text)
+        text = self._processWikiLinks(ctx, text)
         return text
 
     def _processWikiMeta(self, ctx, text):

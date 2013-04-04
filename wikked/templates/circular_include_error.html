@@ -2,8 +2,8 @@
     <p>{{message}}</p>
     <p>Here are the URLs we followed:</p>
     <ul>
-        {{#url_trail}}
-        <li>{{.}}</li>
-        {{/url_trail}}
+        {% for url in url_trail %}
+        <li>{{url}}</li>
+        {% endfor %}
     </ul>
 </div>
