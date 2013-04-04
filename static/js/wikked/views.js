@@ -219,7 +219,7 @@ define([
             // URL scheme.
             this.$('a.wiki-link[data-wiki-url]').each(function(i) {
                 var jel = $(this);
-                if (jel.hasClass('missing'))
+                if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
                     jel.attr('href', '/#/edit/' + jel.attr('data-wiki-url'));
                 else
                     jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
