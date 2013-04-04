@@ -211,7 +211,7 @@ class DatabasePage(Page):
         data.path = db_page.path
         split = os.path.splitext(data.path)
         data.filename = split[0]
-        data.extension = split[1]
+        data.extension = split[1].lstrip('.')
         data.title = db_page.title
         data.raw_text = db_page.raw_text
         data.formatted_text = db_page.formatted_text
