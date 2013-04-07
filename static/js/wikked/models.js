@@ -227,7 +227,7 @@ define([
             this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
         },
         _onChange: function() {
-            if (this.getMeta('redirect') && 
+            if (this.getMeta('redirect') &&
                 !this.get('no_redirect') &&
                 !this.get('redirected_from')) {
                 // Handle redirects.
@@ -261,6 +261,10 @@ define([
                 .error(function() {
                     alert('Error saving page...');
                 });
+        },
+        _onChangePath: function(path) {
+            PageEditModel.__super__._onChangePath.apply(this, arguments);
+            this.set('url_read', '/#/read/' + path);
         }
     });
 
@@ -406,6 +410,12 @@ define([
         initialize: function() {
             GenericSpecialPageModel.__super__.initialize.apply(this, arguments);
             this.footer.clearExtraUrls();
+            var key = this.get('page');
+            if (key in this.assignMap) {
+                this.assignMap[key].apply(this);
+            }
+        },
+        assignMap: {
         },
         titleMap: {
             orphans: 'Orphaned Pages',

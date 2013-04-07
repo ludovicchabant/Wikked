@@ -4,22 +4,15 @@
 @import "/css/wmd.css";
 
 // Constants
-@wikiLinkColor: #12f;
-@wikiLinkColorHover: #36f;
-@wikiLinkColorMissing: #f12;
-
-@colorBlueDark: #48577D;
-@colorBlueMedium: #7690CF;
-@colorBlueLight: #D9E3FF;
-
-@colorGrayBlueLight: #D3DCF2;
-@colorGrayBlueMedium: #9197A6;
-@colorGrayBlueDark: #43464C;
-
+@colorBlue: #0F1FFF;
+@colorBlueDark: #1D3982;
+@colorOrange: #B03500;
+@colorGreen: #B6CC95;
+@colorGreenDark: #496B15;
+@colorPage: #FFFFFF;
+@colorFooter: #E5E7FF;
 @colorCode: #523C37;
 
-@pageBackground: white;
-@pageBackgroundSpecial: #E5D19E;
 
 // Macros
 .box-shadow(@style, @c) {
@@ -35,71 +28,93 @@ body {
 }
 
 // Global classes
-a.wiki-link {
+a {
     text-decoration: none;
-    color: @wikiLinkColor;
-    &:link { color: @wikiLinkColor; }
-    &:visited { color: @wikiLinkColor; }
-    &:hover { color: @wikiLinkColorHover; text-decoration: underline; }
-    &:active { color: @wikiLinkColor; }
+    color: @colorBlue;
+    &:link { color: @colorBlue; }
+    &:visited { color: @colorBlue; }
+    &:hover { color: @colorBlue; text-decoration: underline; }
+    &:active { color: @colorBlue; }
 }
 a.wiki-link.missing {
-    color: @wikiLinkColorMissing;
+    color: @colorOrange;
+    &:hover { color: @colorOrange; text-decoration: underline; }
 }
 .decorator {
     text-transform: uppercase;
     font-weight: lighter;
     font-size: 0.7em;
     letter-spacing: 0.1em;
-    color: @colorBlueDark;
+    color: @colorBlue;
     .rev_id {
         font-family: @monoFontFamily;
-        color: @colorCode;
     }
 }
-
-div.alert {
+.tooltip {
+    font-size: @baseFontSize*0.75;
+}
+.alert {
     font-size: @fontSizeSmall;
 }
 
-.container {
-    nav, .meta {
-        color: @grayLight;
-        font-size: @fontSizeSmall;
-        line-height: (@baseLineHeight * 2);
-        a {
-            padding: 0 1em;
-            display: inline-block;
-            text-decoration: none;
-            color: @grayLight;
-            &:link { color: @grayLight; }
-            &:visited { color: @grayLight; }
-            &:hover { color: @linkColorHover; }
-            &:active { color: @grayLight; }
-        }
-    }
-    .page {
-        .box-shadow(0 0 10px, rgb(210, 210, 210));
-        padding: @baseLineHeight;
-        background: @pageBackground;
-        overflow: hidden;
-    }
-    .page.special {
-        background: @pageBackgroundSpecial;
-    }
+// Main classes
+.wrapper>nav,
+.wrapper>footer {
+    color: @grayLight;
+    font-size: @fontSizeSmall;
+    line-height: (@baseLineHeight * 2);
 
-    .page>pre {
-        margin-top: @baseLineHeight;
-    }
-    .meta {
-        font-size: @fontSizeMini;
+    a {
+        padding: 0 1em;
+        display: inline-block;
+        text-decoration: none;
+        color: @grayLight;
+        &:link { color: @grayLight; }
+        &:visited { color: @grayLight; }
+        &:hover { color: @linkColorHover; }
+        &:active { color: @grayLight; }
     }
 }
+.wrapper>article {
+    .box-shadow(0 0 10px, rgb(210, 210, 210));
+    background: @colorPage;
+    overflow: hidden;
 
+    header {
+        background: @colorBlueDark;
+        color: @colorPage;
+    }
+    footer {
+        background: @colorFooter;
+        border-top: 1px dashed darken(@colorFooter, 5%);
+    }
+    pre {
+        margin-top: @baseLineHeight;
+    }
+}
+.wrapper>article>header,
+.wrapper>article>section,
+.wrapper>article>footer {
+    padding: @baseLineHeight;
+}
+.wrapper>footer {
+    font-size: @fontSizeMini;
+}
+.special>article {
+    background: @colorGreen;
+}
+.special>article header {
+    background: @colorGreenDark;
+}
+.special>article footer {
+    background: @colorGreen;
+}
+
+// Other classes
 form.form-search {
     display: inline-block;
     margin: 0;
-    
+
     .search-query {
         font-size: @fontSizeSmall;
         height: @fontSizeSmall * 1.5;
@@ -108,8 +123,7 @@ form.form-search {
 ul.search-results {
     list-style: none;
 }
-
-form.page-edit {
+#page-edit {
     textarea {
         height: 10em;
         font-size: @baseFontSize;
@@ -118,10 +132,10 @@ form.page-edit {
         border-radius: 0;
     }
 }
-.wmd-input-wrapper {
+#wmd-input-wrapper {
     padding: 1em 0;
 
-    .wmd-input-grip { 
+    #wmd-input-grip {
         background: @grayLighter;
         border: 1px solid @grayLight;
         border-width: 0 1px 1px 1px;
@@ -129,16 +143,13 @@ form.page-edit {
         cursor: ns-resize;
     }
 }
-.wmd-preview-wrapper {
-    border: 1px dashed @colorGrayBlueMedium;
-    background: @colorGrayBlueLight;
+#wmd-preview-wrapper {
+    border: 1px dashed @colorBlueDark;
 
     h3 {
-        margin-left: 1em;
-        margin-right: 1em;
-        margin-bottom: 1em;
+        margin: 0.5em 1em 0.5em 1em;
     }
-    .wmd-preview {
+    #wmd-preview {
         margin: 1em;
         background: none;
     }
@@ -148,16 +159,16 @@ form.page-edit {
 }
 .preview-wiki-meta {
     .meta-name {
-        background: @colorBlueMedium;
-        color: #fff;
+        background: @colorBlueDark;
+        color: @colorPage;
         padding: 0.2em 0.4em 0.2em 0.6em;
         border-radius: 0.5em 0 0 0.5em;
         font-variant: small-caps;
         letter-spacing: 0.18em;
     }
     .meta-value {
-        background: @colorGrayBlueDark;
-        color: #fff;
+        background: @colorFooter;
+        color: black;
         padding: 0.2em 0.6em 0.2em 0.4em;
         border-radius:  0 0.5em 0.5em 0;
     }
@@ -166,17 +177,15 @@ form.page-edit {
     margin-top: 1em;
     margin-bottom: 1em;
 }
-
 b.match {
     padding: 0 0.2em;
     background: #ffeb84;
 }
 
 // Page alerts
-.page .alert {
+article .alert {
     float: right;
     margin-left: -100%;
-    top: -@baseLineHeight;
     position: relative;
     width: 50%;
     -webkit-border-radius: 0;
@@ -188,27 +197,29 @@ b.match {
 .makeRibbon(@bgColor) {
     background-color: @bgColor;
     overflow: hidden;
-    transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
-    -moz-transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
-    -webkit-transform: translate(50%, -@baseLineHeight) translate(-3em,3em) rotate(45deg);
-    box-shadow: 0 0 1em #888;
-    -moz-box-shadow: 0 0 1em #888;
-    -webkit-box-shadow: 0 0 1em #888;
+    transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    -moz-transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    -webkit-transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    -moz-box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    -webkit-box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    float: right;
 }
 .makeRibbonContent(@borderColor, @textColor) {
     border: 1px solid @borderColor;
     color: @textColor;
     display: block;
     margin: 0.05em 0 0.05em 0;
-    padding: 0.5em 3.5em;
+    padding: 0.5em 5em;
     text-align: center;
-    text-shadow: 0 0 0.5em #444;
+    text-shadow: 0 0 0.5em rgba(1, 1, 1, 0.2);
 }
 .ribbon {
-    .makeRibbon(#a00);
-    margin-bottom: @baseFontSize * -2.6 - 4px;
+    .makeRibbon(lighten(@colorOrange, 10%));
+    float: right;
 
     .ribbon-inner {
-        .makeRibbonContent(#faa, #fff);
+        .makeRibbonContent(@colorOrange, @colorPage);
+        a { color: #fff; text-decoration: none; }
     }
 }

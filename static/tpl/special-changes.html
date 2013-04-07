@@ -1,6 +1,8 @@
-<article class="row">
-    <div class="page special span12">
+<article>
+    <header>
         <h1>Wiki History</h1>
+    </header>
+    <section>
         <p>Here are the recent changes on this wiki.</p>
         <form>
             <table class="table table-hover">
@@ -25,7 +27,7 @@
                                     <ul class="unstyled">
                                         {{#each changes}}
                                         <li>
-                                            <a href="/#/read/{{url}}">{{url}}</a> 
+                                            <a href="/#/read/{{url}}">{{url}}</a>
                                             {{#if is_edit}}(edit) {{/if}}
                                             {{#if is_add}}(added) {{/if}}
                                             {{#if is_delete}}(deleted) {{/if}}
@@ -42,5 +44,5 @@
                 </tbody>
             </table>
         </form>
-    </div>
+    </section>
 </article>

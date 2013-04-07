@@ -6,6 +6,7 @@ define([
         'underscore',
         'backbone',
         'handlebars',
+        'bootstrap_tooltip',
         'js/wikked/client',
         'js/wikked/models',
         'js/wikked/util',
@@ -28,7 +29,7 @@ define([
         'text!tpl/special-changes.html',
         'text!tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars, Client, Models, Util,
+    function($, _, Backbone, Handlebars, BootstrapTooltip, Client, Models, Util,
         tplReadPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
@@ -39,14 +40,12 @@ define([
     var PageView = exports.PageView = Backbone.View.extend({
         tagName: 'div',
         className: 'wrapper',
+        isMainPage: true,
         initialize: function() {
             PageView.__super__.initialize.apply(this, arguments);
             if (this.model !== undefined) {
                 var $view = this;
                 this.model.on("change", function() { $view._onModelChange(); });
-            }
-            if (this.templateSource !== undefined) {
-                this.template = Handlebars.compile(_.result(this, 'templateSource'));
             }
             return this;
         },
@@ -61,13 +60,18 @@ define([
             }
         },
         render: function(view) {
+            if (this.template === undefined && this.templateSource !== undefined) {
+                this.template = Handlebars.compile(_.result(this, 'templateSource'));
+            }
             if (this.template !== undefined) {
                 this.renderTemplate(this.template);
                 if (this.renderCallback !== undefined) {
                     this.renderCallback();
                 }
             }
-            this.renderTitle(this.titleFormat);
+            if (this.isMainPage) {
+                this.renderTitle(this.titleFormat);
+            }
             return this;
         },
         renderTemplate: function(tpl) {
@@ -88,13 +92,14 @@ define([
 
     var NavigationView = exports.NavigationView = PageView.extend({
         templateSource: tplNav,
+        isMainPage: false,
         initialize: function() {
             NavigationView.__super__.initialize.apply(this, arguments);
             return this;
         },
         render: function() {
-            this.renderTemplate(this.template);
-            this.origPageEl = $('#app .page');
+            NavigationView.__super__.render.apply(this, arguments);
+            this.origPageEl = $('.wrapper>article');
             return this;
         },
         events: {
@@ -110,18 +115,17 @@ define([
         _previewSearch: function(e) {
             // Restore the original content if the query is now
             // empty. Otherwise, run a search and render only the
-            // `.page` portion of the results page.
+            // `article` portion of the results page.
             var origPageEl = this.origPageEl;
-            var curPreviewEl = $('#app .page[class~="preview-search-results"]');
+            var curPreviewEl = $('.wrapper>article[class~="preview-search-results"]');
             var query = $(e.currentTarget).val();
             if (query && query.length > 0) {
                 var template = Handlebars.compile(tplSearchResults);
                 this.model.doPreviewSearch(query, function(data) {
                     data.is_instant = true;
                     var resultList = $(template(data));
-                    var inner = $('.page', resultList)
-                        .addClass('preview-search-results')
-                        .detach();
+                    var inner = $(resultList)
+                        .addClass('preview-search-results');
                     if (origPageEl.is(':visible')) {
                         inner.insertAfter(origPageEl);
                         origPageEl.hide();
@@ -144,27 +148,19 @@ define([
 
     var FooterView = exports.FooterView = PageView.extend({
         templateSource: tplFooter,
+        isMainPage: false,
         initialize: function() {
             FooterView.__super__.initialize.apply(this, arguments);
             return this;
         },
         render: function() {
-            this.renderTemplate(this.template);
+            FooterView.__super__.render.apply(this, arguments);
             return this;
         }
     });
 
     var LoginView = exports.LoginView = PageView.extend({
         templateSource: tplLogin,
-        initialize: function() {
-            LoginView.__super__.initialize.apply(this, arguments);
-            return this;
-        },
-        render: function() {
-            this.renderTemplate(this.template);
-            document.title = 'Login';
-            return this;
-        },
         events: {
             "submit #login": "_submitLogin"
         },
@@ -183,10 +179,11 @@ define([
             return this;
         },
         renderCallback: function() {
-            this.$el.prepend('<div id="nav"></div>');
-            this.$el.append('<div id="footer"></div>');
-            this.nav.setElement(this.$('#nav')).render();
-            this.footer.setElement(this.$('#footer')).render();
+            this.$el.prepend('<nav></nav>');
+            this.$el.append('<footer></footer>');
+            this.nav.setElement(this.$('>nav')).render();
+            this.footer.setElement(this.$('>footer')).render();
+            this.isError = (this.model.get('error_code') !== undefined);
         },
         templateSource: function() {
             switch (this.model.get('error_code')) {
@@ -215,6 +212,10 @@ define([
         },
         renderCallback: function() {
             PageReadView.__super__.renderCallback.apply(this, arguments);
+            if (this.isError) {
+                return;
+            }
+
             // Replace all wiki links with proper hyperlinks using the JS app's
             // URL scheme.
             this.$('a.wiki-link[data-wiki-url]').each(function(i) {
@@ -237,11 +238,13 @@ define([
             var state = this._pageState.get('state');
             if (state == 'new' || state == 'modified') {
                 var warning = $(this.warningTemplate(this._pageState.toJSON()));
-                warning.css('display', 'none');
-                warning.prependTo($('#app .page'));
-                warning.slideDown();
+                $('[rel="tooltip"]', warning).tooltip({container:'body'});
+                //warning.css('display', 'none');
+                warning.prependTo($('.wrapper>article'));
+                //warning.slideDown();
                 $('.dismiss', warning).click(function() {
-                    warning.slideUp();
+                    //warning.slideUp();
+                    warning.remove();
                     return false;
                 });
             }
@@ -273,14 +276,12 @@ define([
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
-        templateSource: function() {
-            if (this.model.get('error_code') == 401) {
-                return tplErrorUnauthorizedEdit;
-            }
-            return tplEditPage;
-        },
+        defaultTemplateSource: tplEditPage,
         renderCallback: function() {
             PageEditView.__super__.renderCallback.apply(this, arguments);
+            if (this.isError) {
+                return;
+            }
 
             // Create the Markdown editor.
             var formatter = new Client.PageFormatter();
@@ -292,11 +293,11 @@ define([
             var editor = new Markdown.Editor(converter); //TODO: pass options
             editor.run();
             var editor_control = this.$('textarea#wmd-input');
-            editor_control.outerWidth(this.$('.wmd-input-wrapper').innerWidth());
+            editor_control.outerWidth(this.$('#wmd-input-wrapper').innerWidth());
         },
         events: {
-            "mousedown .wmd-input-grip": "_inputGripMouseDown",
-            "click .wmd-preview-wrapper>h3>a": "_togglePreview",
+            "mousedown #wmd-input-grip": "_inputGripMouseDown",
+            "click #wmd-preview-wrapper>h3>a": "_togglePreview",
             "submit #page-edit": "_submitEditedPage"
         },
         _inputGripMouseDown: function(e) {
@@ -315,8 +316,8 @@ define([
         },
         _togglePreview: function(e) {
             // Show/hide live preview.
-            this.$('#wmd-preview').fadeToggle(function() {
-                var icon = this.$('.wmd-preview-wrapper>h3>a i');
+            $('#wmd-preview').fadeToggle(function() {
+                var icon = $('#wmd-preview-wrapper>h3>a i');
                 if (icon.hasClass('icon-minus')) {
                     icon.removeClass('icon-minus');
                     icon.addClass('icon-plus');
@@ -390,6 +391,7 @@ define([
     });
 
     var SpecialMasterPageView = exports.SpecialMasterPageView = MasterPageView.extend({
+        className: 'wrapper special',
         _createNavigation: function(model) {
             model.set('show_root_link', true);
             return new SpecialNavigationView({ model: model });

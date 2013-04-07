@@ -151,7 +151,7 @@ define([
             var view = new Views.LoginView({
                 model: new Models.LoginModel()
             });
-            this.viewManager.switchView(view);
+            this.viewManager.switchView(view, false);
             this.navigate('/login');
         },
         doLogout: function() {

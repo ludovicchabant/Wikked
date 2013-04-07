@@ -1,6 +1,8 @@
-<article class="row">
-    <div class="page span12">
+<article>
+    <header>
         <h1>{{meta.title}} <span class="decorator">History</span></h1>
+    </header>
+    <section>
         {{#if history}}
         <p>Here's the revision log for <a href="{{url_read}}">{{meta.title}}</a>.</p>
         <form id="diff-page">
@@ -32,7 +34,9 @@
             </table>
         </form>
         {{else}}
-        <p><i class="icon-warning-sign large big"></i> This page has not been committed to the repository yet. <a href="{{url_edit}}">Edit it</a> to do that now.</p>
+        <p><i class="icon-warning-sign large big"></i>
+            This page has not been committed to the repository yet.
+            <a href="{{url_edit}}">Edit it</a> to do that now.</p>
         {{/if}}
-    </div>
+    </section>
 </article>

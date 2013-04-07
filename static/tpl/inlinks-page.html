@@ -1,6 +1,8 @@
-<article class="row">
-    <div class="page span12">
+<article>
+    <header>
         <h1>{{meta.title}} <span class="decorator">Incoming Links</span></h1>
+    </header>
+    <section>
         <p>The following pages link to <a href="{{url_read}}">{{meta.title}}</a>:</p>
         <ul>
         {{#each in_links}}
@@ -13,5 +15,5 @@
             </li>
         {{/each}}
         </ul>
-    </div>
+    </section>
 </article>

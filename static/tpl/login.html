@@ -1,11 +1,13 @@
-<nav class="row">
-    <div class="span12">
+<nav>
+    <section>
         <a href="/">Home</a>
-    </div>
+    </section>
 </nav>
-<div class="row">
-    <div class="page span12">
+<article>
+    <header>
         <h1>Login</h1>
+    </header>
+    <section>
         {{#if has_error}}
         <div class="alert alert-error">
             <strong>Begone!</strong> Those credentials don't seem to work here.
@@ -27,7 +29,7 @@
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
-    </div>
-</div>
-<div class="row meta">
-</div>
+    </section>
+</article>
+<footer>
+</footer>

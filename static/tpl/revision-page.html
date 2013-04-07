@@ -1,11 +1,14 @@
-<article class="row">
-    <div class="page span12">
+<article>
+    <header>
         <h1>{{meta.title}} <span class="decorator">Revision: <span class="rev_id">{{disp_rev}}</span></span></h1>
+    </header>
+    <section>
         <pre><code>{{text}}</code></pre>
         <form id="page-revert" class="page-revert">
             <input type="hidden" name="rev" value="{{rev}}"/>
             <button type="submit" class="btn">Revert</button>
             <small>Revert the page to this revision</small>
         </form>
-    </div>
+    </section>
+</div>
 </article>

@@ -1,40 +1,37 @@
-<article class="row">
-    <div class="page span12">
+<article>
+    <header>
         <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
-        <form id="page-edit" class="page-edit row">
-            <div class="span12">
-                <div id="wmd-button-bar"></div>
-            </div>
-            <div class="span12">
-                <div class="wmd-input-wrapper">
-                    <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
-                    <div class="wmd-input-grip"></div>
-                </div>
-            </div>
-            <div class="span12">
-                <div class="wmd-preview-wrapper">
-                    <h3><a class="btn"><i class="icon-minus"></i></a> Preview</h3>
-                    <div id="wmd-preview" class="wmd-preview"></div>
-                </div>
-            </div>
-            <div class="span12">
-                    <div class="controls commit-meta">
-                        <div class="control-group input-prepend">
-                            <label for="author" class="control-label add-on">Author: </label>
-                            <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
-                        </div>
-                        <div class="control-group input-prepend">
-                            <label for="message" class="control-label add-on">Change Description: </label>
-                            <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
-                        </div>
+    </header>
+    <section>
+        <form id="page-edit">
+            <section id="wmd-button-bar">
+            </section>
+            <section id="wmd-input-wrapper">
+                <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                <div id="wmd-input-grip"></div>
+            </section>
+            <section id="wmd-preview-wrapper">
+                <h3><a class="btn"><i class="icon-minus"></i></a> Preview</h3>
+                <div id="wmd-preview"></div>
+            </section>
+            <section>
+                <div class="controls commit-meta">
+                    <div class="control-group input-prepend">
+                        <label for="author" class="control-label add-on">Author: </label>
+                        <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
                     </div>
-            </div>
-            <div class="span12">
+                    <div class="control-group input-prepend">
+                        <label for="message" class="control-label add-on">Change Description: </label>
+                        <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
+                    </div>
+                </div>
+            </section>
+            <section>
                 <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
                 <a href="{{url_read}}" class="btn">Cancel</a>
-            </div>
+            </section>
         </form>
-    </div>
+    <section>
 </article>
 <script type="text/javascript" src="/js/pagedown/Markdown.Converter.js"></script>
 <script type="text/javascript" src="/js/pagedown/Markdown.Sanitizer.js"></script>
