@@ -81,7 +81,6 @@ define([
         defaults: function() {
             return {
                 url_extras: [
-                    { name: 'Home', url: '/#/' },
                     { name: 'Special Pages', url: '/#/special' }
                 ]
             };
@@ -271,6 +270,11 @@ define([
     var PageHistoryModel = exports.PageHistoryModel = MasterPageModel.extend({
         urlRoot: '/api/history/',
         action: 'history',
+        initialize: function() {
+            PageHistoryModel.__super__.initialize.apply(this, arguments);
+            var model = this;
+            this.footer.addExtraUrl('JSON', function() { return '/api/history/' + model.id; });
+        },
         doDiff: function(form) {
             var rev1 = $('input[name=rev1]:checked', form).val();
             var rev2 = $('input[name=rev2]:checked', form).val();
