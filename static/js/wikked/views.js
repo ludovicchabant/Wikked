@@ -292,12 +292,15 @@ define([
             });
             var editor = new Markdown.Editor(converter); //TODO: pass options
             editor.run();
-            var editor_control = this.$('textarea#wmd-input');
-            editor_control.outerWidth(this.$('#wmd-input-wrapper').innerWidth());
+
+            // Setup UI.
+            this._updateUI();
+            $('#wmd-preview-wrapper').hide();
+            this.originalHeight = $('#wmd-input').height();
         },
         events: {
             "mousedown #wmd-input-grip": "_inputGripMouseDown",
-            "click #wmd-preview-wrapper>h3>a": "_togglePreview",
+            "click #wmd-preview-button": "_togglePreview",
             "submit #page-edit": "_submitEditedPage"
         },
         _inputGripMouseDown: function(e) {
@@ -306,7 +309,7 @@ define([
             last_pageY = e.pageY;
             $('body')
                 .on('mousemove.wikked.editor_resize', function(e) {
-                    var editor_control = $('textarea#wmd-input');
+                    var editor_control = $('#wmd-input');
                     editor_control.height(editor_control.height() + e.pageY - last_pageY);
                     last_pageY = e.pageY;
                 })
@@ -316,16 +319,45 @@ define([
         },
         _togglePreview: function(e) {
             // Show/hide live preview.
-            $('#wmd-preview').fadeToggle(function() {
-                var icon = $('#wmd-preview-wrapper>h3>a i');
-                if (icon.hasClass('icon-minus')) {
-                    icon.removeClass('icon-minus');
-                    icon.addClass('icon-plus');
-                } else {
-                    icon.removeClass('icon-plus');
-                    icon.addClass('icon-minus');
-                }
-            });
+            var w = $('body').width() - 40;
+            if ($('#wmd-preview').is(":visible")) {
+                $('#wmd-form-wrapper')
+                    .removeClass('span6')
+                    .addClass('span12');
+                $('#wmd-preview-wrapper')
+                    .hide()
+                    .removeClass('span6');
+                $('#page-edit')
+                    .removeClass('row-fluid')
+                    .addClass('row');
+                $('#app')
+                    .removeClass('container-fluid')
+                    .addClass('container');
+                $('#wmd-input').height(this.originalHeight);
+                this._updateUI();
+            } else {
+                $('#app')
+                    .removeClass('container')
+                    .addClass('container-fluid');
+                $('#page-edit')
+                    .removeClass('row')
+                    .addClass('row-fluid');
+                $('#wmd-form-wrapper')
+                    .removeClass('span12')
+                    .addClass('span6');
+                $('#wmd-preview-wrapper')
+                    .show()
+                    .addClass('span6');
+                $('#wmd-input').height($('#wmd-preview').height());
+                this._updateUI();
+            }
+            e.preventDefault();
+            return false;
+        },
+        _updateUI: function() {
+            var inputWidth = $('#wmd-input-wrapper').innerWidth();
+            $('#wmd-input')
+                .outerWidth(inputWidth);
         },
         _submitEditedPage: function(e) {
             // Make the model submit the form.

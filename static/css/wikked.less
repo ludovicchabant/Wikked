@@ -110,7 +110,7 @@ a.wiki-link.missing {
     background: @colorGreen;
 }
 
-// Other classes
+// Search
 form.form-search {
     display: inline-block;
     margin: 0;
@@ -123,6 +123,12 @@ form.form-search {
 ul.search-results {
     list-style: none;
 }
+b.match {
+    padding: 0 0.2em;
+    background: #ffeb84;
+}
+
+// Page editing
 #page-edit {
     textarea {
         height: 10em;
@@ -132,18 +138,22 @@ ul.search-results {
         border-radius: 0;
     }
 }
-#wmd-input-wrapper {
-    padding: 1em 0;
-
-    #wmd-input-grip {
-        background: @grayLighter;
-        border: 1px solid @grayLight;
-        border-width: 0 1px 1px 1px;
-        height: 12px;
-        cursor: ns-resize;
-    }
+#wmd-form-wrapper>section {
+    margin: 1em;
 }
-#wmd-preview-wrapper {
+#wmd-input-grip {
+    background: @grayLighter;
+    border: 1px solid @grayLight;
+    border-width: 0 1px 1px 1px;
+    height: 12px;
+    cursor: ns-resize;
+}
+#wmd-preview-button span {
+    background: url(../img/markdown-32x20.png);
+    width: 32px;
+    height: 20px;
+}
+/*#wmd-preview-wrapper {
     border: 1px dashed @colorBlueDark;
 
     h3 {
@@ -156,7 +166,7 @@ ul.search-results {
 }
 #wmd-button-bar li {
     margin-left: 0;
-}
+}*/
 .preview-wiki-meta {
     .meta-name {
         background: @colorBlueDark;
@@ -176,10 +186,6 @@ ul.search-results {
 .commit-meta {
     margin-top: 1em;
     margin-bottom: 1em;
-}
-b.match {
-    padding: 0 0.2em;
-    background: #ffeb84;
 }
 
 // Page alerts
