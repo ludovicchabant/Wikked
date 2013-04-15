@@ -37,6 +37,31 @@ define([
 
     var exports = {};
 
+    // JQuery feature for watching size changes in a DOM element.
+    jQuery.fn.watch = function(id, fn) {
+        return this.each(function() {
+            var self = this;
+            var oldVal = self[id];
+            $(self).data(
+                'watch_timer',
+                setInterval(
+                    function() {
+                        if (self[id] !== oldVal) {
+                            fn.call(self, id, oldVal, self[id]);
+                            oldVal = self[id];
+                        }
+                    },
+                    100
+                )
+            );
+        });
+    };
+    jQuery.fn.unwatch = function( id ) {
+        return this.each(function() {
+            clearInterval($(this).data('watch_timer'));
+        });
+    };
+
     var PageView = exports.PageView = Backbone.View.extend({
         tagName: 'div',
         className: 'wrapper',
@@ -277,11 +302,20 @@ define([
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
         defaultTemplateSource: tplEditPage,
+        dispose: function() {
+            PageEditView.__super__.dispose.apply(this, arguments);
+            this._removePreview();
+        },
         renderCallback: function() {
             PageEditView.__super__.renderCallback.apply(this, arguments);
             if (this.isError) {
                 return;
             }
+
+            // Cache some stuff.
+            this._ctrlInput = $('#wmd-input');
+            this._ctrlPreview = $('#wmd-preview');
+            this._originalInputHeight = this._ctrlInput.height();
 
             // Create the Markdown editor.
             var formatter = new Client.PageFormatter();
@@ -290,17 +324,21 @@ define([
             converter.hooks.chain("preConversion", function(text) {
                 return formatter.formatText(text);
             });
+            var $view = this;
             var editor = new Markdown.Editor(converter); //TODO: pass options
+            editor.hooks.chain("onPreviewRefresh", function() {
+                $view._updateUI(true);
+            });
             editor.run();
 
             // Setup UI.
             this._updateUI();
             $('#wmd-preview-wrapper').hide();
-            this.originalHeight = $('#wmd-input').height();
         },
         events: {
             "mousedown #wmd-input-grip": "_inputGripMouseDown",
             "click #wmd-preview-button": "_togglePreview",
+            "click #wmd-full-preview-button": "_toggleFullPreview",
             "submit #page-edit": "_submitEditedPage"
         },
         _inputGripMouseDown: function(e) {
@@ -320,23 +358,16 @@ define([
         _togglePreview: function(e) {
             // Show/hide live preview.
             var w = $('body').width() - 40;
-            if ($('#wmd-preview').is(":visible")) {
-                $('#wmd-form-wrapper')
-                    .removeClass('span6')
-                    .addClass('span12');
-                $('#wmd-preview-wrapper')
-                    .hide()
-                    .removeClass('span6');
-                $('#page-edit')
-                    .removeClass('row-fluid')
-                    .addClass('row');
-                $('#app')
-                    .removeClass('container-fluid')
-                    .addClass('container');
-                $('#wmd-input').height(this.originalHeight);
-                this._updateUI();
+            if (this._ctrlPreview.is(":visible")) {
+                this._removePreview();
             } else {
-                $('#app')
+                this._addPreview();
+            }
+            e.preventDefault();
+            return false;
+        },
+        _addPreview: function() {
+            $('#app')
                     .removeClass('container')
                     .addClass('container-fluid');
                 $('#page-edit')
@@ -348,16 +379,53 @@ define([
                 $('#wmd-preview-wrapper')
                     .show()
                     .addClass('span6');
-                $('#wmd-input').height($('#wmd-preview').height());
-                this._updateUI();
-            }
+
+            this._updateUI(true);
+        },
+        _removePreview: function() {
+            $('#wmd-form-wrapper')
+                    .removeClass('span6')
+                    .addClass('span12');
+                $('#wmd-preview-wrapper')
+                    .hide()
+                    .removeClass('span6');
+                $('#page-edit')
+                    .removeClass('row-fluid')
+                    .addClass('row');
+                $('#app')
+                    .removeClass('container-fluid')
+                    .addClass('container');
+
+            this._ctrlInput.height(this._originalInputHeight);
+            this._updateUI();
+        },
+        _toggleFullPreview: function(e) {
+            var $view = this;
+            var previewData = {
+                url: this.model.get('path'),
+                text: $('#wmd-input').val()
+            };
+            $.post('/api/preview', previewData)
+                .success(function(data) {
+                    $('#wmd-preview').html(data.text);
+                    $view._updateUI(true);
+                })
+                .error(function() {
+                    $('#wmd-preview').html("Error running preview.");
+                });
             e.preventDefault();
             return false;
         },
-        _updateUI: function() {
+        _updateUI: function(setHeight) {
             var inputWidth = $('#wmd-input-wrapper').innerWidth();
-            $('#wmd-input')
-                .outerWidth(inputWidth);
+            this._ctrlInput.outerWidth(inputWidth);
+
+            if (setHeight === true) {
+                var maxHeight = Math.max(
+                    this._ctrlPreview.height(),
+                    this._ctrlInput.height());
+                this._ctrlInput.height(maxHeight);
+            }
         },
         _submitEditedPage: function(e) {
             // Make the model submit the form.

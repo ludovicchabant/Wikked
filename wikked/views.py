@@ -1,3 +1,4 @@
+import re
 import time
 import os.path
 from flask import render_template, abort, request, g, jsonify
@@ -6,9 +7,9 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
 from web import app, login_manager
-from wiki import Page
+from page import Page, PageData
 from fs import PageNotFoundError
-from formatter import PageFormatter
+from formatter import PageFormatter, FormattingContext
 import scm
 
 
@@ -19,6 +20,30 @@ CHECK_FOR_WRITE = 2
 COERCE_META = {
     'redirect': Page.title_to_url
     }
+
+
+class DummyPage(Page):
+    def __init__(self, wiki, url, text):
+        Page.__init__(self, wiki, url)
+        self._text = text
+
+    def _loadCachedData(self):
+        extension = self.wiki.config.get('wiki', 'default_extension')
+        data = PageData()
+        data.path = '__preview__.' + extension
+        data.filename = '__preview__'
+        data.extension = extension
+        data.raw_text = self._text
+
+        ctx = FormattingContext(self.url, slugify=Page.title_to_url)
+        f = PageFormatter(self.wiki)
+        data.formatted_text = f.formatText(ctx, data.raw_text)
+        data.local_meta = ctx.meta
+        data.local_links = ctx.out_links
+
+        data.title = Page.url_to_title(self.url)
+
+        return data
 
 
 def get_page_or_none(url):
@@ -333,7 +358,7 @@ def api_special_orphans():
             links_to_remove |= set(links)
         app.logger.debug( links_to_remove)
         orphans = [o for o in orphans if o['path'] not in links_to_remove]
-        
+
     result = {'orphans': orphans}
     return make_auth_response(result)
 
@@ -365,6 +390,16 @@ def api_search():
     hits = filter(is_hit_readable, g.wiki.index.search(query))
     result = {'query': query, 'hits': hits}
     return make_auth_response(result)
+
+
+@app.route('/api/preview', methods=['POST'])
+def api_preview():
+    url = request.form.get('url')
+    text = request.form.get('text')
+    dummy = DummyPage(g.wiki, url, text)
+
+    result = {'text': dummy.text}
+    return jsonify(result)
 
 
 @app.route('/api/admin/reindex', methods=['POST'])
