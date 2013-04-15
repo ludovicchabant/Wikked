@@ -3,6 +3,7 @@ import os.path
 import re
 import datetime
 import unicodedata
+import jinja2
 from formatter import PageFormatter, FormattingContext
 from resolver import PageResolver, CircularIncludeError
 
