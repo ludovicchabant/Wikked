@@ -293,7 +293,7 @@ define([
             PageReadView.__super__._onModelChange.apply(this, arguments);
 
             // Fetch the state if the current page changed.
-            if (this.model.hasChanged('path') || this._firstRender) {
+            if (!this.isError && (this.model.hasChanged('path') || this._firstRender)) {
                 this._checkPageState();
                 this._firstRender = false;
             }

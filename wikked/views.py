@@ -49,6 +49,7 @@ class DummyPage(Page):
 def get_page_or_none(url):
     try:
         page = g.wiki.getPage(url)
+        page._ensureData()
         return page
     except PageNotFoundError:
         return None
