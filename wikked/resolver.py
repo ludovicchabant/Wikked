@@ -48,7 +48,7 @@ class ResolveOutput(object):
             self.out_links = list(page._getLocalLinks())
 
     def add(self, other):
-        self.out_links += other.out_links
+        self.out_links = list(set(self.out_links + other.out_links))
         for original_key, val in other.meta.iteritems():
             # Ignore internal properties. Strip include-only properties
             # from their prefix.
@@ -59,7 +59,7 @@ class ResolveOutput(object):
             if key not in self.meta:
                 self.meta[key] = val
             else:
-                self.meta[key].append(val)
+                self.meta[key] = list(set(self.meta[key] + val))
 
 
 class PageResolver(object):
