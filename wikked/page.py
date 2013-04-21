@@ -152,6 +152,7 @@ class Page(object):
             self._data.text = out.text
             self._data.ext_meta = out.meta
             self._data.ext_links = out.out_links
+            self._data.has_extended_data = True
         except CircularIncludeError as cie:
             template_path = os.path.join(
                     os.path.dirname(__file__),
