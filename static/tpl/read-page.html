@@ -16,7 +16,8 @@
     {{#if meta.category}}
     <footer>
         {{#each meta.category}}
-        <span><a href="/#/special/category/">{{.}}</a></span>
+        {{#ifeq @index to=0}}Categories: {{else}} | {{/ifeq}}
+        <span><a href="/#/category/{{url}}">{{name}}</a></span>
         {{/each}}
     </footer>
     {{/if}}

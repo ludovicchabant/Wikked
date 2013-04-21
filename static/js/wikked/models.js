@@ -241,6 +241,17 @@ define([
         }
     });
 
+    var CategoryModel = exports.CategoryModel = MasterPageModel.extend({
+        action: 'read',
+        url: function() {
+            return '/api/query?category=' + this.get('path');
+        },
+        _onChangePath: function(path) {
+            CategoryModel.__super__._onChangePath.apply(this, arguments);
+            this.set('category', path);
+        }
+    });
+
     var PageSourceModel = exports.PageSourceModel = MasterPageModel.extend({
         urlRoot: '/api/raw/',
         action: 'source'

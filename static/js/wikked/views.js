@@ -11,6 +11,7 @@ define([
         'js/wikked/models',
         'js/wikked/util',
         'text!tpl/read-page.html',
+        'text!tpl/category.html',
         'text!tpl/edit-page.html',
         'text!tpl/history-page.html',
         'text!tpl/revision-page.html',
@@ -30,7 +31,7 @@ define([
         'text!tpl/special-orphans.html'
         ],
     function($, _, Backbone, Handlebars, BootstrapTooltip, Client, Models, Util,
-        tplReadPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
+        tplReadPage, tplCategory, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
         tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialOrphans) {
@@ -298,6 +299,10 @@ define([
                 this._firstRender = false;
             }
         }
+    });
+
+    var CategoryView = exports.CategoryView = MasterPageView.extend({
+        defaultTemplateSource: tplCategory
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({

@@ -1,0 +1,16 @@
+<article>
+    <header>
+        <h1>{{category}} <span class="decorator">Category</span></h1>
+    </header>
+    <section>
+        {{content}}
+        <h2>Pages in category "{{category}}"</h2>
+        <ul class="list-category">
+        {{#each pages}}
+            <li><a href="{{url_read}}">{{title}}</a></li>
+        {{/each}}
+        </ul>
+    </section>
+    <footer>
+    </footer>
+</article>

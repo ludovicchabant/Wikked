@@ -64,6 +64,7 @@ define([
         routes: {
             'read/*path':           "readPage",
             '':                     "readMainPage",
+            'category/*path':       "readCategoryPage",
             'edit/*path':           "editPage",
             'changes/*path':        "showPageHistory",
             'inlinks/*path':        "showIncomingLinks",
@@ -90,6 +91,13 @@ define([
         },
         readMainPage: function() {
             this.readPage('main-page');
+        },
+        readCategoryPage: function(path) {
+            var view = new Views.CategoryView({
+                model: new Models.CategoryModel({ path: path })
+            });
+            this.viewManager.switchView(view);
+            this.navigate('/category/' + path);
         },
         editPage: function(path) {
             var view = new Views.PageEditView({
