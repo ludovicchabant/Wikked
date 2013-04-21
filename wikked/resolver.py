@@ -74,9 +74,10 @@ class PageResolver(object):
         '__empty': "<p>No page matches the query.</p>\n"
         }
 
-    def __init__(self, page, ctx=None):
+    def __init__(self, page, ctx=None, parameters=None):
         self.page = page
         self.ctx = ctx
+        self.parameters = parameters
         self.output = None
         self.env = None
 
@@ -89,9 +90,27 @@ class PageResolver(object):
         return self.page == self.ctx.root_page
 
     def run(self):
+        try:
+            return self._unsafeRun()
+        except Exception as e:
+            self.output = ResolveOutput(self.page)
+            self.output.text = u'<div class="error">%s</div>' % e
+            return self.output
+
+    def _unsafeRun(self):
         # Create the context object.
         if not self.ctx:
             self.ctx = ResolveContext(self.page)
+
+        # Create default parameters.
+        if not self.parameters:
+            self.parameters = {
+                '__page': {
+                    'url': self.page.url,
+                    'title': self.page.title
+                    },
+                '__args': []
+                }
 
         # Create the output object, so it can be referenced and merged
         # with child outputs (from included pages).
@@ -139,12 +158,7 @@ class PageResolver(object):
         # Run text through templating and formatting if this
         # is the root page.
         if self.is_root:
-            parameters = {
-                    '__page': {
-                        'url': self.page.url,
-                        'title': self.page.title
-                        }
-                    }
+            parameters = dict(self.parameters)
             final_text = self._renderTemplate(final_text, parameters, error_url=self.page.url)
             formatter = self._getFormatter(self.page.extension)
             final_text = formatter(final_text)
@@ -165,13 +179,7 @@ class PageResolver(object):
             raise CircularIncludeError("Circular include detected at: %s" % include_url, self.ctx.url_trail)
 
         # Parse the templating parameters.
-        parameters = {
-                '__page': {
-                    'url': self.ctx.root_page.url,
-                    'title': self.ctx.root_page.title
-                    },
-                '__args': []
-                }
+        parameters = dict(self.parameters)
         if args:
             # For each parameter, we render templated expressions in case
             # they depend on parent paremeters passed to the call.
@@ -190,7 +198,7 @@ class PageResolver(object):
         # formatted text.
         page = self.wiki.getPage(include_url)
         self.ctx.url_trail.add(page.url)
-        child = PageResolver(page, self.ctx)
+        child = PageResolver(page, self.ctx, parameters)
         child_output = child.run()
         self.output.add(child_output)
 
@@ -338,4 +346,3 @@ def generate_edit_url(value, title=None):
     if title is None:
         title = value
     return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
-
