@@ -17,8 +17,19 @@ DONT_CHECK = 0
 CHECK_FOR_READ = 1
 CHECK_FOR_WRITE = 2
 
+
+def get_category_meta(category):
+    result = []
+    for item in category:
+        result.append({
+            'url': Page.title_to_url(item),
+            'name': item
+            })
+    return result
+
 COERCE_META = {
-    'redirect': Page.title_to_url
+    'redirect': Page.title_to_url,
+    'category': get_category_meta
     }
 
 
@@ -181,6 +192,27 @@ def api_read_page_rev(url):
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
+    return make_auth_response(result)
+
+
+@app.route('/api/query')
+def api_query():
+    query = dict(request.args)
+
+    def makelower(i):
+        return i.lower()
+
+    def filterfunc(p):
+        for k, v in query.iteritems():
+            if not k.lower() in p.meta:
+                return False
+            if v is None:
+                return True
+            intersect = set(map(makelower, v)).intersection(map(makelower, p.meta[k]))
+            return len(intersect) > 0
+
+    pages = filter(filterfunc, g.wiki.getPages())
+    result = {'pages': [get_page_meta(p) for p in pages]}
     return make_auth_response(result)
 
 
