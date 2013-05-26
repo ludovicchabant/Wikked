@@ -32,7 +32,7 @@ class WikiParameters(object):
         if root is None:
             root = os.getcwd()
         self.root = root
-        
+
         self.formatters = self.getFormatters()
 
         self.config_path = os.path.join(self.root, '.wikirc')
@@ -51,7 +51,7 @@ class WikiParameters(object):
         return open(self.config_path)
 
     def fs_factory(self, config):
-        return FileSystem(self.root, slugify=Page.title_to_url, logger=self.logger_factory())
+        return FileSystem(self.root, logger=self.logger_factory())
 
     def index_factory(self, config):
         return WhooshWikiIndex(self.index_path, logger=self.logger_factory())

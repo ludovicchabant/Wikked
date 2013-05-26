@@ -2,7 +2,6 @@ import os
 import os.path
 import re
 import datetime
-import unicodedata
 import jinja2
 from formatter import PageFormatter, FormattingContext
 from resolver import PageResolver, CircularIncludeError
@@ -128,7 +127,7 @@ class Page(object):
         # Format the page and get the meta properties.
         filename = os.path.basename(data.path)
         filename_split = os.path.splitext(filename)
-        ctx = FormattingContext(self.url, slugify=Page.title_to_url)
+        ctx = FormattingContext(self.url)
         f = PageFormatter(self.wiki)
         data.formatted_text = f.formatText(ctx, data.raw_text)
         data.local_meta = ctx.meta
@@ -166,22 +165,6 @@ class Page(object):
                     'message': str(cie),
                     'url_trail': cie.url_trail
                     })
-
-    @staticmethod
-    def title_to_url(title):
-        # Remove diacritics (accents, etc.) and replace them with ASCII
-        # equivelent.
-        ansi_title = ''.join((c for c in
-            unicodedata.normalize('NFD', unicode(title))
-            if unicodedata.category(c) != 'Mn'))
-        # Now replace spaces and punctuation with a hyphen.
-        return re.sub(r'[^A-Za-z0-9_\.\-\(\)]+', '-', ansi_title.lower())
-
-    @staticmethod
-    def url_to_title(url):
-        def upperChar(m):
-            return m.group(0).upper()
-        return re.sub(r'^.|\s\S', upperChar, url.lower().replace('-', ' '))
 
     @staticmethod
     def factory(wiki, url):

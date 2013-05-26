@@ -4,6 +4,7 @@ import re
 import string
 import codecs
 import logging
+from utils import title_to_url
 
 
 class PageNotFoundError(Exception):
@@ -29,12 +30,8 @@ class FileSystem(object):
         file-system paths, and for scanning the file-system
         to list existing pages.
     """
-    def __init__(self, root, slugify=None, logger=None):
+    def __init__(self, root, logger=None):
         self.root = unicode(root)
-
-        if slugify is None:
-            slugify = lambda x: x
-        self.slugify = slugify
 
         if logger is None:
             logger = logging.getLogger('wikked.fs')
@@ -104,7 +101,7 @@ class FileSystem(object):
         for i, part in enumerate(parts):
             if i > 0:
                 url += '/'
-            url += self.slugify(part)
+            url += title_to_url(part)
         return PageInfo(url, path, None)
 
     def _getPhysicalPath(self, url, is_file):
@@ -119,7 +116,7 @@ class FileSystem(object):
         for i, part in enumerate(parts):
             names = os.listdir(current)
             for name in names:
-                name_formatted = self.slugify(name)
+                name_formatted = title_to_url(name)
                 if is_file and i == len(parts) - 1:
                     # If we're looking for a file and this is the last part,
                     # look for something similar but with an extension.

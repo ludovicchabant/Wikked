@@ -1,4 +1,3 @@
-import re
 import time
 import os.path
 from flask import render_template, abort, request, g, jsonify
@@ -10,6 +9,7 @@ from web import app, login_manager
 from page import Page, PageData
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
+from utils import title_to_url
 import scm
 
 
@@ -22,13 +22,13 @@ def get_category_meta(category):
     result = []
     for item in category:
         result.append({
-            'url': Page.title_to_url(item),
+            'url': title_to_url(item),
             'name': item
             })
     return result
 
 COERCE_META = {
-    'redirect': Page.title_to_url,
+    'redirect': title_to_url,
     'category': get_category_meta
     }
 
@@ -46,7 +46,7 @@ class DummyPage(Page):
         data.extension = extension
         data.raw_text = self._text
 
-        ctx = FormattingContext(self.url, slugify=Page.title_to_url)
+        ctx = FormattingContext(self.url)
         f = PageFormatter(self.wiki)
         data.formatted_text = f.formatText(ctx, data.raw_text)
         data.local_meta = ctx.meta

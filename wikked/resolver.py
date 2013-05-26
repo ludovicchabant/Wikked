@@ -1,6 +1,6 @@
 import re
 import jinja2
-from metautils import get_meta_name_and_modifiers
+from utils import get_meta_name_and_modifiers
 
 
 class FormatterNotFound(Exception):

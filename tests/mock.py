@@ -9,6 +9,7 @@ from wikked.fs import PageInfo, PageNotFoundError
 from wikked.db import Database
 from wikked.indexer import WikiIndex
 from wikked.scm import SourceControl
+from wikked.utils import title_to_url
 
 
 class MockWikiParameters(object):
@@ -86,13 +87,10 @@ class MockDatabase(Database):
 
 
 class MockFileSystem():
-    def __init__(self, structure=None, slugify=Page.title_to_url, logger=None):
+    def __init__(self, structure=None, logger=None):
         if not structure:
             structure = []
-        if not slugify:
-            slugify = lambda x: x
         self.structure = structure
-        self.slugify = slugify
         self.logger = logger
         self.excluded = []
 
@@ -131,7 +129,7 @@ class MockFileSystem():
 
     def _getPageInfo(self, node, with_content=False):
         path_split = os.path.splitext(node['path'])
-        url = self.slugify(path_split[0])
+        url = title_to_url(path_split[0])
         info = PageInfo(url, node['path'])
         if with_content:
             info.content = node['content']
@@ -176,7 +174,7 @@ class MockFileSystem():
         parts = unicode(url).lower().split('/')
         for i, part in enumerate(parts):
             for name in current:
-                name_slug = self.slugify(name)
+                name_slug = title_to_url(name)
                 if is_file and i == len(parts) - 1:
                     if re.match(r"%s\.[a-z]+" % re.escape(part), name_slug):
                         current = current[name]

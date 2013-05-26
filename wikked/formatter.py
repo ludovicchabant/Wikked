@@ -1,43 +1,26 @@
 import os
 import os.path
 import re
-from metautils import get_meta_name_and_modifiers
+from utils import get_absolute_url, get_meta_name_and_modifiers
 
 
 class BaseContext(object):
     """ Base context for formatting pages. """
-    def __init__(self, url, slugify=None):
+    def __init__(self, url):
         self.url = url
-        self.slugify = slugify
 
     @property
     def urldir(self):
         return os.path.dirname(self.url)
 
     def getAbsoluteUrl(self, url, do_slugify=True):
-        if url.startswith('/'):
-            # Absolute page URL.
-            abs_url = url[1:]
-        else:
-            # Relative page URL. Let's normalize all `..` in it,
-            # which could also replace forward slashes by backslashes
-            # on Windows, so we need to convert that back.
-            raw_abs_url = os.path.join(self.urldir, url)
-            abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
-        if do_slugify and self.slugify is not None:
-            abs_url_parts = abs_url.split('/')
-            abs_url = ''
-            for i, part in enumerate(abs_url_parts):
-                if i > 0:
-                    abs_url += '/'
-                abs_url += self.slugify(part)
-        return abs_url
+        return get_absolute_url(self.url, url, do_slugify)
 
 
 class FormattingContext(BaseContext):
     """ Context for formatting pages. """
-    def __init__(self, url, slugify):
-        BaseContext.__init__(self, url, slugify)
+    def __init__(self, url):
+        BaseContext.__init__(self, url)
         self.out_links = []
         self.meta = {}
 

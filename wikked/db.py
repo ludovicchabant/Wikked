@@ -64,7 +64,6 @@ class Database(object):
         raise NotImplementedError()
 
 
-
 class SQLitePageInfo(object):
     def __init__(self, row):
         self.url = row['url']
