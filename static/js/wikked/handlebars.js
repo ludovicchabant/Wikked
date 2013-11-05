@@ -8,7 +8,7 @@ define([
     function(Handlebars) {
 
     /**
-     * Handlebars helper: reverse iterator.
+     * Reverse iterator.
      */
     Handlebars.registerHelper('eachr', function(context, options) {
         if (context === undefined) {
@@ -27,20 +27,6 @@ define([
             out += options.fn(context[i], { data: data });
         }
         return out;
-    });
-
-    /**
-     * 
-     */
-    Handlebars.registerHelper('each_or_this', function(context, options) {
-        if (context === undefined) {
-            return '';
-        }
-        data = undefined;
-        if (options.data) {
-            data = Handlebars.createFrame(options.data);
-        }
-        var out = '';
     });
 
     /**
@@ -68,6 +54,29 @@ define([
             return options.fn(this);
         }
         return options.inverse(this);
+    });
+
+    /**
+     * Concatenate strings with a separator.
+     */
+    Handlebars.registerHelper('concat', function(context, options) {
+        if (context === undefined) {
+            return '';
+        }
+        data = undefined;
+        if (options.data) {
+            data = Handlebars.createFrame(options.data);
+        }
+
+        var sep = options.hash.sep;
+        var out = '';
+        for (var i = 0; i < context.length; i++) {
+            if (i > 0) {
+                out += sep;
+            }
+            out += options.fn(context[i], { data: data });
+        }
+        return out;
     });
 
     /**

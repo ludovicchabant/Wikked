@@ -1,13 +1,13 @@
 <article>
     <header>
-        <h1>{{category}} <span class="decorator">Category</span></h1>
+        <h1>{{query.category}} <span class="decorator">Category</span></h1>
     </header>
     <section>
         {{content}}
-        <h2>Pages in category "{{category}}"</h2>
+        <h2>Pages in category "{{query.category}}"</h2>
         <ul class="list-category">
         {{#each pages}}
-            <li><a href="{{url_read}}">{{title}}</a></li>
+            <li><a href="/#/read/{{url}}">{{title}}</a></li>
         {{/each}}
         </ul>
     </section>

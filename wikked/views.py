@@ -1,4 +1,5 @@
 import time
+import urllib
 import os.path
 from flask import render_template, abort, request, g, jsonify
 from flask.ext.login import login_user, logout_user, current_user
@@ -22,7 +23,7 @@ def get_category_meta(category):
     result = []
     for item in category:
         result.append({
-            'url': title_to_url(item),
+            'url': urllib.quote_plus(item),
             'name': item
             })
     return result
@@ -38,7 +39,7 @@ class DummyPage(Page):
         Page.__init__(self, wiki, url)
         self._text = text
 
-    def _loadCachedData(self):
+    def _loadData(self):
         extension = self.wiki.config.get('wiki', 'default_extension')
         data = PageData()
         data.path = '__preview__.' + extension
@@ -87,7 +88,7 @@ def is_page_writable(page, user=current_user):
 
 def get_page_meta(page, local_only=False):
     if local_only:
-        meta = dict(page._getLocalMeta())
+        meta = dict(page.getLocalMeta())
     else:
         meta = dict(page.meta)
     meta['title'] = page.title
@@ -198,21 +199,11 @@ def api_read_page_rev(url):
 @app.route('/api/query')
 def api_query():
     query = dict(request.args)
-
-    def makelower(i):
-        return i.lower()
-
-    def filterfunc(p):
-        for k, v in query.iteritems():
-            if not k.lower() in p.meta:
-                return False
-            if v is None:
-                return True
-            intersect = set(map(makelower, v)).intersection(map(makelower, p.meta[k]))
-            return len(intersect) > 0
-
-    pages = filter(filterfunc, g.wiki.getPages())
-    result = {'pages': [get_page_meta(p) for p in pages]}
+    pages = g.wiki.getPages(meta_query=query)
+    result = {
+            'query': query,
+            'pages': [get_page_meta(p) for p in pages]
+        }
     return make_auth_response(result)
 
 
@@ -379,7 +370,7 @@ def api_special_orphans():
             app.logger.error("   %s" % e)
             continue
         if run_queries:
-            page_queries = page._getLocalMeta().get('query')
+            page_queries = page.getLocalMeta().get('query')
             if page_queries is not None:
                 pages_with_queries.append(page)
 

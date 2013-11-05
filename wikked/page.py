@@ -7,6 +7,12 @@ from formatter import PageFormatter, FormattingContext
 from resolver import PageResolver, CircularIncludeError
 
 
+class PageLoadingError(Exception):
+    """ An exception that can get raised if a page can't be loaded.
+    """
+    pass
+
+
 class PageData(object):
     def __init__(self):
         self.path = None
@@ -22,7 +28,8 @@ class PageData(object):
 
 
 class Page(object):
-    """ A wiki page.
+    """ A wiki page. This is a non-functional class, as it doesn't know where
+        to load things from. Use `FileSystemPage` or `DatabasePage` instead.
     """
     def __init__(self, wiki, url):
         self.wiki = wiki
@@ -84,15 +91,15 @@ class Page(object):
     def getDiff(self, rev1, rev2):
         return self.wiki.scm.diff(self.path, rev1, rev2)
 
-    def _getFormattedText(self):
+    def getFormattedText(self):
         self._ensureData()
         return self._data.formatted_text
 
-    def _getLocalMeta(self):
+    def getLocalMeta(self):
         self._ensureData()
         return self._data.local_meta
 
-    def _getLocalLinks(self):
+    def getLocalLinks(self):
         self._ensureData()
         return self._data.local_links
 
@@ -100,24 +107,81 @@ class Page(object):
         if self._data is not None:
             return
 
-        self._data = self._loadCachedData()
+        self._data = self._loadData()
         if self._data is not None:
             return
 
-        self._data = self._loadOriginalData()
-        self._saveCachedData(self._data)
+        raise PageLoadingError()
 
-    def _loadCachedData(self):
-        return None
+    def _loadData(self):
+        raise NotImplementedError()
 
-    def _saveCachedData(self, meta):
+    def _onExtendedDataLoading(self):
         pass
 
-    def _loadOriginalData(self):
-        data = PageData()
+    def _onExtendedDataLoaded(self):
+        pass
 
+    def _ensureExtendedData(self):
+        if self._data is not None and self._data.has_extended_data:
+            return
+    
+        self._ensureData()
+
+        self._onExtendedDataLoading()
+        if self._data.has_extended_data:
+            return
+        
+        try:
+            r = PageResolver(self)
+            out = r.run()
+            self._data.text = out.text
+            self._data.ext_meta = out.meta
+            self._data.ext_links = out.out_links
+            self._data.has_extended_data = True
+            self._onExtendedDataLoaded()
+        except CircularIncludeError as cie:
+            template_path = os.path.join(
+                    os.path.dirname(__file__),
+                    'templates',
+                    'circular_include_error.html'
+                    )
+            with open(template_path, 'r') as f:
+                env = jinja2.Environment()
+                template = env.from_string(f.read())
+            self._data.text = template.render({
+                    'message': str(cie),
+                    'url_trail': cie.url_trail
+                    })
+
+
+class FileSystemPage(Page):
+    """ A page that can load its properties directly from the file-system.
+    """
+    def __init__(self, wiki, url=None, page_info=None):
+        if url and page_info:
+            raise Exception("You can't specify both an url and a page info.")
+        if not url and not page_info:
+            raise Exception("You need to specify either a url or a page info.")
+
+        super(FileSystemPage, self).__init__(wiki, url or page_info.url)
+        self._page_info = page_info
+
+    @property
+    def path(self):
+        if self._page_info:
+            return self._page_info.path
+        return super(FileSystemPage, self).path
+
+    def _loadData(self):
         # Get info from the file-system.
-        page_info = self.wiki.fs.getPage(self.url)
+        page_info = self._page_info or self.wiki.fs.getPage(self.url)
+        data = self._loadFromPageInfo(page_info)
+        self._page_info = None
+        return data
+
+    def _loadFromPageInfo(self, page_info):
+        data = PageData()
         data.path = page_info.path
         data.raw_text = page_info.content
         split = os.path.splitext(data.path)
@@ -140,76 +204,93 @@ class Page(object):
 
         return data
 
-    def _ensureExtendedData(self):
-        if self._data is not None and self._data.has_extended_data:
-            return
-
-        self._ensureData()
-        try:
-            r = PageResolver(self)
-            out = r.run()
-            self._data.text = out.text
-            self._data.ext_meta = out.meta
-            self._data.ext_links = out.out_links
-            self._data.has_extended_data = True
-        except CircularIncludeError as cie:
-            template_path = os.path.join(
-                    os.path.dirname(__file__),
-                    'templates',
-                    'circular_include_error.html'
-                    )
-            with open(template_path, 'r') as f:
-                env = jinja2.Environment()
-                template = env.from_string(f.read())
-            self._data.text = template.render({
-                    'message': str(cie),
-                    'url_trail': cie.url_trail
-                    })
-
     @staticmethod
-    def factory(wiki, url):
-        return Page(wiki, url)
+    def fromPageInfos(wiki, page_infos):
+        for p in page_infos:
+            yield FileSystemPage(wiki, page_info=p)
 
 
 class DatabasePage(Page):
-    """ A page that can load its properties from a
-        database.
+    """ A page that can load its properties from a database.
     """
-    def __init__(self, wiki, url):
-        Page.__init__(self, wiki, url)
-        if getattr(wiki, 'db', None) is None:
-            raise Exception("The wiki doesn't have a database.")
-        self.auto_update = wiki.config.get('wiki', 'auto_update')
+    def __init__(self, wiki, url=None, db_obj=None):
+        if url and db_obj:
+            raise Exception("You can't specify both an url and a database object.")
+        if not url and not db_obj:
+            raise Exception("You need to specify either a url or a database object.")
 
-    def _loadCachedData(self):
-        if self.wiki.db is None:
-            return None
-        db_page = self.wiki.db.getPage(self.url)
-        if db_page is None:
-            return None
-        if self.auto_update:
+        super(DatabasePage, self).__init__(wiki, url or db_obj.url)
+        self.auto_update = wiki.config.get('wiki', 'auto_update')
+        self._db_obj = db_obj
+
+    @property
+    def path(self):
+        if self._db_obj:
+            return self._db_obj.path
+        return super(DatabasePage, self).path
+
+    @property
+    def _id(self):
+        if self._db_obj:
+            return self._db_obj.id
+        self._ensureData()
+        return self._data._db_id
+
+    def _loadData(self):
+        db_obj = self._db_obj or self.wiki.db.getPage(self.url)
+        data = self._loadFromDbObject(db_obj)
+        self._db_obj = None
+        return data
+
+    def _onExtendedDataLoaded(self):
+        self.wiki.db._cacheExtendedData(self)
+
+    def _loadFromDbObject(self, db_obj, bypass_auto_update=False):
+        if not bypass_auto_update and self.auto_update:
             path_time = datetime.datetime.fromtimestamp(
-                os.path.getmtime(db_page.path))
-            if path_time >= db_page.time:
-                return None
+                os.path.getmtime(db_obj.path))
+            if path_time >= db_obj.time:
+                self.wiki.logger.debug(
+                    "Updating database cache for page '%s'." % self.url)
+                fs_page = FileSystemPage(self.wiki, self.url)
+                fs_page._ensureData()
+                added_ids = self.wiki.db.update([fs_page])
+                fs_page._data._db_id = added_ids[0]
+                return fs_page._data
+
         data = PageData()
-        data.path = db_page.path
+        data._db_id = db_obj.id
+        data.path = db_obj.path
         split = os.path.splitext(data.path)
         data.filename = split[0]
         data.extension = split[1].lstrip('.')
-        data.title = db_page.title
-        data.raw_text = db_page.raw_text
-        data.formatted_text = db_page.formatted_text
-        data.local_meta = db_page.meta
-        data.local_links = db_page.links
+        data.title = db_obj.title
+        data.raw_text = db_obj.raw_text
+        data.formatted_text = db_obj.formatted_text
+
+        data.local_meta = {}
+        for m in db_obj.meta:
+            value = data.local_meta.get(m.name)
+            if value is None:
+                data.local_meta[m.name] = [m.value]
+            else:
+                data.local_meta[m.name].append(m.value)
+
+        data.local_links = [l.target_url for l in db_obj.links]
+
+        if db_obj.is_ready:
+            # If we have extended cache data from the database, we might as
+            # well load it now too.
+            data.text = db_obj.ready_text
+            for m in db_obj.ready_meta:
+                value = data.ext_meta.get(m.name)
+                if value is None:
+                    data.ext_meta[m.name] = [m.value]
+                else:
+                    data.ext_meta[m.name].append(m.value)
+            data.ext_links = [l.target_url for l in db_obj.ready_links]
+            # Flag this data as completely loaded.
+            data.has_extended_data = True
+
         return data
 
-    def _saveCachedData(self, meta):
-        if self.wiki.db is not None:
-            self.wiki.logger.debug(
-                "Updated database cache for page '%s'." % self.url)
-            self.wiki.db.update([self])
-
-    @staticmethod
-    def factory(wiki, url):
-        return DatabasePage(wiki, url)

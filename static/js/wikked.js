@@ -12,8 +12,8 @@ require.config({
         handlebars: 'js/handlebars-1.0.rc.1',
         moment: 'js/moment.min',
         text: 'js/text',
-        bootstrap_modal: '/bootstrap/js/bootstrap-modal',
-        bootstrap_tooltip: '/bootstrap/js/bootstrap-tooltip'
+        bootstrap_modal: 'bootstrap/js/bootstrap-modal',
+        bootstrap_tooltip: 'bootstrap/js/bootstrap-tooltip'
     },
     shim: {
         'jquery': {

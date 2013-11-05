@@ -5,9 +5,9 @@ import logging
 import itertools
 import importlib
 from ConfigParser import SafeConfigParser
-from page import Page, DatabasePage
+from page import DatabasePage, FileSystemPage
 from fs import FileSystem
-from db import SQLiteDatabase, conn_scope
+from db import SQLDatabase
 from scm import MercurialCommandServerSourceControl
 from indexer import WhooshWikiIndex
 from auth import UserManager
@@ -37,15 +37,12 @@ class WikiParameters(object):
 
         self.config_path = os.path.join(self.root, '.wikirc')
         self.index_path = os.path.join(self.root, '.wiki', 'index')
-        self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
-
-        self.use_db = True
-        self.page_factory = DatabasePage.factory
+        self.db_path = 'sqlite://' + os.path.join(self.root, '.wiki', 'wiki.db')
 
     def logger_factory(self):
         if getattr(self, 'logger', None):
             return self.logger
-        return logging.getLogger('wikked.wiki')
+        return logging.getLogger(__name__)
 
     def config_factory(self):
         return open(self.config_path)
@@ -57,7 +54,7 @@ class WikiParameters(object):
         return WhooshWikiIndex(self.index_path, logger=self.logger_factory())
 
     def db_factory(self, config):
-        return SQLiteDatabase(self.db_path, logger=self.logger_factory())
+        return SQLDatabase(self.db_path, logger=self.logger_factory())
 
     def scm_factory(self, config):
         scm_type = config.get('wiki', 'scm')
@@ -104,8 +101,6 @@ class Wiki(object):
         self.config = self._loadConfig(parameters)
 
         self.formatters = parameters.formatters
-        self.use_db = parameters.use_db
-        self.page_factory = DatabasePage.factory
 
         self.fs = parameters.fs_factory(self.config)
         self.index = parameters.index_factory(self.config)
@@ -127,49 +122,31 @@ class Wiki(object):
         self.db.initDb()
 
         if update:
-            with conn_scope(self.db):
-                self.db.update(self.getPages(from_db=False, factory=Page.factory))
-                self.index.update(self.getPages())
+            page_infos = self.fs.getPageInfos()
+            fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
+            self.db.update(fs_pages)
+            self.index.update(self.getPages())
 
     def stop(self):
         self.db.close()
 
-    def getPageUrls(self, subdir=None, from_db=None):
+    def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given
             sub-directory.
-            By default, it queries the DB, but it can query the file-system
-            directly if `from_db` is `False`.
         """
-        if from_db is None:
-            from_db = self.use_db
-        if from_db:
-            for url in self.db.getPageUrls(subdir):
-                yield url
-        else:
-            for info in self.fs.getPageInfos(subdir):
-                yield info.url
+        for url in self.db.getPageUrls(subdir):
+            yield url
 
-    def getPages(self, subdir=None, from_db=None, factory=None):
+    def getPages(self, subdir=None, meta_query=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
-            By default it will use the DB to fetch the list of pages, but it
-            can scan the file-system directly if `from_db` is `False`. If
-            that's the case, it's probably a good idea to provide a custom
-            `factory` for creating `Page` instances, since by default it will
-            use `DatabasePage` which also uses the DB to load its information.
         """
-        if from_db is None:
-            from_db = self.use_db
-        if factory is None:
-            factory = self.page_factory
-        for url in self.getPageUrls(subdir, from_db):
-            yield factory(self, url)
+        for page in self.db.getPages(subdir, meta_query):
+            yield DatabasePage(self, db_obj=page)
 
-    def getPage(self, url, factory=None):
+    def getPage(self, url):
         """ Gets the page for a given URL.
         """
-        if factory is None:
-            factory = self.page_factory
-        return factory(self, url)
+        return DatabasePage(self, url)
 
     def setPage(self, url, page_fields):
         """ Updates or creates a page for a given URL.
@@ -186,18 +163,18 @@ class Wiki(object):
                     "No commit message specified for editing page '%s'." % url)
 
         # Save the new/modified text.
-        path = self.fs.getPhysicalPagePath(url)
-        self.fs.setPage(path, page_fields['text'])
+        page_info = self.fs.setPage(url, page_fields['text'])
 
         # Commit the file to the source-control.
         commit_meta = {
                 'author': page_fields['author'],
                 'message': page_fields['message']
                 }
-        self.scm.commit([path], commit_meta)
+        self.scm.commit([page_info.path], commit_meta)
 
         # Update the DB and index with the new/modified page.
-        self.db.update([self.getPage(url, factory=Page.factory)])
+        fs_page = FileSystemPage(self, page_info=page_info)
+        self.db.update([fs_page])
         self.index.update([self.getPage(url)])
 
     def revertPage(self, url, page_fields):
@@ -219,7 +196,7 @@ class Wiki(object):
         rev_text = self.scm.getRevision(path, page_fields['rev'])
 
         # Write to the file and commit.
-        self.fs.setPage(path, rev_text)
+        page_info = self.fs.setPage(url, rev_text)
 
         # Commit to source-control.
         commit_meta = {
@@ -229,19 +206,14 @@ class Wiki(object):
         self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the modified page.
-        self.db.update([self.getPage(url, factory=Page.factory)])
+        fs_page = FileSystemPage(self, page_info=page_info)
+        self.db.update([fs_page])
         self.index.update([self.getPage(url)])
 
-    def pageExists(self, url, from_db=None):
+    def pageExists(self, url):
         """ Returns whether a page exists at the given URL.
-            By default it will query the DB, but it can query the underlying
-            file-system directly if `from_db` is `False`.
         """
-        if from_db is None:
-            from_db = self.use_db
-        if from_db:
-            return self.db.pageExists(url)
-        return self.fs.pageExists(url)
+        return self.db.pageExists(url)
 
     def getHistory(self):
         """ Shorthand method to get the history from the source-control.

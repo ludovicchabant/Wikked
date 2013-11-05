@@ -245,10 +245,6 @@ define([
         action: 'read',
         url: function() {
             return '/api/query?category=' + this.get('path');
-        },
-        _onChangePath: function(path) {
-            CategoryModel.__super__._onChangePath.apply(this, arguments);
-            this.set('category', path);
         }
     });
 

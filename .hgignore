@@ -1,5 +1,8 @@
 syntax:glob
 venv
+node_modules
+build
 *.pyc
 *.pyo
+*.sublime-*
 

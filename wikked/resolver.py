@@ -44,8 +44,8 @@ class ResolveOutput(object):
         self.meta = {}
         self.out_links = []
         if page:
-            self.meta = dict(page._getLocalMeta())
-            self.out_links = list(page._getLocalLinks())
+            self.meta = dict(page.getLocalMeta())
+            self.out_links = list(page.getLocalLinks())
 
     def add(self, other):
         self.out_links = list(set(self.out_links + other.out_links))
@@ -76,7 +76,7 @@ class PageResolver(object):
 
     def __init__(self, page, ctx=None, parameters=None):
         self.page = page
-        self.ctx = ctx
+        self.ctx = ctx or ResolveContext(page)
         self.parameters = parameters
         self.output = None
         self.env = None
@@ -98,10 +98,6 @@ class PageResolver(object):
             return self.output
 
     def _unsafeRun(self):
-        # Create the context object.
-        if not self.ctx:
-            self.ctx = ResolveContext(self.page)
-
         # Create default parameters.
         if not self.parameters:
             self.parameters = {
@@ -126,7 +122,7 @@ class PageResolver(object):
         final_text = re.sub(
                 r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
                 repl1,
-                self.page._getFormattedText())
+                self.page.getFormattedText())
 
         # Resolve queries, includes, etc.
         def repl2(m):
@@ -247,7 +243,7 @@ class PageResolver(object):
                     'url': p.url,
                     'title': p.title
                     }
-            tokens.update(p._getLocalMeta())
+            tokens.update(p.getLocalMeta())
             item_url, item_text = self._valueOrPageText(parameters['__item'], with_url=True)
             text += self._renderTemplate(item_text, tokens, error_url=item_url or self.page.url)
         text += self._valueOrPageText(parameters['__footer'])
@@ -273,7 +269,7 @@ class PageResolver(object):
             # meta properties.
             meta_keys.append('+' + name)
         for key in meta_keys:
-            actual = page._getLocalMeta().get(key)
+            actual = page.getLocalMeta().get(key)
             if (actual is not None and
                     ((type(actual) is list and value in actual) or
                     (actual == value))):
@@ -289,7 +285,7 @@ class PageResolver(object):
         else:
             include_meta_keys.append('__include')
         for key in include_meta_keys:
-            i = page._getLocalMeta().get(key)
+            i = page.getLocalMeta().get(key)
             if i is not None:
                 if (type(i) is list):
                     include_meta_values += i

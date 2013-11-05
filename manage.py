@@ -6,8 +6,7 @@ settings.UPDATE_WIKI_ON_START = False
 
 # Create the app and the wiki.
 from wikked.web import app, wiki
-from wikked.page import Page
-from wikked.db import conn_scope
+from wikked.page import FileSystemPage
 
 # Create the manager.
 from flask.ext.script import Manager, prompt, prompt_pass
@@ -24,12 +23,12 @@ def users():
 
 
 @manager.command
-def new_user():
+def user(username=None, password=None):
     """Generates the entry for a new user so you can
        copy/paste it in your `.wikirc`.
     """
-    username = prompt('Username: ')
-    password = prompt_pass('Password: ')
+    username = username or prompt('Username: ')
+    password = password or prompt_pass('Password: ')
     password = app.bcrypt.generate_password_hash(password)
     print "[users]"
     print "%s = %s" % (username, password)
@@ -39,9 +38,10 @@ def new_user():
 def reset():
     """ Re-generates the database and the full-text-search index.
     """
-    with conn_scope(wiki.db):
-        wiki.db.reset(wiki.getPages(from_db=False, factory=Page.factory))
-        wiki.index.reset(wiki.getPages())
+    page_infos = wiki.fs.getPageInfos()
+    fs_pages = FileSystemPage.fromPageInfos(wiki, page_infos)
+    wiki.db.reset(fs_pages)
+    wiki.index.reset(wiki.getPages())
 
 
 @manager.command
@@ -49,9 +49,10 @@ def update():
     """ Updates the database and the full-text-search index with any
         changed/new files.
     """
-    with conn_scope(wiki.db):
-        wiki.db.update(wiki.getPages(from_db=False, factory=Page.factory))
-        wiki.index.update(wiki.getPages())
+    page_infos = wiki.fs.getPageInfos()
+    fs_pages = FileSystemPage.fromPageInfos(wiki, page_infos)
+    wiki.db.update(fs_pages)
+    wiki.index.update(wiki.getPages())
 
 
 @manager.command
@@ -66,9 +67,8 @@ def list():
 def get(url):
     """ Gets a page that matches the given URL.
     """
-    with conn_scope(wiki.db):
-        page = wiki.getPage(url)
-        print page.text
+    page = wiki.getPage(url)
+    print page.text
 
 
 if __name__ == "__main__":

@@ -15,14 +15,17 @@ class PageNotFoundError(Exception):
 
 
 class PageInfo(object):
-    def __init__(self, url, path, content=None):
+    def __init__(self, url, path):
         self.url = url
         self.path = path
-        self.content = content
+        self._content = None
 
     @property
-    def has_content(self):
-        return self.content is not None
+    def content(self):
+        if self._content is None:
+            with codecs.open(self.path, 'r', encoding='utf-8') as f:
+                self._content = f.read()
+        return self._content
 
 
 class FileSystem(object):
@@ -65,13 +68,13 @@ class FileSystem(object):
 
     def getPage(self, url):
         path = self.getPhysicalPagePath(url)
-        with codecs.open(path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        return PageInfo(url, path, content)
+        return PageInfo(url, path)
 
-    def setPage(self, path, content):
+    def setPage(self, url, content):
+        path = self.getPhysicalPagePath(url)
         with codecs.open(path, 'w', encoding='utf-8') as f:
             f.write(content)
+        return PageInfo(url, path)
 
     def pageExists(self, url):
         try:
@@ -102,7 +105,7 @@ class FileSystem(object):
             if i > 0:
                 url += '/'
             url += title_to_url(part)
-        return PageInfo(url, path, None)
+        return PageInfo(url, path)
 
     def _getPhysicalPath(self, url, is_file):
         if string.find(url, '..') >= 0:

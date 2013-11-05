@@ -1,6 +1,6 @@
 import os
+import os.path
 from flask import Flask, abort, g
-from wiki import Wiki, WikiParameters
 
 # Create the main app.
 app = Flask("wikked")
@@ -21,7 +21,7 @@ if app.config['DEBUG']:
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
       '/': os.path.join(
           os.path.dirname(os.path.dirname(__file__)),
-          'static'),
+          'build'),
       '/files': os.path.join(wiki_root)
     })
 
@@ -43,18 +43,25 @@ if app.config.get('LOG_FORMAT'):
 #       access to the context instance for the wiki.
 @app.before_request
 def before_request():
-    wiki.db.open()
     g.wiki = wiki
 
 
 @app.teardown_request
 def teardown_request(exception):
-    wiki.db.close()
+    pass
+
+
+# SQLAlchemy extension.
+from flask.ext.sqlalchemy import SQLAlchemy
+# TODO: get the path from the wiki parameters
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(wiki_root, '.wiki', 'wiki.db')
+db = SQLAlchemy(app)
 
 
 # Login extension.
 def user_loader(username):
     return g.wiki.auth.getUser(username)
+
 
 from flask.ext.login import LoginManager
 login_manager = LoginManager()
@@ -69,12 +76,15 @@ app.bcrypt = Bcrypt(app)
 
 
 # Create the wiki.
+from wiki import Wiki, WikiParameters
+
 def create_wiki(update_on_start=True):
     params = WikiParameters(root=wiki_root)
     params.logger = app.logger
     wiki = Wiki(params)
     wiki.start(update_on_start)
     return wiki
+
 
 wiki = create_wiki(bool(app.config.get('UPDATE_WIKI_ON_START')))
 
