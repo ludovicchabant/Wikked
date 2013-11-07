@@ -50,9 +50,12 @@ module.exports = function(grunt) {
       }
     },
     copy: {
-      images: {
+      development: {
         files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['img/**']}
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['img/**']},
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['js/**']},
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['tpl/**']},
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['bootstrap/js/*.js']}
         ]
       },
       production: {
@@ -96,9 +99,9 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // Default task(s).
-  grunt.registerTask('default', ['less:production', 'requirejs:production', 'imagemin:all', 'copy:production']);
+  grunt.registerTask('default', ['jshint', 'less:production', 'requirejs:production', 'imagemin:all', 'copy:production']);
 
   // Other tasks.
-  grunt.registerTask('dev', ['less:development', 'requirejs:development', 'copy:production', 'copy:images']);
+  grunt.registerTask('dev', ['less:development', 'copy:production', 'copy:development']);
 };
 

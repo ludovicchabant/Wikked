@@ -144,17 +144,26 @@ def make_auth_response(data):
 
 @app.route('/')
 def home():
-    return render_template('index.html', cache_bust=('?%d' % time.time()))
+    tpl_name = 'index.html'
+    if app.config['DEBUG']:
+        tpl_name = 'index-dev.html'
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
 
 @app.route('/read/<path:url>')
 def read():
-    return render_template('index.html', cache_bust=('?%d' % time.time()))
+    tpl_name = 'index.html'
+    if app.config['DEBUG']:
+        tpl_name = 'index-dev.html'
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
 
 @app.route('/search')
 def search():
-    return render_template('index.html', cache_bust=('?%d' % time.time()))
+    tpl_name = 'index.html'
+    if app.config['DEBUG']:
+        tpl_name = 'index-dev.html'
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
 
 @app.route('/api/list')
