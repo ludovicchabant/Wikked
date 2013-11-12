@@ -54,7 +54,8 @@ def teardown_request(exception):
 # SQLAlchemy extension.
 from flask.ext.sqlalchemy import SQLAlchemy
 # TODO: get the path from the wiki parameters
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(wiki_root, '.wiki', 'wiki.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = ('sqlite:///' + 
+        os.path.join(wiki_root, '.wiki', 'wiki.db'))
 db = SQLAlchemy(app)
 
 

@@ -72,12 +72,8 @@ module.exports = function(grunt) {
     },
     watch: {
       scripts: {
-        files: ['static/js/**/*.js'],
-        tasks: ['jshint', 'requirejs:development']
-      },
-      templates: {
-        files: ['static/tpl/**/*.html'],
-        tasks: ['requirejs:development']
+        files: ['static/js/**/*.js', 'static/tpl/**/*.html'],
+        tasks: ['jshint', 'copy:development']
       },
       styles: {
         files: ['static/css/**/*.less'],
