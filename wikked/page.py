@@ -35,6 +35,7 @@ class Page(object):
         self.wiki = wiki
         self.url = url
         self._data = None
+        self._force_resolve = False
 
     @property
     def path(self):
@@ -129,7 +130,7 @@ class Page(object):
         self._ensureData()
 
         self._onExtendedDataLoading()
-        if self._data.has_extended_data:
+        if self._data.has_extended_data and not self._force_resolve:
             return
         
         try:
@@ -238,6 +239,8 @@ class DatabasePage(Page):
 
     def _loadData(self):
         db_obj = self._db_obj or self.wiki.db.getPage(self.url)
+        if db_obj is None:
+            raise Exception("Can't find page '%s' in the database. Please run `update` or `reset`." % self.url)
         data = self._loadFromDbObject(db_obj)
         self._db_obj = None
         return data
@@ -278,7 +281,7 @@ class DatabasePage(Page):
 
         data.local_links = [l.target_url for l in db_obj.links]
 
-        if db_obj.is_ready:
+        if db_obj.is_ready and not self._force_resolve:
             # If we have extended cache data from the database, we might as
             # well load it now too.
             data.text = db_obj.ready_text
