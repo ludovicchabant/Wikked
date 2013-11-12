@@ -37,7 +37,7 @@ class WikiParameters(object):
 
         self.config_path = os.path.join(self.root, '.wikirc')
         self.index_path = os.path.join(self.root, '.wiki', 'index')
-        self.db_path = 'sqlite://' + os.path.join(self.root, '.wiki', 'wiki.db')
+        self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
 
     def logger_factory(self):
         if getattr(self, 'logger', None):
