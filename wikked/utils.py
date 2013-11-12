@@ -15,13 +15,18 @@ def get_absolute_url(base_url, url, do_slugify=True):
         raw_abs_url = os.path.join(urldir, url)
         abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
     if do_slugify:
-        abs_url_parts = abs_url.split('/')
-        abs_url = ''
-        for i, part in enumerate(abs_url_parts):
-            if i > 0:
-                abs_url += '/'
-            abs_url += title_to_url(part)
+        abs_url = namespace_title_to_url(abs_url)
     return abs_url
+
+
+def namespace_title_to_url(url):
+    url_parts = url.split('/')
+    result = ''
+    for i, part in enumerate(url_parts):
+        if i > 0:
+            result += '/'
+        result += title_to_url(part)
+    return result
 
 
 def title_to_url(title):
@@ -31,7 +36,7 @@ def title_to_url(title):
         unicodedata.normalize('NFD', unicode(title))
         if unicodedata.category(c) != 'Mn'))
     # Now replace spaces and punctuation with a hyphen.
-    return re.sub(r'[^A-Za-z0-9_\.\-\(\)]+', '-', ansi_title.lower())
+    return re.sub(r'[^A-Za-z0-9_\.\-\(\)\{\}]+', '-', ansi_title.lower())
 
 
 def url_to_title(url):

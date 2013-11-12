@@ -1,6 +1,8 @@
 import re
+import os.path
 import jinja2
-from utils import get_meta_name_and_modifiers
+from utils import (get_meta_name_and_modifiers, namespace_title_to_url,
+        get_absolute_url)
 
 
 class FormatterNotFound(Exception):
@@ -35,6 +37,11 @@ class ResolveContext(object):
         if modifier == '+':
             return len(self.url_trail) > 1
         raise ValueError("Unknown modifier: " + modifier)
+
+    def getAbsoluteUrl(self, url, base_url=None):
+        if base_url is None:
+            base_url = self.root_page.url
+        return get_absolute_url(base_url, url)
 
 
 class ResolveOutput(object):
@@ -81,6 +88,11 @@ class PageResolver(object):
         self.output = None
         self.env = None
 
+        self.resolvers = {
+                'query': self._runQuery,
+                'include': self._runInclude
+            }
+
     @property
     def wiki(self):
         return self.page.wiki
@@ -93,6 +105,8 @@ class PageResolver(object):
         try:
             return self._unsafeRun()
         except Exception as e:
+            self.wiki.logger.error("Error resolving page '%s':" % self.page.url)
+            self.wiki.logger.exception(e)
             self.output = ResolveOutput(self.page)
             self.output.text = u'<div class="error">%s</div>' % e
             return self.output
@@ -100,10 +114,13 @@ class PageResolver(object):
     def _unsafeRun(self):
         # Create default parameters.
         if not self.parameters:
+            urldir = os.path.dirname(self.page.url)
+            full_title = os.path.join(urldir, self.page.title).replace('\\', '/')
             self.parameters = {
                 '__page': {
                     'url': self.page.url,
-                    'title': self.page.title
+                    'title': self.page.title,
+                    'full_title': full_title
                     },
                 '__args': []
                 }
@@ -112,17 +129,8 @@ class PageResolver(object):
         # with child outputs (from included pages).
         self.output = ResolveOutput(self.page)
 
-        # Resolve link states.
-        def repl1(m):
-            url = str(m.group('url'))
-            if self.wiki.pageExists(url):
-                return str(m.group())
-            return '<a class="wiki-link missing" data-wiki-url="%s">' % url
-
-        final_text = re.sub(
-                r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
-                repl1,
-                self.page.getFormattedText())
+        # Start with the page's text.
+        final_text = self.page.getFormattedText()
 
         # Resolve queries, includes, etc.
         def repl2(m):
@@ -137,10 +145,9 @@ class PageResolver(object):
                     opt_value = str(c.group('value'))
                     meta_opts[opt_name] = opt_value
 
-            if meta_name == 'query':
-                return self._runQuery(meta_opts, meta_value)
-            elif meta_name == 'include':
-                return self._runInclude(meta_opts, meta_value)
+            resolver = self.resolvers.get(meta_name)
+            if resolver:
+                return resolver(meta_opts, meta_value)
             return ''
 
         final_text = re.sub(
@@ -151,11 +158,29 @@ class PageResolver(object):
                 final_text,
                 flags=re.MULTILINE)
 
-        # Run text through templating and formatting if this
-        # is the root page.
+        # If this is the root page, with all the includes resolved and
+        # collapsed into one text, we need to run the final steps.
         if self.is_root:
+            # Resolve any `{{foo}}` variable references.
             parameters = dict(self.parameters)
             final_text = self._renderTemplate(final_text, parameters, error_url=self.page.url)
+
+            # Resolve link states.
+            def repl1(m):
+                raw_url = str(m.group('url'))
+                raw_url = self.ctx.getAbsoluteUrl(raw_url)
+                url = namespace_title_to_url(raw_url)
+                self.wiki.logger.debug("Converting '%s' to '%s'" % (raw_url, url))
+                if self.wiki.pageExists(url):
+                    return '<a class="wiki-link" data-wiki-url="%s">' % url
+                return '<a class="wiki-link missing" data-wiki-url="%s">' % url
+
+            final_text = re.sub(
+                    r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
+                    repl1,
+                    final_text)
+
+            # Format the text.
             formatter = self._getFormatter(self.page.extension)
             final_text = formatter(final_text)
 
@@ -170,7 +195,7 @@ class PageResolver(object):
                 return ''
 
         # Check for circular includes.
-        include_url = opts['url']
+        include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
         if include_url in self.ctx.url_trail:
             raise CircularIncludeError("Circular include detected at: %s" % include_url, self.ctx.url_trail)
 

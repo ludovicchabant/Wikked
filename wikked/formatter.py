@@ -1,7 +1,7 @@
 import os
 import os.path
 import re
-from utils import get_absolute_url, get_meta_name_and_modifiers
+from utils import get_meta_name_and_modifiers
 
 
 class BaseContext(object):
@@ -12,9 +12,6 @@ class BaseContext(object):
     @property
     def urldir(self):
         return os.path.dirname(self.url)
-
-    def getAbsoluteUrl(self, url, do_slugify=True):
-        return get_absolute_url(self.url, url, do_slugify)
 
 
 class FormattingContext(BaseContext):
@@ -122,9 +119,9 @@ class PageFormatter(object):
     def _coerceInclude(self, ctx, value):
         pipe_idx = value.find('|')
         if pipe_idx < 0:
-            return ctx.getAbsoluteUrl(value.strip())
+            return value.strip()
         else:
-            url = ctx.getAbsoluteUrl(value[:pipe_idx].strip())
+            url = value[:pipe_idx].strip()
             parameters = value[pipe_idx + 1:].replace('\n', '')
             return url + '|' + parameters
 
@@ -154,12 +151,6 @@ class PageFormatter(object):
         for m in re.finditer(arg_pattern, query):
             name = str(m.group('name')).strip()
             value = str(m.group('value')).strip()
-            if re.match(r'^\[\[.*\]\]$', value):
-                url = value[2:-2]
-                abs_url = ctx.getAbsoluteUrl(url)
-                value = '[[%s]]' % abs_url
-            if len(processed_args) > 0:
-                processed_args += '|'
             processed_args += '%s=%s' % (name, value)
 
         mod_attr = ''
@@ -168,9 +159,8 @@ class PageFormatter(object):
         return '<div class="wiki-query"%s>%s</div>\n' % (mod_attr, processed_args)
 
     def _formatWikiLink(self, ctx, display, url):
-        abs_url = ctx.getAbsoluteUrl(url)
-        ctx.out_links.append(abs_url)
-        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (abs_url, display)
+        ctx.out_links.append(url)
+        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (url, display)
 
     @staticmethod
     def parseWikiLinks(text):
