@@ -64,10 +64,12 @@ def list():
 
 
 @manager.command
-def get(url):
+def get(url, resolve=False):
     """ Gets a page that matches the given URL.
     """
     page = wiki.getPage(url)
+    if resolve:
+        page._force_resolve = True
     print page.text
 
 

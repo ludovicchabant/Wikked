@@ -58,17 +58,19 @@ class DummyPage(Page):
         return data
 
 
-def get_page_or_none(url):
+def get_page_or_none(url, force_resolve=False):
     try:
         page = g.wiki.getPage(url)
+        if force_resolve:
+            page._force_resolve = True
         page._ensureData()
         return page
     except PageNotFoundError:
         return None
 
 
-def get_page_or_404(url, check_perms=DONT_CHECK):
-    page = get_page_or_none(url)
+def get_page_or_404(url, check_perms=DONT_CHECK, force_resolve=False):
+    page = get_page_or_none(url, force_resolve)
     if page is not None:
         if check_perms == CHECK_FOR_READ and not is_page_readable(page):
             abort(401)
@@ -181,7 +183,10 @@ def api_list_pages(url):
 
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(
+            url, 
+            check_perms=CHECK_FOR_READ,
+            force_resolve=('force_resolve' in request.args))
     result = {'meta': get_page_meta(page), 'text': page.text}
     return make_auth_response(result)
 
