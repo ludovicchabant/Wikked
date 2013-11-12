@@ -5,9 +5,9 @@ import string
 import logging
 import datetime
 from sqlalchemy import (
-        create_engine, and_,
+        and_,
         Column, Boolean, Integer, String, Text, DateTime, ForeignKey)
-from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm import relationship, backref
 from wikked.web import db
 
 
@@ -147,22 +147,25 @@ class SQLDatabase(Database):
     def __init__(self, db_path, logger=None):
         Database.__init__(self, logger)
         self.db_path = db_path
-        self.engine = create_engine(db_path, echo=True)
-        self.session_class = sessionmaker(bind=self.engine)
 
     def initDb(self):
         create_schema = False
         if self.db_path != 'sqlite:///:memory:':
-            if not os.path.isdir(os.path.dirname(self.db_path)):
+            if not os.path.exists(os.path.dirname(self.db_path)):
                 # No database on disk... create one.
-                self.logger.debug("Creating SQL database.")
-                os.makedirs(os.path.dirname(self.db_path))
+                self.logger.debug("Creating SQL database at: %s" % self.db_path)
                 create_schema = True
             else:
                 # The existing schema is outdated, re-create it.
                 schema_version = self._getSchemaVersion()
                 if schema_version < self.schema_version:
+                    self.logger.debug(
+                            "SQL database is outdated (got version %s), will re-create.",
+                            schema_version)
                     create_schema = True
+                else:
+                    self.logger.debug(
+                            "SQL database has up-to-date schema.")
         else:
             create_schema = True
         if create_schema:
@@ -176,8 +179,7 @@ class SQLDatabase(Database):
 
     def reset(self, pages):
         self.logger.debug("Re-creating SQL database.")
-        db.drop_all()
-        db.create_all()
+        self._createSchema()
         for page in pages:
             self._addPage(page)
         db.session.commit()
@@ -204,7 +206,7 @@ class SQLDatabase(Database):
         for p in to_remove:
             self._removePage(p)
 
-        self.session.commit()
+        db.session.commit()
 
         added_db_objs = []
         for p in pages:
@@ -212,7 +214,7 @@ class SQLDatabase(Database):
                 p.path not in already_added):
                 added_db_objs.append(self._addPage(p))
 
-        self.session.commit()
+        db.session.commit()
         self.logger.debug("...done updating SQL database.")
 
         return [o.id for o in added_db_objs]
@@ -258,6 +260,7 @@ class SQLDatabase(Database):
             yield l.source
 
     def _createSchema(self):
+        db.drop_all()
         db.create_all()
 
         ver = SQLInfo()
@@ -267,11 +270,14 @@ class SQLDatabase(Database):
         db.session.commit()
 
     def _getSchemaVersion(self):
-        q = db.session.query(SQLInfo).\
-                filter(SQLInfo.name == 'schema_version').\
-                first()
-        if q is None:
-            return 0
+        try:
+            q = db.session.query(SQLInfo).\
+                    filter(SQLInfo.name == 'schema_version').\
+                    first()
+            if q is None:
+                return 0
+        except:
+            return -1
         return q.int_value
 
     def _addPage(self, page):
@@ -331,5 +337,5 @@ class SQLDatabase(Database):
     def _removePage(self, page):
         self.logger.debug("Removing page '%s' [%d] from SQL database." %
             (page.url, page.id))
-        self.session.remove(page)
+        db.session.delete(page)
 
