@@ -102,12 +102,12 @@ class FileSystem(object):
         url = ''
         parts = unicode(name).lower().split(os.sep)
         for i, part in enumerate(parts):
-            if i > 0:
-                url += '/'
-            url += title_to_url(part)
+            url += '/' + title_to_url(part)
         return PageInfo(url, path)
 
     def _getPhysicalPath(self, url, is_file):
+        if url[0] != '/':
+            raise ValueError("Page URLs need to be absolute: " + url)
         if string.find(url, '..') >= 0:
             raise ValueError("Page URLs can't contain '..': " + url)
 
@@ -115,7 +115,7 @@ class FileSystem(object):
         # file-system entry that would get slugified to an
         # equal string.
         current = self.root
-        parts = unicode(url).lower().split('/')
+        parts = unicode(url[1:]).lower().split('/')
         for i, part in enumerate(parts):
             names = os.listdir(current)
             for name in names:
@@ -134,3 +134,4 @@ class FileSystem(object):
                 # Failed to find a part of the URL.
                 raise PageNotFoundError("No such page: " + url)
         return current
+

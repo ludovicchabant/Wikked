@@ -4,9 +4,12 @@ import unicodedata
 
 
 def get_absolute_url(base_url, url, do_slugify=True):
+    if base_url[0] != '/':
+        raise ValueError("The base URL must be absolute. Got: %s" % base_url)
+
     if url.startswith('/'):
         # Absolute page URL.
-        abs_url = url[1:]
+        abs_url = url
     else:
         # Relative page URL. Let's normalize all `..` in it,
         # which could also replace forward slashes by backslashes
@@ -22,6 +25,9 @@ def get_absolute_url(base_url, url, do_slugify=True):
 def namespace_title_to_url(url):
     url_parts = url.split('/')
     result = ''
+    if url[0] == '/':
+        result = '/'
+        url_parts = url_parts[1:]
     for i, part in enumerate(url_parts):
         if i > 0:
             result += '/'
@@ -59,5 +65,4 @@ def get_meta_name_and_modifiers(name):
         modifiers = '+'
         clean_name = name[1:]
     return (clean_name, modifiers)
-
 

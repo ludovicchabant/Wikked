@@ -247,14 +247,19 @@ define([
             this.$('a.wiki-link[data-wiki-url]').each(function(i) {
                 var jel = $(this);
                 if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                    jel.attr('href', '/#/edit/' + jel.attr('data-wiki-url'));
+                    jel.attr('href', '/#/edit' + jel.attr('data-wiki-url'));
                 else
-                    jel.attr('href', '/#/read/' + jel.attr('data-wiki-url'));
+                    jel.attr('href', '/#/read' + jel.attr('data-wiki-url'));
             });
-            // If we've already rendered the content, and we need to display
-            // a warning, do so now.
+            // If we've already rendered the content, see if need to display a
+            // warning about the page's state.
             if (this.model.get('content')) {
-                this._showPageStateWarning();
+                if (this._pageState === undefined) {
+                    if (!this._isCheckingPageState)
+                        this._checkPageState();
+                } else {
+                    this._showPageStateWarning();
+                }
             }
         },
         _showPageStateWarning: function() {
@@ -263,10 +268,11 @@ define([
 
             var state = this._pageState.get('state');
             if (state == 'new' || state == 'modified') {
+                var article = $('.wrapper>article');
                 var warning = $(this.warningTemplate(this._pageState.toJSON()));
                 $('[rel="tooltip"]', warning).tooltip({container:'body'});
                 //warning.css('display', 'none');
-                warning.prependTo($('.wrapper>article'));
+                warning.prependTo(article);
                 //warning.slideDown();
                 $('.dismiss', warning).click(function() {
                     //warning.slideUp();
@@ -275,29 +281,20 @@ define([
                 });
             }
         },
+        _isCheckingPageState: false,
         _checkPageState: function() {
+            this._isCheckingPageState = true;
             var $view = this;
             var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
             stateModel.fetch({
                 success: function(model, response, options) {
                     $view._pageState = model;
-                    // If we've already rendered the content, display
-                    // the warning, if any, now.
+                    $view._isCheckingPageState = false;
                     if ($view.model && $view.model.get('content')) {
                         $view._showPageStateWarning();
                     }
                 }
             });
-        },
-        _firstRender: true,
-        _onModelChange: function() {
-            PageReadView.__super__._onModelChange.apply(this, arguments);
-
-            // Fetch the state if the current page changed.
-            if (!this.isError && (this.model.hasChanged('path') || this._firstRender)) {
-                this._checkPageState();
-                this._firstRender = false;
-            }
         }
     });
 

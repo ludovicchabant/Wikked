@@ -10,7 +10,7 @@ from web import app, login_manager
 from page import Page, PageData
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
-from utils import title_to_url
+from utils import namespace_title_to_url, get_absolute_url
 import scm
 
 
@@ -19,7 +19,12 @@ CHECK_FOR_READ = 1
 CHECK_FOR_WRITE = 2
 
 
-def get_category_meta(category):
+def coerce_redirect(page, redirect):
+    target_url = get_absolute_url(page.url, redirect[0])
+    return namespace_title_to_url(target_url)
+
+
+def coerce_category(page, category):
     result = []
     for item in category:
         result.append({
@@ -29,8 +34,8 @@ def get_category_meta(category):
     return result
 
 COERCE_META = {
-    'redirect': title_to_url,
-    'category': get_category_meta
+    'redirect': coerce_redirect,
+    'category': coerce_category
     }
 
 
@@ -59,6 +64,8 @@ class DummyPage(Page):
 
 
 def get_page_or_none(url, force_resolve=False):
+    if url[0] != '/':
+        url = '/' + url
     try:
         page = g.wiki.getPage(url)
         if force_resolve:
@@ -97,7 +104,7 @@ def get_page_meta(page, local_only=False):
     meta['url'] = page.url
     for name in COERCE_META:
         if name in meta:
-            meta[name] = COERCE_META[name](meta[name])
+            meta[name] = COERCE_META[name](page, meta[name])
     return meta
 
 
@@ -347,6 +354,7 @@ def api_revert_page(url):
     if 'message' in request.form and len(request.form['message']) > 0:
         message = request.form['message']
 
+    url = '/' + url
     page_fields = {
             'rev': rev,
             'author': author,

@@ -226,17 +226,22 @@ define([
             this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
         },
         _onChange: function() {
-            if (this.getMeta('redirect') &&
-                !this.get('no_redirect') &&
-                !this.get('redirected_from')) {
+            if (this.getMeta('redirect')) {
                 // Handle redirects.
-                var oldPath = this.get('path');
-                this.set({
-                    'path': this.getMeta('redirect'),
-                    'redirected_from': oldPath
-                });
-                this.fetch();
-                this.navigate('/read/' + this.getMeta('redirect'), { replace: true, trigger: false });
+                var newPath = this.getMeta('redirect').replace(/^\//, "");
+                if (this.get('no_redirect')) {
+                    this.set({ 'redirects_to': newPath }, { 'silent': true });
+                } else {
+                    var oldPath = this.get('path');
+                    this.set({
+                        'path': newPath,
+                        'redirected_from': oldPath
+                    }, {
+                        'silent': true
+                    });
+                    this.fetch();
+                    this.navigate('/read/' + newPath, { replace: true, trigger: false });
+                }
             }
         }
     });

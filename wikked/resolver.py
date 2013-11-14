@@ -168,9 +168,8 @@ class PageResolver(object):
             # Resolve link states.
             def repl1(m):
                 raw_url = str(m.group('url'))
-                raw_url = self.ctx.getAbsoluteUrl(raw_url)
-                url = namespace_title_to_url(raw_url)
-                self.wiki.logger.debug("Converting '%s' to '%s'" % (raw_url, url))
+                abs_raw_url = self.ctx.getAbsoluteUrl(raw_url)
+                url = namespace_title_to_url(abs_raw_url)
                 if self.wiki.pageExists(url):
                     return '<a class="wiki-link" data-wiki-url="%s">' % url
                 return '<a class="wiki-link missing" data-wiki-url="%s">' % url
@@ -320,9 +319,11 @@ class PageResolver(object):
         for v in include_meta_values:
             pipe_idx = v.find('|')
             if pipe_idx > 0:
-                included_urls.append(v[:pipe_idx])
+                incl_url = v[:pipe_idx]
             else:
-                included_urls.append(v)
+                incl_url = v
+            abs_incl_url = get_absolute_url(page.url, incl_url)
+            included_urls.append(abs_incl_url)
 
         # Recurse into included pages.
         for url in included_urls:
@@ -367,3 +368,4 @@ def generate_edit_url(value, title=None):
     if title is None:
         title = value
     return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
+
