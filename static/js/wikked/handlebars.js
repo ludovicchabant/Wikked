@@ -93,5 +93,21 @@ define([
         var date = new Date(timestamp * 1000);
         return moment(date).fromNow();
     });
+
+    /**
+     * Format application URLs
+     */
+    Handlebars.registerHelper('get_read_url', function(url, options) {
+        url = url.toString();
+        return '/#/read/' + url.replace(/^\//, '');
+    });
+    Handlebars.registerHelper('get_edit_url', function(url, options) {
+        url = url.toString();
+        return '/#/edit/' + url.replace(/^\//, '');
+    });
+    Handlebars.registerHelper('get_cat_url', function(url, options) {
+        url = url.toString();
+        return '/#/category/' + url.replace(/^\//, '');
+    });
 });
 

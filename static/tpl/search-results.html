@@ -10,7 +10,7 @@
         <ul class="search-results">
             {{#each hits}}
             <li>
-            <h3><a href="/#/read{{url}}">{{title}}</a></h3>
+            <h3><a href="{{get_read_url url}}">{{title}}</a></h3>
             <div class="highlighted"><pre><code>{{{content_highlights}}}</code></pre></div>
             </li>
             {{/each}}

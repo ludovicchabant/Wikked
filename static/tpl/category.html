@@ -7,7 +7,7 @@
         <h2>Pages in category "{{query.category}}"</h2>
         <ul class="list-category">
         {{#each pages}}
-            <li><a href="/#/read/{{url}}">{{title}}</a></li>
+        <li><a href="{{get_read_url url}}">{{title}}</a></li>
         {{/each}}
         </ul>
     </section>

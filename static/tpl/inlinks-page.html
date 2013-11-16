@@ -8,9 +8,9 @@
         {{#each in_links}}
             <li>
                 {{#if missing}}
-                <a class="wiki-link missing" href="/#/edit/{{url}}">{{url}}</a>
+                <a class="wiki-link missing" href="{{get_edit_url url}}">{{url}}</a>
                 {{else}}
-                <a class="wiki-link" href="/#/read/{{url}}">{{title}}</a>
+                <a class="wiki-link" href="{{get_read_url url}}">{{title}}</a>
                 {{/if}}
             </li>
         {{/each}}

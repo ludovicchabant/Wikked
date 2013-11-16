@@ -389,7 +389,11 @@ define([
 
     var IncomingLinksModel = exports.IncomingLinksModel = MasterPageModel.extend({
         urlRoot: '/api/inlinks/',
-        action: 'inlinks'
+        action: 'inlinks',
+        _onChangePath: function(path) {
+            IncomingLinksModel.__super__._onChangePath.apply(this, arguments);
+            this.set('url_read', '/#/read/' + path);
+        }
     });
 
     var WikiSearchModel = exports.WikiSearchModel = MasterPageModel.extend({

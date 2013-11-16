@@ -27,7 +27,7 @@
                                     <ul class="unstyled">
                                         {{#each changes}}
                                         <li>
-                                            <a href="/#/read/{{url}}">{{url}}</a>
+                                            <a href="{{get_read_url url}}">{{url}}</a>
                                             {{#if is_edit}}(edit) {{/if}}
                                             {{#if is_add}}(added) {{/if}}
                                             {{#if is_delete}}(deleted) {{/if}}
