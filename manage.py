@@ -6,7 +6,6 @@ settings.UPDATE_WIKI_ON_START = False
 
 # Create the app and the wiki.
 from wikked.web import app, wiki
-from wikked.page import FileSystemPage
 
 # Create the manager.
 from flask.ext.script import Manager, prompt, prompt_pass
@@ -38,21 +37,15 @@ def user(username=None, password=None):
 def reset():
     """ Re-generates the database and the full-text-search index.
     """
-    page_infos = wiki.fs.getPageInfos()
-    fs_pages = FileSystemPage.fromPageInfos(wiki, page_infos)
-    wiki.db.reset(fs_pages)
-    wiki.index.reset(wiki.getPages())
+    wiki.reset()
 
 
 @manager.command
-def update():
+def update(url=None):
     """ Updates the database and the full-text-search index with any
         changed/new files.
     """
-    page_infos = wiki.fs.getPageInfos()
-    fs_pages = FileSystemPage.fromPageInfos(wiki, page_infos)
-    wiki.db.update(fs_pages)
-    wiki.index.update(wiki.getPages())
+    wiki.update(url)
 
 
 @manager.command
@@ -71,6 +64,20 @@ def get(url, resolve=False):
     if resolve:
         page._force_resolve = True
     print page.text
+
+
+@manager.command
+def linksfrom(url):
+    page = wiki.getPage(url)
+    for l in page.links:
+        print l
+
+
+@manager.command
+def linksto(url):
+    page = wiki.getPage(url)
+    for l in page.getIncomingLinks():
+        print l
 
 
 if __name__ == "__main__":
