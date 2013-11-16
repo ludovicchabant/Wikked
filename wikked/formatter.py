@@ -48,8 +48,8 @@ class PageFormatter(object):
 
     def _processWikiMeta(self, ctx, text):
         def repl(m):
-            meta_name = str(m.group('name')).lower()
-            meta_value = str(m.group('value'))
+            meta_name = unicode(m.group('name')).lower()
+            meta_value = unicode(m.group('value'))
 
             if meta_value is None or meta_value == '':
                 # No value provided: this is a "flag" meta.
@@ -83,7 +83,7 @@ class PageFormatter(object):
                 flags=re.MULTILINE)
         # Multi-line meta.
         text = re.sub(
-                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)^\}\}\s*$',
+                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)^\s*\}\}\s*$',
                 repl,
                 text,
                 flags=re.MULTILINE | re.DOTALL)
@@ -149,8 +149,8 @@ class PageFormatter(object):
         arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
             r"(?P<value>[^\|]+)"
         for m in re.finditer(arg_pattern, query):
-            name = str(m.group('name')).strip()
-            value = str(m.group('value')).strip()
+            name = unicode(m.group('name')).strip()
+            value = unicode(m.group('value')).strip()
             processed_args += '%s=%s' % (name, value)
 
         mod_attr = ''
@@ -167,6 +167,6 @@ class PageFormatter(object):
         urls = []
         pattern = r"<a class=\"[^\"]*\" data-wiki-url=\"(?P<url>[^\"]+)\">"
         for m in re.finditer(pattern, text):
-            urls.append(str(m.group('url')))
+            urls.append(unicode(m.group('url')))
         return urls
 

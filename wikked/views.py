@@ -1,5 +1,6 @@
 import time
 import urllib
+import string
 import os.path
 from flask import render_template, abort, request, g, jsonify
 from flask.ext.login import login_user, logout_user, current_user
@@ -10,7 +11,7 @@ from web import app, login_manager
 from page import Page, PageData
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
-from utils import namespace_title_to_url, get_absolute_url
+from utils import title_to_url
 import scm
 
 
@@ -19,12 +20,7 @@ CHECK_FOR_READ = 1
 CHECK_FOR_WRITE = 2
 
 
-def coerce_redirect(page, redirect):
-    target_url = get_absolute_url(page.url, redirect[0])
-    return namespace_title_to_url(target_url)
-
-
-def coerce_category(page, category):
+def get_category_meta(category):
     result = []
     for item in category:
         result.append({
@@ -34,8 +30,8 @@ def coerce_category(page, category):
     return result
 
 COERCE_META = {
-    'redirect': coerce_redirect,
-    'category': coerce_category
+    'redirect': title_to_url,
+    'category': get_category_meta
     }
 
 
@@ -64,8 +60,6 @@ class DummyPage(Page):
 
 
 def get_page_or_none(url, force_resolve=False):
-    if url[0] != '/':
-        url = '/' + url
     try:
         page = g.wiki.getPage(url)
         if force_resolve:
@@ -87,6 +81,10 @@ def get_page_or_404(url, check_perms=DONT_CHECK, force_resolve=False):
     abort(404)
 
 
+def make_absolute(url):
+    return '/' + string.lstrip(url, '/')
+
+
 def is_page_readable(page, user=current_user):
     return page.wiki.auth.isPageReadable(page, user.get_id())
 
@@ -104,7 +102,7 @@ def get_page_meta(page, local_only=False):
     meta['url'] = page.url
     for name in COERCE_META:
         if name in meta:
-            meta[name] = COERCE_META[name](page, meta[name])
+            meta[name] = COERCE_META[name](meta[name])
     return meta
 
 
@@ -124,6 +122,13 @@ def get_history_data(history, needs_files=False):
             for f in rev.files:
                 f_info = g.wiki.fs.getPageInfo(f['path'])
                 if f_info is None:
+                    continue
+                page = g.wiki.getPage(f_info.url)
+                try:
+                    if not is_page_readable(page):
+                        continue
+                except PageNotFoundError:
+                    pass
                     continue
                 page = g.wiki.getPage(f_info.url)
                 try:
@@ -182,7 +187,7 @@ def api_list_all_pages():
 
 @app.route('/api/list/<path:url>')
 def api_list_pages(url):
-    pages = filter(is_page_readable, g.wiki.getPages(url))
+    pages = filter(is_page_readable, g.wiki.getPages(make_absolute(url)))
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
     return make_auth_response(result)
@@ -191,7 +196,7 @@ def api_list_pages(url):
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
     page = get_page_or_404(
-            url, 
+            make_absolute(url), 
             check_perms=CHECK_FOR_READ,
             force_resolve=('force_resolve' in request.args))
     result = {'meta': get_page_meta(page), 'text': page.text}
@@ -200,7 +205,7 @@ def api_read_page(url):
 
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     result = {'meta': get_page_meta(page), 'text': page.raw_text}
     return make_auth_response(result)
 
@@ -210,7 +215,7 @@ def api_read_page_rev(url):
     rev = request.args.get('rev')
     if rev is None:
         abort(400)
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
@@ -234,7 +239,7 @@ def api_diff_page(url):
     rev2 = request.args.get('rev2')
     if rev1 is None:
         abort(400)
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     diff = page.getDiff(rev1, rev2)
     if 'raw' not in request.args:
         lexer = get_lexer_by_name('diff')
@@ -250,7 +255,7 @@ def api_diff_page(url):
 
 @app.route('/api/state/<path:url>')
 def api_get_state(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     state = page.getState()
     return make_auth_response({
         'meta': get_page_meta(page, True),
@@ -260,13 +265,13 @@ def api_get_state(url):
 
 @app.route('/api/outlinks/<path:url>')
 def api_get_outgoing_links(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     links = []
     for link in page.links:
         other = get_page_or_none(link)
         if other is not None:
             links.append({
-                'url': link,
+                'url': other.url,
                 'title': other.title
                 })
         else:
@@ -278,7 +283,7 @@ def api_get_outgoing_links(url):
 
 @app.route('/api/inlinks/<path:url>')
 def api_get_incoming_links(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     links = []
     for link in page.getIncomingLinks():
         other = get_page_or_none(link)
@@ -296,6 +301,7 @@ def api_get_incoming_links(url):
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
 def api_edit_page(url):
+    url = make_absolute(url)
     if request.method == 'GET':
         page = get_page_or_none(url)
         if page is None:
@@ -354,7 +360,7 @@ def api_revert_page(url):
     if 'message' in request.form and len(request.form['message']) > 0:
         message = request.form['message']
 
-    url = '/' + url
+    url = make_absolute(url)
     page_fields = {
             'rev': rev,
             'author': author,
@@ -419,6 +425,7 @@ def api_site_history():
 
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
+    url = make_absolute(url)
     page = get_page_or_404(url, CHECK_FOR_READ)
     history = page.getHistory()
     hist_data = get_history_data(history)
@@ -494,3 +501,4 @@ def api_user_info(name):
         result = {'username': user.username, 'groups': user.groups}
         return make_auth_response(result)
     abort(404)
+

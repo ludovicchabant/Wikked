@@ -16,18 +16,26 @@ class CircularIncludeError(Exception):
     """ An exception raised when a circular include is found
         while rendering a page.
     """
-    def __init__(self, message, url_trail):
-        Exception.__init__(self, message)
-        self.url_trail = url_trail
+    def __init__(self, current_url, url_trail, message=None):
+        Exception.__init__(self, current_url, url_trail, message)
+
+    def __str__(self):
+        current_url = self.args[0]
+        url_trail = self.args[1]
+        message = self.args[2]
+        res = "Circular include detected at '%s' (after %s)" % (current_url, url_trail)
+        if message:
+            res += ": %s" % message
+        return res
 
 
 class ResolveContext(object):
     """ The context for resolving page queries. """
     def __init__(self, root_page=None):
         self.root_page = root_page
-        self.url_trail = set()
+        self.url_trail = []
         if root_page:
-            self.url_trail.add(root_page.url)
+            self.url_trail.append(root_page.url)
 
     def shouldRunMeta(self, modifier):
         if modifier is None:
@@ -52,10 +60,8 @@ class ResolveOutput(object):
         self.out_links = []
         if page:
             self.meta = dict(page.getLocalMeta())
-            self.out_links = list(page.getLocalLinks())
 
     def add(self, other):
-        self.out_links = list(set(self.out_links + other.out_links))
         for original_key, val in other.meta.iteritems():
             # Ignore internal properties. Strip include-only properties
             # from their prefix.
@@ -134,15 +140,15 @@ class PageResolver(object):
 
         # Resolve queries, includes, etc.
         def repl2(m):
-            meta_name = str(m.group('name'))
-            meta_value = str(m.group('value'))
+            meta_name = unicode(m.group('name'))
+            meta_value = unicode(m.group('value'))
             meta_opts = {}
             if m.group('opts'):
                 for c in re.finditer(
                         r'data-wiki-(?P<name>[a-z]+)="(?P<value>[^"]+)"',
-                        str(m.group('opts'))):
-                    opt_name = str(c.group('name'))
-                    opt_value = str(c.group('value'))
+                        unicode(m.group('opts'))):
+                    opt_name = unicode(c.group('name'))
+                    opt_value = unicode(c.group('value'))
                     meta_opts[opt_name] = opt_value
 
             resolver = self.resolvers.get(meta_name)
@@ -167,9 +173,10 @@ class PageResolver(object):
 
             # Resolve link states.
             def repl1(m):
-                raw_url = str(m.group('url'))
-                abs_raw_url = self.ctx.getAbsoluteUrl(raw_url)
-                url = namespace_title_to_url(abs_raw_url)
+                raw_url = unicode(m.group('url'))
+                raw_url = self.ctx.getAbsoluteUrl(raw_url)
+                url = namespace_title_to_url(raw_url)
+                self.output.out_links.append(url)
                 if self.wiki.pageExists(url):
                     return '<a class="wiki-link" data-wiki-url="%s">' % url
                 return '<a class="wiki-link missing" data-wiki-url="%s">' % url
@@ -196,7 +203,7 @@ class PageResolver(object):
         # Check for circular includes.
         include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
         if include_url in self.ctx.url_trail:
-            raise CircularIncludeError("Circular include detected at: %s" % include_url, self.ctx.url_trail)
+            raise CircularIncludeError(include_url, self.ctx.url_trail)
 
         # Parse the templating parameters.
         parameters = dict(self.parameters)
@@ -208,19 +215,21 @@ class PageResolver(object):
             # root page.
             arg_pattern = r"(^|\|)\s*((?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*=)?(?P<value>[^\|]+)"
             for i, m in enumerate(re.finditer(arg_pattern, args)):
-                key = str(m.group('name')).lower()
-                value = str(m.group('value')).strip()
+                key = unicode(m.group('name')).lower()
+                value = unicode(m.group('value')).strip()
                 value = self._renderTemplate(value, parameters, error_url=self.page.url)
                 parameters[key] = value
                 parameters['__args'].append(value)
 
         # Re-run the resolver on the included page to get its final
         # formatted text.
+        current_url_trail = list(self.ctx.url_trail)
         page = self.wiki.getPage(include_url)
-        self.ctx.url_trail.add(page.url)
+        self.ctx.url_trail.append(page.url)
         child = PageResolver(page, self.ctx, parameters)
         child_output = child.run()
         self.output.add(child_output)
+        self.ctx.url_trail = current_url_trail
 
         # Run the templating.
         text = child_output.text
@@ -242,9 +251,9 @@ class PageResolver(object):
         for m in re.finditer(arg_pattern, query):
             key = m.group('name').lower()
             if key in parameters:
-                parameters[key] = str(m.group('value'))
+                parameters[key] = unicode(m.group('value'))
             else:
-                meta_query[key] = str(m.group('value'))
+                meta_query[key] = unicode(m.group('value'))
 
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
@@ -319,11 +328,11 @@ class PageResolver(object):
         for v in include_meta_values:
             pipe_idx = v.find('|')
             if pipe_idx > 0:
-                incl_url = v[:pipe_idx]
+                abs_url = self.ctx.getAbsoluteUrl(v[:pipe_idx], page.url)
+                included_urls.append(abs_url)
             else:
-                incl_url = v
-            abs_incl_url = get_absolute_url(page.url, incl_url)
-            included_urls.append(abs_incl_url)
+                abs_url = self.ctx.getAbsoluteUrl(v, page.url)
+                included_urls.append(abs_url)
 
         # Recurse into included pages.
         for url in included_urls:
@@ -368,4 +377,3 @@ def generate_edit_url(value, title=None):
     if title is None:
         title = value
     return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
-

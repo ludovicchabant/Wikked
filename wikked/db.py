@@ -31,7 +31,7 @@ class Database(object):
     def reset(self, pages):
         raise NotImplementedError()
 
-    def update(self, pages):
+    def update(self, pages, force=False):
         raise NotImplementedError()
 
     def getPageUrls(self, subdir=None):
@@ -184,7 +184,7 @@ class SQLDatabase(Database):
             self._addPage(page)
         db.session.commit()
 
-    def update(self, pages):
+    def update(self, pages, force=False):
         self.logger.debug("Updating SQL database...")
         to_update = set()
         already_added = set()
@@ -199,13 +199,21 @@ class SQLDatabase(Database):
                 already_added.add(p.path)
                 path_time = datetime.datetime.fromtimestamp(
                     os.path.getmtime(p.path))
-                if path_time > p.time:
+                if path_time > p.time or force:
                     # File has changed since last index.
                     to_remove.append(p)
                     to_update.add(p.path)
         for p in to_remove:
             self._removePage(p)
 
+        db.session.commit()
+
+        db_pages = db.session.query(SQLPage).\
+                add_columns('id', 'is_ready').\
+                all()
+        for p in db_pages:
+            p.is_ready = False
+        
         db.session.commit()
 
         added_db_objs = []
@@ -253,11 +261,12 @@ class SQLDatabase(Database):
         return self.getPage(url) is not None
 
     def getLinksTo(self, url):
-        q = db.session.query(SQLLink, SQLPage).\
-            filter(SQLLink.target_url == SQLPage.url).\
+        q = db.session.query(SQLReadyLink).\
+            filter(SQLReadyLink.target_url == url).\
+            join(SQLReadyLink.source).\
             all()
         for l in q:
-            yield l.source
+            yield l.source.url
 
     def _createSchema(self):
         db.drop_all()

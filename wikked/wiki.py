@@ -122,13 +122,39 @@ class Wiki(object):
         self.db.initDb()
 
         if update:
-            page_infos = self.fs.getPageInfos()
-            fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
-            self.db.update(fs_pages)
-            self.index.update(self.getPages())
+            self.update()
 
     def stop(self):
         self.db.close()
+
+    def reset(self, cache_ext_data=True):
+        self.logger.debug("Resetting wiki data...")
+        page_infos = self.fs.getPageInfos()
+        fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
+        self.db.reset(fs_pages)
+        self.index.reset(self.getPages())
+
+        if cache_ext_data:
+            self._cacheAllPages()
+
+    def update(self, url=None, cache_ext_data=True):
+        updated_urls = []
+        self.logger.debug("Updating pages...")
+        if url:
+            page_info = self.fs.getPage(url)
+            fs_page = FileSystemPage(self, page_info=page_info)
+            self.db.update([fs_page])
+            updated_urls.append(url)
+            self.index.update([self.getPage(url)])
+        else:
+            page_infos = self.fs.getPageInfos()
+            fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
+            self.db.update(fs_pages)
+            updated_urls += [p.url for p in fs_pages]
+            self.index.update(self.getPages())
+
+        if cache_ext_data:
+            self._cacheAllPages()
 
     def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given
@@ -219,6 +245,12 @@ class Wiki(object):
         """ Shorthand method to get the history from the source-control.
         """
         return self.scm.getHistory()
+
+    def _cacheAllPages(self):
+        self.logger.debug("Caching extended page data...")
+        for url in self.getPageUrls():
+            page = self.getPage(url)
+            page._ensureExtendedData()
 
     def _loadConfig(self, parameters):
         # Merge the default settings with any settings provided by
