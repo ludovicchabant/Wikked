@@ -72,8 +72,23 @@ login_manager.unauthorized_handler(lambda: abort(401))
 
 
 # Bcrypt extension.
-from flaskext.bcrypt import Bcrypt
-app.bcrypt = Bcrypt(app)
+try:
+    from flaskext.bcrypt import Bcrypt
+    app.bcrypt = Bcrypt(app)
+except ImportError:
+    app.logger.warning("Bcrypt not available... falling back to SHA512.")
+
+    import hashlib
+
+    class SHA512Fallback(object):
+        def check_password_hash(self, reference, check):
+            check_hash = hashlib.sha512(check).hexdigest()
+            return check_hash == reference
+
+        def generate_password_hash(self, password):
+            return hashlib.sha512(password).hexdigest()
+
+    app.bcrypt = SHA512Fallback()
 
 
 # Create the wiki.

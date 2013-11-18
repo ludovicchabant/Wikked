@@ -471,7 +471,7 @@ def api_user_login():
     remember = request.form.get('remember')
 
     user = g.wiki.auth.getUser(username)
-    if user is not None:
+    if user is not None and app.bcrypt:
         if app.bcrypt.check_password_hash(user.password, password):
             login_user(user, remember=bool(remember))
             result = {'username': username, 'logged_in': 1}
