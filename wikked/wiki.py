@@ -44,9 +44,6 @@ class WikiParameters(object):
             return self.logger
         return logging.getLogger(__name__)
 
-    def config_factory(self):
-        return open(self.config_path)
-
     def fs_factory(self, config):
         return FileSystem(self.root, logger=self.logger_factory())
 
@@ -259,11 +256,7 @@ class Wiki(object):
             os.path.dirname(__file__), 'resources', 'defaults.cfg')
         config = SafeConfigParser()
         config.readfp(open(default_config_path))
-
-        fp = parameters.config_factory()
-        config.readfp(fp)
-        fp.close()
-
+        config.read([parameters.config_path])
         return config
 
 
