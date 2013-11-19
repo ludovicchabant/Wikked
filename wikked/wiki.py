@@ -4,11 +4,11 @@ import time
 import logging
 import itertools
 import importlib
-from ConfigParser import SafeConfigParser
+from ConfigParser import SafeConfigParser, NoOptionError
 from page import DatabasePage, FileSystemPage
 from fs import FileSystem
 from db import SQLDatabase
-from scm import MercurialCommandServerSourceControl
+from scm import MercurialCommandServerSourceControl, GitLibSourceControl
 from indexer import WhooshWikiIndex
 from auth import UserManager
 
@@ -54,9 +54,22 @@ class WikiParameters(object):
         return SQLDatabase(self.db_path, logger=self.logger_factory())
 
     def scm_factory(self, config):
-        scm_type = config.get('wiki', 'scm')
+        try:
+            scm_type = config.get('wiki', 'scm')
+        except NoOptionError:
+            # Auto-detect
+            if os.path.isdir(os.path.join(self.root, '.hg')):
+                scm_type = 'hg'
+            elif os.path.isdir(os.path.join(self.root, '.git')):
+                scm_type = 'git'
+            else:
+                # Default to Mercurial. Yes. I just decided that myself.
+                scm_type = 'hg'
+
         if scm_type == 'hg':
             return MercurialCommandServerSourceControl(self.root, logger=self.logger_factory())
+        elif scm_type == 'git':
+            return GitLibSourceControl(self.root, logger=self.logger_factory())
         else:
             raise InitializationError("No such source control: " + scm_type)
 
