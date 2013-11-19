@@ -1,7 +1,8 @@
 import os
 import os.path
 import re
-from utils import get_meta_name_and_modifiers
+import jinja2
+from utils import get_meta_name_and_modifiers, html_escape
 
 
 class BaseContext(object):
@@ -126,14 +127,19 @@ class PageFormatter(object):
             return url + '|' + parameters
 
     def _processInclude(self, ctx, modifier, value):
-        # Includes are run on the fly.
-        pipe_idx = value.find('|')
-        if pipe_idx < 0:
-            included_url = value
-            parameters = ''
-        else:
-            included_url = value[:pipe_idx]
-            parameters = value[pipe_idx + 1:]
+        # Includes are run on the fly, but we preprocess parameters.
+        bits = PageFormatter.pipeSplit(value)
+        parameters = ''
+        included_url = bits[0]
+        for p in bits[1:]:
+            name = ''
+            value = p
+            m = re.match('\s*(?P<name>\w[\w\d]*)\s*=(?P<value>.*)', value)
+            if m:
+                name = unicode(m.group('name'))
+                value = unicode(m.group('value'))
+            value = html_escape(value.strip())
+            parameters += '<div class="wiki-param" data-name="%s">%s</div>' % (name, value)
 
         url_attr = ' data-wiki-url="%s"' % included_url
         mod_attr = ''
@@ -169,4 +175,29 @@ class PageFormatter(object):
         for m in re.finditer(pattern, text):
             urls.append(unicode(m.group('url')))
         return urls
+
+    @staticmethod
+    def pipeSplit(text):
+        res = []
+        current = ''
+        env = jinja2.Environment()
+        for token in env.lex(text):
+            lineno = token[0]
+            token_type = token[1]
+            value = token[2]
+            if token_type == 'data':
+                bits = value.split('|')
+                if len(bits) > 1:
+                    current += bits[0]
+                    res.append(current)
+                    for bit in bits[1:-1]:
+                        res.append(bit)
+                    current = bits[-1]
+                else:
+                    current += value
+            else:
+                current += value
+        if current:
+            res.append(current)
+        return res
 

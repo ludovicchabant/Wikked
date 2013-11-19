@@ -2,7 +2,7 @@ import re
 import os.path
 import jinja2
 from utils import (get_meta_name_and_modifiers, namespace_title_to_url,
-        get_absolute_url)
+        get_absolute_url, html_unescape)
 
 
 class FormatterNotFound(Exception):
@@ -112,7 +112,7 @@ class PageResolver(object):
             return self._unsafeRun()
         except Exception as e:
             self.wiki.logger.error("Error resolving page '%s':" % self.page.url)
-            self.wiki.logger.exception(e)
+            self.wiki.logger.exception(unicode(e.message))
             self.output = ResolveOutput(self.page)
             self.output.text = u'<div class="error">%s</div>' % e
             return self.output
@@ -200,8 +200,17 @@ class PageResolver(object):
             if not self.ctx.shouldRunMeta(opts['mod']):
                 return ''
 
+        # Get the included page. First, try with a page in the special
+        # `Templates` folder.
+        include_url = opts['url']
+        if include_url[0] != '/':
+            include_url = self.ctx.getAbsoluteUrl('/templates/' + include_url, self.page.url)
+            if not self.wiki.pageExists(include_url):
+                include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
+        else:
+            include_url = self.ctx.getAbsoluteUrl(include_url, self.page.url)
+
         # Check for circular includes.
-        include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
         if include_url in self.ctx.url_trail:
             raise CircularIncludeError(include_url, self.ctx.url_trail)
 
@@ -213,18 +222,21 @@ class PageResolver(object):
             # We do not, however, run them through the formatting -- this
             # will be done in one pass when everything is gathered on the
             # root page.
-            arg_pattern = r"(^|\|)\s*((?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*=)?(?P<value>[^\|]+)"
+            arg_pattern = r'<div class="wiki-param" data-name="(?P<name>\w[\w\d]*)?">(?P<value>.*?)</div>'
             for i, m in enumerate(re.finditer(arg_pattern, args)):
-                key = unicode(m.group('name')).lower()
                 value = unicode(m.group('value')).strip()
+                value = html_unescape(value)
                 value = self._renderTemplate(value, parameters, error_url=self.page.url)
-                parameters[key] = value
-                parameters['__args'].append(value)
+                if m.group('name'):
+                    key = unicode(m.group('name')).lower()
+                    parameters[key] = value
+                else:
+                    parameters['__args'].append(value)
 
         # Re-run the resolver on the included page to get its final
         # formatted text.
-        current_url_trail = list(self.ctx.url_trail)
         page = self.wiki.getPage(include_url)
+        current_url_trail = list(self.ctx.url_trail)
         self.ctx.url_trail.append(page.url)
         child = PageResolver(page, self.ctx, parameters)
         child_output = child.run()
@@ -262,8 +274,12 @@ class PageResolver(object):
             if p.url in self.ctx.url_trail:
                 continue
             for key, value in meta_query.iteritems():
-                if self._isPageMatch(p, key, value):
-                    matched_pages.append(p)
+                try:
+                    if self._isPageMatch(p, key, value):
+                        matched_pages.append(p)
+                except Exception as e:
+                    self.wiki.logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
+                    self.wiki.logger.exception(unicode(e.message))
 
         # No match: return the 'empty' template.
         if len(matched_pages) == 0:
@@ -328,11 +344,15 @@ class PageResolver(object):
         for v in include_meta_values:
             pipe_idx = v.find('|')
             if pipe_idx > 0:
-                abs_url = self.ctx.getAbsoluteUrl(v[:pipe_idx], page.url)
-                included_urls.append(abs_url)
+                v = v[:pipe_idx]
+
+            if v[0] != '/':
+                include_url = self.ctx.getAbsoluteUrl('/templates/' + v, page.url)
+                if not self.wiki.pageExists(include_url):
+                    include_url = self.ctx.getAbsoluteUrl(v, page.url)
             else:
-                abs_url = self.ctx.getAbsoluteUrl(v, page.url)
-                included_urls.append(abs_url)
+                include_url = self.ctx.getAbsoluteUrl(v, page.url)
+            included_urls.append(include_url)
 
         # Recurse into included pages.
         for url in included_urls:
@@ -377,3 +397,4 @@ def generate_edit_url(value, title=None):
     if title is None:
         title = value
     return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
+

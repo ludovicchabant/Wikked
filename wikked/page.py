@@ -32,9 +32,6 @@ class Page(object):
         to load things from. Use `FileSystemPage` or `DatabasePage` instead.
     """
     def __init__(self, wiki, url):
-        if url[0] != '/':
-            raise ValueError("Page URLs need to be absolute: " + url)
-
         self.wiki = wiki
         self.url = url
         self._data = None

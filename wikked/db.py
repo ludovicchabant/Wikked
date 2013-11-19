@@ -7,7 +7,7 @@ import datetime
 from sqlalchemy import (
         and_,
         Column, Boolean, Integer, String, Text, DateTime, ForeignKey)
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship, backref, defer
 from wikked.web import db
 
 
@@ -185,12 +185,15 @@ class SQLDatabase(Database):
         db.session.commit()
 
     def update(self, pages, force=False):
-        self.logger.debug("Updating SQL database...")
         to_update = set()
         already_added = set()
         to_remove = []
+        pages = list(pages)
 
-        db_pages = SQLPage.query.all()
+        self.logger.debug("Updating SQL database...")
+        page_urls = [p.url for p in pages]
+        db_pages = db.session.query(SQLPage).\
+                all()
         for p in db_pages:
             if not os.path.isfile(p.path):
                 # File was deleted.
@@ -199,21 +202,13 @@ class SQLDatabase(Database):
                 already_added.add(p.path)
                 path_time = datetime.datetime.fromtimestamp(
                     os.path.getmtime(p.path))
-                if path_time > p.time or force:
+                if path_time > p.time or (force and p.url in page_urls):
                     # File has changed since last index.
                     to_remove.append(p)
                     to_update.add(p.path)
         for p in to_remove:
             self._removePage(p)
 
-        db.session.commit()
-
-        db_pages = db.session.query(SQLPage).\
-                add_columns('id', 'is_ready').\
-                all()
-        for p in db_pages:
-            p.is_ready = False
-        
         db.session.commit()
 
         added_db_objs = []
@@ -223,12 +218,25 @@ class SQLDatabase(Database):
                 added_db_objs.append(self._addPage(p))
 
         db.session.commit()
-        self.logger.debug("...done updating SQL database.")
 
+        if to_remove or added_db_objs:
+            db_pages = db.session.query(SQLPage).\
+                    options(
+                            defer(SQLPage.title),
+                            defer(SQLPage.raw_text),
+                            defer(SQLPage.formatted_text),
+                            defer(SQLPage.ready_text)).\
+                    all()
+            for p in db_pages:
+                p.is_ready = False
+            
+            db.session.commit()
+
+        self.logger.debug("...done updating SQL database.")
         return [o.id for o in added_db_objs]
 
     def getPageUrls(self, subdir=None):
-        q = db.session.query(SQLPage)
+        q = db.session.query(SQLPage.url)
         if subdir:
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))

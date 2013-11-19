@@ -132,7 +132,7 @@ class Wiki(object):
         self.index.reset(self.getPages())
 
         if cache_ext_data:
-            self._cacheAllPages()
+            self._cachePages()
 
     def update(self, url=None, cache_ext_data=True):
         updated_urls = []
@@ -140,7 +140,7 @@ class Wiki(object):
         if url:
             page_info = self.fs.getPage(url)
             fs_page = FileSystemPage(self, page_info=page_info)
-            self.db.update([fs_page])
+            self.db.update([fs_page], force=True)
             updated_urls.append(url)
             self.index.update([self.getPage(url)])
         else:
@@ -151,7 +151,7 @@ class Wiki(object):
             self.index.update(self.getPages())
 
         if cache_ext_data:
-            self._cacheAllPages()
+            self._cachePages([url] if url else None)
 
     def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given
@@ -196,9 +196,7 @@ class Wiki(object):
         self.scm.commit([page_info.path], commit_meta)
 
         # Update the DB and index with the new/modified page.
-        fs_page = FileSystemPage(self, page_info=page_info)
-        self.db.update([fs_page])
-        self.index.update([self.getPage(url)])
+        self.update(url, cache_ext_data=False)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
@@ -219,7 +217,7 @@ class Wiki(object):
         rev_text = self.scm.getRevision(path, page_fields['rev'])
 
         # Write to the file and commit.
-        page_info = self.fs.setPage(url, rev_text)
+        self.fs.setPage(url, rev_text)
 
         # Commit to source-control.
         commit_meta = {
@@ -229,9 +227,7 @@ class Wiki(object):
         self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the modified page.
-        fs_page = FileSystemPage(self, page_info=page_info)
-        self.db.update([fs_page])
-        self.index.update([self.getPage(url)])
+        self.update(url, cache_ext_data=False)
 
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.
@@ -243,9 +239,10 @@ class Wiki(object):
         """
         return self.scm.getHistory()
 
-    def _cacheAllPages(self):
+    def _cachePages(self, only_urls=None):
         self.logger.debug("Caching extended page data...")
-        for url in self.getPageUrls():
+        urls = only_urls or self.getPageUrls()
+        for url in urls:
             page = self.getPage(url)
             page._ensureExtendedData()
 

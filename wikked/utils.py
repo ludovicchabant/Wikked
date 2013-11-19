@@ -1,6 +1,7 @@
 import re
 import os.path
 import unicodedata
+from xml.sax.saxutils import escape, unescape
 
 
 def get_absolute_url(base_url, url, do_slugify=True):
@@ -65,4 +66,15 @@ def get_meta_name_and_modifiers(name):
         modifiers = '+'
         clean_name = name[1:]
     return (clean_name, modifiers)
+
+
+html_escape_table = {'"': "&quot;", "'": "&apos;"}
+html_unescape_table = {v: k for k, v in html_escape_table.items()}
+
+def html_escape(text):
+    return escape(text, html_escape_table)
+
+
+def html_unescape(text):
+    return unescape(text, html_unescape_table)
 
