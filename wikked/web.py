@@ -1,6 +1,7 @@
 import os
 import os.path
 from flask import Flask, abort, g
+from utils import find_wiki_root
 
 # Create the main app.
 app = Flask("wikked")
@@ -9,9 +10,10 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
 # Find the wiki root.
-wiki_root = app.config.get('WIKI_ROOT')
-if not wiki_root:
-    wiki_root = os.getcwd()
+wiki_root = find_wiki_root()
+config_path = os.path.join(wiki_root, '.wiki', 'app.cfg')
+if os.path.isfile(config_path):
+    app.config.from_pyfile(config_path)
 
 
 # Make the app serve static content and wiki assets in DEBUG mode.

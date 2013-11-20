@@ -1,7 +1,23 @@
 import re
+import os
 import os.path
 import unicodedata
 from xml.sax.saxutils import escape, unescape
+
+
+def find_wiki_root(path=None):
+    if not path:
+        path = os.getcwd()
+    while True:
+        if os.path.isfile(os.path.join(path, '.wikirc')):
+            return path
+        if (os.path.isdir(os.path.join(path, '.git')) or
+                os.path.isdir(os.path.join(path, '.hg'))):
+            return path
+        path = os.path.dirname(path)
+        if not path or path == '/':
+            break
+    return None
 
 
 def get_absolute_url(base_url, url, do_slugify=True):
