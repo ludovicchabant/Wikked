@@ -3,7 +3,7 @@ import os.path
 import re
 import datetime
 import jinja2
-from formatter import PageFormatter, FormattingContext
+from formatter import PageFormatter, FormattingContext, SINGLE_METAS
 from resolver import PageResolver, CircularIncludeError
 
 
@@ -201,7 +201,7 @@ class FileSystemPage(Page):
         # Add some common meta.
         data.title = re.sub(r'\-', ' ', filename_split[0])
         if 'title' in data.local_meta:
-            data.title = data.local_meta['title'][0]
+            data.title = data.local_meta['title']
 
         return data
 
@@ -274,10 +274,13 @@ class DatabasePage(Page):
         data.local_meta = {}
         for m in db_obj.meta:
             value = data.local_meta.get(m.name)
-            if value is None:
-                data.local_meta[m.name] = [m.value]
+            if m.name in SINGLE_METAS:
+                data.local_meta[m.name] = m.value
             else:
-                data.local_meta[m.name].append(m.value)
+                if value is None:
+                    data.local_meta[m.name] = [m.value]
+                else:
+                    data.local_meta[m.name].append(m.value)
 
         data.local_links = [l.target_url for l in db_obj.links]
 

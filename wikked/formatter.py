@@ -5,6 +5,9 @@ import jinja2
 from utils import get_meta_name_and_modifiers, html_escape
 
 
+SINGLE_METAS = ['redirect', 'title']
+
+
 class BaseContext(object):
     """ Base context for formatting pages. """
     def __init__(self, url):
@@ -66,10 +69,15 @@ class PageFormatter(object):
 
             # Then, set the value on the meta dictionary, or add it to
             # other existing meta values with the same key.
-            if meta_name not in ctx.meta:
-                ctx.meta[meta_name] = [coerced_meta_value]
+            # TODO: right now we have a hard-coded list of meta names we know
+            #       shouldn't be made into an array... make it configurable.
+            if meta_name in SINGLE_METAS:
+                ctx.meta[meta_name] = coerced_meta_value
             else:
-                ctx.meta[meta_name].append(coerced_meta_value)
+                if meta_name not in ctx.meta:
+                    ctx.meta[meta_name] = [coerced_meta_value]
+                else:
+                    ctx.meta[meta_name].append(coerced_meta_value)
 
             # Process it, or remove it from the output text.
             if clean_meta_name in self.processors:
@@ -182,7 +190,6 @@ class PageFormatter(object):
         current = ''
         env = jinja2.Environment()
         for token in env.lex(text):
-            lineno = token[0]
             token_type = token[1]
             value = token[2]
             if token_type == 'data':
