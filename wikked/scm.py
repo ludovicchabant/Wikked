@@ -302,9 +302,9 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
         # Commit!
         if 'author' in op_meta:
-            self.client.commit(*rel_paths, message=op_meta['message'], user=op_meta['author'])
+            self.client.commit(include=rel_paths, message=op_meta['message'], user=op_meta['author'])
         else:
-            self.client.commit(*rel_paths, message=op_meta['message'])
+            self.client.commit(include=rel_paths, message=op_meta['message'])
 
     def revert(self, paths=None):
         if paths is not None:
