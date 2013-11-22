@@ -34,18 +34,18 @@ def user(username=None, password=None):
 
 
 @manager.command
-def reset():
+def reset(cache=False):
     """ Re-generates the database and the full-text-search index.
     """
-    wiki.reset()
+    wiki.reset(cache_ext_data=cache)
 
 
 @manager.command
-def update(url=None):
+def update(url=None, cache=False):
     """ Updates the database and the full-text-search index with any
         changed/new files.
     """
-    wiki.update(url)
+    wiki.update(url, cache_ext_data=cache)
 
 
 @manager.command
