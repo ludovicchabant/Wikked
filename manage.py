@@ -57,12 +57,15 @@ def list():
 
 
 @manager.command
-def get(url, resolve=False):
+def get(url, force_resolve=False, rev=None):
     """ Gets a page that matches the given URL.
     """
     page = wiki.getPage(url)
-    if resolve:
+    if force_resolve:
         page._force_resolve = True
+    if rev is not None:
+        print page.getRevision(rev)
+        return
     print page.text
 
 
