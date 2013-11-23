@@ -4,14 +4,7 @@ import re
 import string
 import codecs
 import logging
-from utils import title_to_url
-
-
-class PageNotFoundError(Exception):
-    """ An error raised when no physical file
-       is found for a given URL.
-    """
-    pass
+from utils import PageNotFoundError, title_to_url, path_to_url
 
 
 class PageInfo(object):
@@ -99,10 +92,7 @@ class FileSystem(object):
         if self.page_extensions is not None and ext not in self.page_extensions:
             return None
 
-        url = ''
-        parts = unicode(name).lower().split(os.sep)
-        for i, part in enumerate(parts):
-            url += '/' + title_to_url(part)
+        url = path_to_url(unicode(name), strip_ext=True)
         return PageInfo(url, path)
 
     def _getPhysicalPath(self, url, is_file):

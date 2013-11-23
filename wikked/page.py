@@ -5,6 +5,7 @@ import datetime
 import jinja2
 from formatter import PageFormatter, FormattingContext, SINGLE_METAS
 from resolver import PageResolver, CircularIncludeError
+from utils import PageNotFoundError
 
 
 class PageLoadingError(Exception):
@@ -240,7 +241,7 @@ class DatabasePage(Page):
     def _loadData(self):
         db_obj = self._db_obj or self.wiki.db.getPage(self.url)
         if db_obj is None:
-            raise Exception("Can't find page '%s' in the database. Please run `update` or `reset`." % self.url)
+            raise PageNotFoundError("Can't find page '%s' in the database. Please run `update` or `reset`." % self.url)
         data = self._loadFromDbObject(db_obj)
         self._db_obj = None
         return data

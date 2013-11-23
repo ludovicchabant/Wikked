@@ -5,6 +5,13 @@ import unicodedata
 from xml.sax.saxutils import escape, unescape
 
 
+class PageNotFoundError(Exception):
+    """ An error raised when no physical file
+       is found for a given URL.
+    """
+    pass
+
+
 def find_wiki_root(path=None):
     if not path:
         path = os.getcwd()
@@ -60,6 +67,17 @@ def title_to_url(title):
         if unicodedata.category(c) != 'Mn'))
     # Now replace spaces and punctuation with a hyphen.
     return re.sub(r'[^A-Za-z0-9_\.\-\(\)\{\}]+', '-', ansi_title.lower())
+
+
+def path_to_url(path, strip_ext=True):
+    if strip_ext:
+        path = os.path.splitext(path)[0]
+
+    url = ''
+    parts = path.lower().split(os.sep) # unicode(path)
+    for i, part in enumerate(parts):
+        url += '/' + title_to_url(part)
+    return url
 
 
 def url_to_title(url):

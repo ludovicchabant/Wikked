@@ -8,10 +8,10 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
 from web import app, login_manager
-from page import Page, PageData
+from page import Page, PageData, PageLoadingError
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
-from utils import title_to_url
+from utils import title_to_url, path_to_url
 import scm
 
 
@@ -120,24 +120,25 @@ def get_history_data(history, needs_files=False):
         if needs_files:
             rev_data['pages'] = []
             for f in rev.files:
-                f_info = g.wiki.fs.getPageInfo(f['path'])
-                if f_info is None:
-                    continue
-                page = g.wiki.getPage(f_info.url)
-                try:
-                    if not is_page_readable(page):
-                        continue
-                except PageNotFoundError:
-                    pass
-                    continue
-                page = g.wiki.getPage(f_info.url)
-                try:
-                    if not is_page_readable(page):
-                        continue
-                except PageNotFoundError:
-                    pass
+                url = None
+                is_url_valid = True
+                page = g.wiki.db.getPage(path=f['path'])
+                if page is not None:
+                    try:
+                        # Hide pages that the user can't see.
+                        if not is_page_readable(page):
+                            continue
+                        url = page.url
+                    except PageNotFoundError:
+                        pass
+                    except PageLoadingError:
+                        pass
+                if not url:
+                    url = path_to_url(f['path'])
+                    is_url_valid = False
                 rev_data['pages'].append({
-                    'url': f_info.url,
+                    'url': url,
+                    'valid_url': is_url_valid,
                     'action': scm.ACTION_NAMES[f['action']]
                     })
             if len(rev_data['pages']) > 0:

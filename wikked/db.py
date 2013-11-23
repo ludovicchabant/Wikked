@@ -40,10 +40,10 @@ class Database(object):
     def getPages(self, subdir=None, meta_query=None):
         raise NotImplementedError()
 
-    def getPage(self, url):
+    def getPage(self, url=None, path=None):
         raise NotImplementedError()
 
-    def pageExists(self, url):
+    def pageExists(self, url=None, path=None):
         raise NotImplementedError()
 
     def getLinksTo(self, url):
@@ -260,13 +260,22 @@ class SQLDatabase(Database):
             pages.append(p)
         return pages
 
-    def getPage(self, url):
-        q = db.session.query(SQLPage).filter_by(url=url)
-        page = q.first()
-        return page
+    def getPage(self, url=None, path=None):
+        if not url and not path:
+            raise ValueError("Either URL or path need to be specified.")
+        if url and path:
+            raise ValueError("Can't specify both URL and path.")
+        if url:
+            q = db.session.query(SQLPage).filter_by(url=url)
+            page = q.first()
+            return page
+        if path:
+            q = db.session.query(SQLPage).filter_by(path=path)
+            page = q.first()
+            return page
 
-    def pageExists(self, url):
-        return self.getPage(url) is not None
+    def pageExists(self, url=None, path=None):
+        return self.getPage(url, path) is not None
 
     def getLinksTo(self, url):
         q = db.session.query(SQLReadyLink).\

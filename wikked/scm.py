@@ -112,7 +112,7 @@ class MercurialBaseSourceControl(SourceControl):
         return subprocess.check_output(exe)
 
 
-class MercurialSourceControl(SourceControl):
+class MercurialSourceControl(MercurialBaseSourceControl):
     def __init__(self, root, logger=None):
         MercurialBaseSourceControl.__init__(self, root, logger)
 
@@ -235,7 +235,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
     def getHistory(self, path=None):
         if path is not None:
             rel_path = os.path.relpath(path, self.root)
-            status = self.client.status(include=rel_path)
+            status = self.client.status(include=[rel_path])
             if len(status) > 0 and status[0] == '?':
                 return []
 
@@ -249,14 +249,14 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         for rev in repo_revs:
             r = Revision(rev.node)
             r.rev_name = rev.node[:12]
-            r.author = rev.author
+            r.author = unicode(rev.author)
             r.timestamp = time.mktime(rev.date.timetuple())
-            r.description = rev.desc
+            r.description = unicode(rev.desc)
             if needs_files:
                 rev_statuses = self.client.status(change=rev.node)
                 for rev_status in rev_statuses:
                     r.files.append({
-                        'path': rev_status[1],
+                        'path': rev_status[1].decode('utf-8', 'replace'),
                         'action': self.actions[rev_status[0]]
                         })
             revisions.append(r)
@@ -264,7 +264,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def getState(self, path):
         rel_path = os.path.relpath(path, self.root)
-        statuses = self.client.status(include=rel_path)
+        statuses = self.client.status(include=[rel_path])
         if len(statuses) == 0:
             return STATE_COMMITTED
         status = statuses[0]
@@ -276,7 +276,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             
     def getRevision(self, path, rev):
         rel_path = os.path.relpath(path, self.root)
-        return self.client.cat(rel_path, rev=rev)
+        return self.client.cat([rel_path], rev=rev)
 
     def diff(self, path, rev1, rev2):
         rel_path = os.path.relpath(path, self.root)
@@ -298,7 +298,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             if s[1] in rel_paths:
                 add_paths.append(s[1])
         if len(add_paths) > 0:
-            self.client.add(*add_paths)
+            self.client.add(files=add_paths)
 
         # Commit!
         if 'author' in op_meta:
@@ -309,9 +309,9 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
     def revert(self, paths=None):
         if paths is not None:
             rel_paths = [os.path.relpath(p, self.root) for p in paths]
-            self.client.revert(*rel_paths, clean=True)
+            self.client.revert(files=rel_paths, nobackup=True)
         else:
-            self.client.revert(all=True, clean=True)
+            self.client.revert(all=True, nobackup=True)
 
 
 class GitBaseSourceControl(SourceControl):
