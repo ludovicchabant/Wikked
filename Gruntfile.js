@@ -58,6 +58,16 @@ module.exports = function(grunt) {
           {expand: true, cwd: 'static/', dest: 'build/', src: ['bootstrap/js/*.js']}
         ]
       },
+      dev_scripts: {
+        files: [
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['js/wikked.js', 'js/wikked/**']}
+        ]
+      },
+      dev_templates: {
+        files: [
+          {expand: true, cwd: 'static/', dest: 'build/', src: ['tpl/**']}
+        ]
+      },
       production: {
         files: [
           {expand: true, cwd: 'static/', dest: 'build/', src: ['js/require.js']},
@@ -72,8 +82,12 @@ module.exports = function(grunt) {
     },
     watch: {
       scripts: {
-        files: ['static/js/**/*.js', 'static/tpl/**/*.html'],
-        tasks: ['jshint', 'copy:development']
+        files: ['static/js/wikked.js', 'static/js/wikked/**'],
+        tasks: ['jshint:all', 'copy:dev_scripts']
+      },
+      templates: {
+        files: ['static/tpl/**/*.html'],
+        tasks: ['copy:dev_templates']
       },
       styles: {
         files: ['static/css/**/*.less'],
