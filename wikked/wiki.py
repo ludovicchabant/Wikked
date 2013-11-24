@@ -124,6 +124,10 @@ class Wiki(object):
         self.fs.excluded += parameters.getSpecialFilenames()
         self.fs.excluded += self.scm.getSpecialFilenames()
 
+    @property
+    def root(self):
+        return self.fs.root
+
     def start(self, update=True):
         """ Properly initializes the wiki and all its sub-systems.
         """
@@ -247,10 +251,10 @@ class Wiki(object):
         """
         return self.db.pageExists(url)
 
-    def getHistory(self):
+    def getHistory(self, limit=10):
         """ Shorthand method to get the history from the source-control.
         """
-        return self.scm.getHistory()
+        return self.scm.getHistory(limit=limit)
 
     def _cachePages(self, only_urls=None):
         self.logger.debug("Caching extended page data...")

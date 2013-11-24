@@ -75,7 +75,8 @@ define([
             'login':                 "showLogin",
             'logout':                "doLogout",
             'special':               "showSpecialPages",
-            'special/:page':         "showSpecialPage"
+            'special/changes':       "showSiteChanges",
+            'special/orphans':       "showOrphans"
         },
         readPage: function(path) {
             path_clean = this.stripQuery(path);
@@ -179,25 +180,19 @@ define([
             this.viewManager.switchView(view, false);
             this.navigate('/special');
         },
-        showSpecialPage: function(page) {
-            var viewType = false;
-            switch (page) {
-                case "changes":
-                    viewType = Views.SpecialChangesView;
-                    break;
-                case "orphans":
-                    viewType = Views.SpecialOrphansView;
-                    break;
-            }
-            if (viewType === false) {
-                console.error("Unsupported special page: ", page);
-                return;
-            }
-            var view = new viewType({
-                model: new Models.GenericSpecialPageModel({ page: page })
+        showSiteChanges: function() {
+            var view = new Views.SpecialChangesView({
+                model: new Models.SpecialChangesModel()
             });
             this.viewManager.switchView(view);
-            this.navigate('/special/' + page);
+            this.navigate('/special/changes');
+        },
+        showOrphans: function() {
+            var view = new Views.SpecialOrphansView({
+                model: new Models.SpecialOrphansModel()
+            });
+            this.viewManager.switchView(view);
+            this.navigate('/special/orphans');
         },
         stripQuery: function(url) {
             q = url.indexOf("?");

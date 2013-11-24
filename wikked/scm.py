@@ -36,7 +36,7 @@ class SourceControl(object):
     def getSpecialFilenames(self):
         raise NotImplementedError()
 
-    def getHistory(self, path=None):
+    def getHistory(self, path=None, limit=10):
         raise NotImplementedError()
 
     def getState(self, path):
@@ -119,7 +119,7 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         self.hg = 'hg'
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
 
-    def getHistory(self, path=None):
+    def getHistory(self, path=None, limit=10):
         if path is not None:
             st_out = self._run('status', path)
             if len(st_out) > 0 and st_out[0] == '?':
@@ -129,6 +129,7 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         if path is not None:
             log_args.append(path)
         log_args += ['--style', self.log_style]
+        log_args += ['-l', limit]
         log_out = self._run('log', *log_args)
 
         revisions = []
@@ -232,7 +233,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         import hglib
         self.client = hglib.open(self.root)
 
-    def getHistory(self, path=None):
+    def getHistory(self, path=None, limit=10):
         if path is not None:
             rel_path = os.path.relpath(path, self.root)
             status = self.client.status(include=[rel_path])
@@ -241,10 +242,10 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
         needs_files = False
         if path is not None:
-            repo_revs = self.client.log(files=[path], follow=True)
+            repo_revs = self.client.log(files=[path], follow=True, limit=limit)
         else:
             needs_files = True
-            repo_revs = self.client.log(follow=True)
+            repo_revs = self.client.log(follow=True, limit=limit)
         revisions = []
         for rev in repo_revs:
             r = Revision(rev.node)

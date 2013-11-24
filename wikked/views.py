@@ -8,7 +8,7 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
 from web import app, login_manager
-from page import Page, PageData, PageLoadingError
+from page import Page, DatabasePage, PageData, PageLoadingError
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
 from utils import title_to_url, path_to_url
@@ -121,11 +121,12 @@ def get_history_data(history, needs_files=False):
             rev_data['pages'] = []
             for f in rev.files:
                 url = None
-                is_url_valid = True
-                page = g.wiki.db.getPage(path=f['path'])
-                if page is not None:
+                path = os.path.join(g.wiki.root, f['path'])
+                db_obj = g.wiki.db.getPage(path=path)
+                if db_obj is not None:
                     try:
                         # Hide pages that the user can't see.
+                        page = DatabasePage(g.wiki, db_obj=db_obj)
                         if not is_page_readable(page):
                             continue
                         url = page.url
@@ -135,12 +136,12 @@ def get_history_data(history, needs_files=False):
                         pass
                 if not url:
                     url = path_to_url(f['path'])
-                    is_url_valid = False
                 rev_data['pages'].append({
                     'url': url,
-                    'valid_url': is_url_valid,
                     'action': scm.ACTION_NAMES[f['action']]
                     })
+            rev_data['num_pages'] = len(rev_data['pages'])
+            rev_data['make_collapsable'] = len(rev_data['pages']) > 1
             if len(rev_data['pages']) > 0:
                 hist_data.append(rev_data)
         else:
@@ -418,7 +419,13 @@ def api_special_orphans():
 
 @app.route('/api/history')
 def api_site_history():
-    history = g.wiki.getHistory()
+    limit = request.args.get('l')
+    if not limit:
+        limit = 10
+    else:
+        limit = int(limit)
+
+    history = g.wiki.getHistory(limit=limit)
     hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
     return make_auth_response(result)

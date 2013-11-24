@@ -425,40 +425,22 @@ define([
         }
     });
 
-    var GenericSpecialPageModel = exports.GenericSpecialPageModel = MasterPageModel.extend({
+    var SpecialPageModel = exports.SpecialPageModel = MasterPageModel.extend({
         action: 'special',
         initialize: function() {
-            GenericSpecialPageModel.__super__.initialize.apply(this, arguments);
+            SpecialPageModel.__super__.initialize.apply(this, arguments);
             this.footer.clearExtraUrls();
-            var key = this.get('page');
-            if (key in this.assignMap) {
-                this.assignMap[key].apply(this);
-            }
-        },
-        assignMap: {
-        },
-        titleMap: {
-            orphans: 'Orphaned Pages',
-            changes: 'Wiki History'
-        },
-        title: function() {
-            var key = this.get('page');
-            if (key in this.titleMap) {
-                return this.titleMap[key];
-            }
-            return 'Unknown';
-        },
-        urlMap: {
-            orphans: '/api/orphans',
-            changes: '/api/history'
-        },
-        url: function() {
-            var key = this.get('page');
-            if (key in this.urlMap) {
-                return this.urlMap[key];
-            }
-            return false;
         }
+    });
+
+    var SpecialChangesModel = exports.SpecialChangesModel = SpecialPageModel.extend({
+        title: "Wiki History",
+        url: '/api/history'
+    });
+
+    var SpecialOrphansModel = exports.SpecialOrphansModel = SpecialPageModel.extend({
+        title: "Orphaned Pages",
+        url: '/api/orphans'
     });
 
     return exports;

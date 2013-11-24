@@ -104,7 +104,7 @@ define([
             this.$el.html(tpl(this.model.toJSON()));
         },
         renderTitle: function(formatter) {
-            var title = this.model.title();
+            var title = _.result(this, 'title');
             if (formatter !== undefined) {
                 title = formatter.call(this, title);
             }
@@ -506,6 +506,19 @@ define([
 
     var SpecialChangesView = exports.SpecialChangesView = SpecialMasterPageView.extend({
         defaultTemplateSource: tplSpecialChanges,
+        renderCallback: function() {
+            SpecialChangesView.__super__.renderCallback.apply(this, arguments);
+            if (this.isError) {
+                return;
+            }
+
+            this.$('.history-list .page-details').hide();
+            this.$('.history-list .page-details-toggler').click(function (e) {
+                index = $(this).attr('data-index');
+                $('.history-list .page-details-' + index).toggle();
+                e.preventDefault();
+            });
+        },
         _onModelChange: function() {
             var history = this.model.get('history');
             if (history) {
