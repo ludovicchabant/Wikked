@@ -385,33 +385,20 @@ def api_delete_page(url):
 
 @app.route('/api/orphans')
 def api_special_orphans():
-    run_queries = request.args.get('run_queries')
-
     orphans = []
-    pages_with_queries = []
     for page in g.wiki.getPages():
         try:
             if not is_page_readable(page):
                 continue
-            if len(page.getIncomingLinks()) == 0:
+            is_orphan = True
+            for link in page.getIncomingLinks():
+                is_orphan = False
+                break
+            if is_orphan:
                 orphans.append({'path': page.url, 'meta': get_page_meta(page)})
         except Exception as e:
             app.logger.error("Error while inspecting page: %s" % page.url)
             app.logger.error("   %s" % e)
-            continue
-        if run_queries:
-            page_queries = page.getLocalMeta().get('query')
-            if page_queries is not None:
-                pages_with_queries.append(page)
-
-    if run_queries:
-        app.logger.debug("Running queries for %d pages." % len(pages_with_queries))
-        links_to_remove = set()
-        for page in pages_with_queries:
-            links = PageFormatter.parseWikiLinks(page.text)
-            links_to_remove |= set(links)
-        app.logger.debug( links_to_remove)
-        orphans = [o for o in orphans if o['path'] not in links_to_remove]
 
     result = {'orphans': orphans}
     return make_auth_response(result)
