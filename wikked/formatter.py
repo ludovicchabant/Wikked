@@ -2,10 +2,13 @@ import os
 import os.path
 import re
 import jinja2
+from StringIO import StringIO
 from utils import get_meta_name_and_modifiers, html_escape
 
 
 SINGLE_METAS = ['redirect', 'title']
+
+FILE_FORMAT_REGEX = re.compile(r'\r\n?', re.MULTILINE)
 
 
 class BaseContext(object):
@@ -42,6 +45,7 @@ class PageFormatter(object):
                 }
 
     def formatText(self, ctx, text):
+        text = FILE_FORMAT_REGEX.sub("\n", text)
         text = self._processWikiSyntax(ctx, text)
         return text
 
@@ -92,7 +96,7 @@ class PageFormatter(object):
                 flags=re.MULTILINE)
         # Multi-line meta.
         text = re.sub(
-                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)^\s*\}\}\s*$',
+                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*?)^\s*\}\}\s*$',
                 repl,
                 text,
                 flags=re.MULTILINE | re.DOTALL)
@@ -184,27 +188,35 @@ class PageFormatter(object):
             urls.append(unicode(m.group('url')))
         return urls
 
+    LEXER_STATE_NORMAL = 0
+    LEXER_STATE_LINK = 1
+
     @staticmethod
     def pipeSplit(text):
         res = []
-        current = ''
+        current = StringIO()
+        state = PageFormatter.LEXER_STATE_NORMAL
         env = jinja2.Environment()
         for token in env.lex(text):
             token_type = token[1]
             value = token[2]
             if token_type == 'data':
-                bits = value.split('|')
-                if len(bits) > 1:
-                    current += bits[0]
-                    res.append(current)
-                    for bit in bits[1:-1]:
-                        res.append(bit)
-                    current = bits[-1]
-                else:
-                    current += value
+                for i, c in enumerate(value):
+                    if i > 0:
+                        if c == '[' and value[i - 1] == '[':
+                            state = PageFormatter.LEXER_STATE_LINK
+                        elif c == ']' and value[i - 1] == ']':
+                            state = PageFormatter.LEXER_STATE_NORMAL
+                    if state == PageFormatter.LEXER_STATE_NORMAL and c == '|':
+                        res.append(current.getvalue())
+                        current.close()
+                        current = StringIO()
+                    else:
+                        current.write(c)
             else:
-                current += value
-        if current:
-            res.append(current)
+                current.write(value)
+        last_value = current.getvalue()
+        if last_value:
+            res.append(last_value)
         return res
 
