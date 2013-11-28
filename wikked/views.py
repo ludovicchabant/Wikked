@@ -1,3 +1,4 @@
+import re
 import time
 import urllib
 import string
@@ -11,7 +12,7 @@ from web import app, login_manager
 from page import Page, DatabasePage, PageData, PageLoadingError
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
-from utils import title_to_url, path_to_url
+from utils import title_to_url, path_to_url, namespace_title_to_url
 import scm
 
 
@@ -82,6 +83,11 @@ def get_page_or_404(url, check_perms=DONT_CHECK, force_resolve=False):
 
 
 def make_absolute(url):
+    m = re.match(r'(\w[\w\d]+)\:(.*)', url)
+    if m:
+        endpoint = str(m.group(1))
+        path = string.lstrip(str(m.group(2)), '/')
+        return '%s:/%s' % (endpoint, path)
     return '/' + string.lstrip(url, '/')
 
 
@@ -209,6 +215,37 @@ def api_read_page(url):
 def api_read_page_raw(url):
     page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
     result = {'meta': get_page_meta(page), 'text': page.raw_text}
+    return make_auth_response(result)
+
+
+@app.route('/api/read_meta/<name>/<value>')
+def api_read_meta_page(name, value):
+    query = {name: [value]}
+    pages = g.wiki.getPages(meta_query=query)
+    tpl_data = {
+            'name': name,
+            'value': value,
+            'pages': [get_page_meta(p) for p in pages]
+        }
+
+    url_value = namespace_title_to_url(value)
+    info_page = get_page_or_none(
+            "%s:/%s" % (name, url_value),
+            force_resolve=('force_resolve' in request.args))
+    if info_page:
+        tpl_data['info_text'] = info_page.text
+
+    text = render_template('meta_page.html', **tpl_data)
+    result = {
+            'meta_query': name,
+            'meta_value': value,
+            'query': query,
+            'meta': {},
+            'text': text
+        }
+    if info_page:
+        result['meta'] = get_page_meta(info_page)
+
     return make_auth_response(result)
 
 

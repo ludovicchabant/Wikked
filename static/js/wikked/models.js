@@ -225,6 +225,9 @@ define([
             this.footer.addExtraUrl('Pages Linking Here', function() { return '/#/inlinks/' + model.id; }, 1);
             this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
         },
+        checkStatePath: function() {
+            return this.get('path');
+        },
         _onChange: function() {
             if (this.getMeta('redirect')) {
                 // Handle redirects.
@@ -246,10 +249,13 @@ define([
         }
     });
 
-    var CategoryModel = exports.CategoryModel = MasterPageModel.extend({
+    var MetaPageModel = exports.MetaPageModel = MasterPageModel.extend({
         action: 'read',
         url: function() {
-            return '/api/query?category=' + this.get('path');
+            return '/api/read_meta/' + this.get('name') + '/' + this.get('path');
+        },
+        checkStatePath: function() {
+            return this.getMeta('url');
         }
     });
 

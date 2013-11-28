@@ -256,11 +256,15 @@ class DatabasePage(Page):
             if path_time >= db_obj.time:
                 self.wiki.logger.debug(
                     "Updating database cache for page '%s'." % self.url)
-                fs_page = FileSystemPage(self.wiki, self.url)
-                fs_page._ensureData()
-                added_ids = self.wiki.db.update([fs_page])
-                fs_page._data._db_id = added_ids[0]
-                return fs_page._data
+                try:
+                    fs_page = FileSystemPage(self.wiki, self.url)
+                    fs_page._ensureData()
+                    added_ids = self.wiki.db.update([fs_page])
+                    fs_page._data._db_id = added_ids[0]
+                    return fs_page._data
+                except Exception as e:
+                    msg = "Error updating database cache from the file-system: %s" % e
+                    raise PageLoadingError(msg, e)
 
         data = PageData()
         data._db_id = db_obj.id

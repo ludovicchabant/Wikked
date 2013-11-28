@@ -28,6 +28,7 @@ def find_wiki_root(path=None):
 
 
 def get_absolute_url(base_url, url, do_slugify=True):
+    base_url = re.sub(r'^(\w[\w\d]+)\:', '', base_url)
     if base_url[0] != '/':
         raise ValueError("The base URL must be absolute. Got: %s" % base_url)
 

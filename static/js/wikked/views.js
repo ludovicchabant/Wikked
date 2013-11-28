@@ -11,7 +11,7 @@ define([
         'js/wikked/models',
         'js/wikked/util',
         'text!tpl/read-page.html',
-        'text!tpl/category.html',
+        'text!tpl/meta-page.html',
         'text!tpl/edit-page.html',
         'text!tpl/history-page.html',
         'text!tpl/revision-page.html',
@@ -31,7 +31,7 @@ define([
         'text!tpl/special-orphans.html'
         ],
     function($, _, Backbone, Handlebars, BootstrapTooltip, Client, Models, Util,
-        tplReadPage, tplCategory, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
+        tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
         tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialOrphans) {
@@ -251,7 +251,7 @@ define([
                 else
                     jel.attr('href', '/#/read' + jel.attr('data-wiki-url'));
             });
-            // If we've already rendered the content, see if need to display a
+            // If we've already rendered the content, see if we need to display a
             // warning about the page's state.
             if (this.model.get('content')) {
                 if (this._pageState === undefined) {
@@ -285,7 +285,10 @@ define([
         _checkPageState: function() {
             this._isCheckingPageState = true;
             var $view = this;
-            var stateModel = new Models.PageStateModel({ path: this.model.get('path') });
+            var statePath = this.model.checkStatePath();
+            if (!statePath)
+                return;
+            var stateModel = new Models.PageStateModel({ path: statePath });
             stateModel.fetch({
                 success: function(model, response, options) {
                     $view._pageState = model;
@@ -298,8 +301,8 @@ define([
         }
     });
 
-    var CategoryView = exports.CategoryView = MasterPageView.extend({
-        defaultTemplateSource: tplCategory
+    var MetaPageView = exports.MetaPageView = PageReadView.extend({
+        defaultTemplateSource: tplMetaPage
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({

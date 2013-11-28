@@ -1,0 +1,13 @@
+{% if info_text %}
+{{info_text|safe}}
+{% else %}
+<p>No additional information is available for this page. You can write some right now.</p>
+{% endif %}
+
+<h2>Pages in {{name}} "{{value}}"</h2>
+
+<ul>
+    {% for p in pages %}
+    <li><a class="wiki-link" data-wiki-url="{{p.url}}">{{p.title}}</a></li>
+    {% endfor %}
+</ul>

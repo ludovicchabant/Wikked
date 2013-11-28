@@ -43,6 +43,9 @@ class PageFormatter(object):
                 'include': self._processInclude,
                 'query': self._processQuery
                 }
+        self.endpoints = {
+                'url': self._formatUrlLink
+                }
 
     def formatText(self, ctx, text):
         text = FILE_FORMAT_REGEX.sub("\n", text)
@@ -105,27 +108,36 @@ class PageFormatter(object):
     def _processWikiLinks(self, ctx, text):
         s = self
 
-        # [[url:Something/Blah.ext]]
+        # [[endpoint:Something/Blah.ext]]
         def repl1(m):
-            url = m.group(1).strip()
-            if url.startswith('/'):
-                return '/files' + url
-            abs_url = os.path.join('/files', ctx.urldir, url)
-            abs_url = os.path.normpath(abs_url).replace('\\', '/')
-            return abs_url
-        text = re.sub(r'\[\[url\:([^\]]+)\]\]', repl1, text)
+            endpoint = m.group(1)
+            value = m.group(2).strip()
+            if endpoint in self.endpoints:
+                return self.endpoints[endpoint](ctx, endpoint, value, value)
+            return self._formatMetaLink(ctx, endpoint, value, value)
+        text = re.sub(r'\[\[(\w[\w\d]+)\:([^\]]+)\]\]', repl1, text)
+
+        # [[display name|endpoint:Something/Whatever]]
+        def repl2(m):
+            display = m.group(1).strip()
+            endpoint = m.group(2)
+            value = m.group(3).strip()
+            if endpoint in self.endpoints:
+                return self.endpoints[endpoint](ctx, endpoint, value, display)
+            return self._formatMetaLink(ctx, endpoint, value, display)
+        text = re.sub(r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)\:([^\]]+)\]\]', repl2, text)
 
         # [[display name|Whatever/PageName]]
-        def repl2(m):
+        def repl3(m):
             return s._formatWikiLink(ctx, m.group(1).strip(), m.group(2).strip())
-        text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl2, text)
+        text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl3, text)
 
         # [[Namespace/PageName]]
-        def repl3(m):
+        def repl4(m):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
             return s._formatWikiLink(ctx, b, url)
-        text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl3, text)
+        text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl4, text)
 
         return text
 
@@ -175,6 +187,18 @@ class PageFormatter(object):
         if modifier:
             mod_attr = ' data-wiki-mod="%s"' % modifier
         return '<div class="wiki-query"%s>%s</div>\n' % (mod_attr, processed_args)
+
+    def _formatUrlLink(self, ctx, endpoint, value, display):
+        if value.startswith('/'):
+            abs_url = '/files' + value
+        else:
+            abs_url = os.path.join('/files', ctx.urldir, value)
+            abs_url = os.path.normpath(abs_url).replace('\\', '/')
+        return '<a class="wiki-asset" href="%s">%s</a>' % (abs_url, display)
+
+    def _formatMetaLink(self, ctx, endpoint, value, display):
+        ctx.out_links.append("%s:%s" % (endpoint, value))
+        return '<a class="wiki-meta-link" data-wiki-meta="%s" data-wiki-value="%s">%s</a>' % (endpoint, value, display)
 
     def _formatWikiLink(self, ctx, display, url):
         ctx.out_links.append(url)

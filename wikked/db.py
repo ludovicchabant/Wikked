@@ -5,7 +5,7 @@ import string
 import logging
 import datetime
 from sqlalchemy import (
-        and_,
+        and_, or_,
         Column, Boolean, Integer, String, Text, DateTime, ForeignKey)
 from sqlalchemy.orm import relationship, backref, defer
 from wikked.web import db
@@ -220,12 +220,16 @@ class SQLDatabase(Database):
         db.session.commit()
 
         if to_remove or added_db_objs:
+            # If pages have been added/removed/updated, invalidate everything
+            # in the wiki that has includes or queries.
             db_pages = db.session.query(SQLPage).\
                     options(
                             defer(SQLPage.title),
                             defer(SQLPage.raw_text),
                             defer(SQLPage.formatted_text),
                             defer(SQLPage.ready_text)).\
+                    join(SQLReadyMeta).\
+                    filter(or_(SQLReadyMeta.name == 'include', SQLReadyMeta.name == 'query')).\
                     all()
             for p in db_pages:
                 p.is_ready = False
@@ -279,11 +283,18 @@ class SQLDatabase(Database):
 
     def getLinksTo(self, url):
         q = db.session.query(SQLReadyLink).\
-            filter(SQLReadyLink.target_url == url).\
-            join(SQLReadyLink.source).\
-            all()
+                filter(SQLReadyLink.target_url == url).\
+                join(SQLReadyLink.source).\
+                all()
         for l in q:
             yield l.source.url
+
+    def getUncachedPages(self):
+        q = db.session.query(SQLPage).\
+                filter(SQLPage.is_ready == False).\
+                all()
+        for p in q:
+            yield p
 
     def _createSchema(self):
         db.drop_all()
@@ -343,8 +354,8 @@ class SQLDatabase(Database):
         db_obj = db.session.query(SQLPage).filter(SQLPage.id == page._id).one()
 
         db_obj.ready_text = page._data.text
-        db_obj.is_ready = True
-        
+
+        del db_obj.ready_meta[:]
         for name, value in page._data.ext_meta.iteritems():
             if isinstance(value, bool):
                 value = ""
@@ -354,8 +365,11 @@ class SQLDatabase(Database):
                 for v in value:
                     db_obj.ready_meta.append(SQLReadyMeta(name, v))
 
+        del db_obj.ready_links[:]
         for link_url in page._data.ext_links:
             db_obj.ready_links.append(SQLReadyLink(link_url))
+
+        db_obj.is_ready = True
 
         db.session.commit()
 

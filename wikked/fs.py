@@ -3,8 +3,12 @@ import os.path
 import re
 import string
 import codecs
+import fnmatch
 import logging
 from utils import PageNotFoundError, title_to_url, path_to_url
+
+
+META_ENDPOINT = '_meta'
 
 
 class PageInfo(object):
@@ -45,8 +49,6 @@ class FileSystem(object):
             dirnames[:] = [d for d in dirnames if os.path.join(dirpath, d) not in self.excluded]
             for filename in filenames:
                 path = os.path.join(dirpath, filename)
-                if path in self.excluded:
-                    continue
                 page_info = self.getPageInfo(path)
                 if page_info is not None:
                     yield page_info
@@ -55,7 +57,7 @@ class FileSystem(object):
         if not isinstance(path, unicode):
             path = unicode(path)
         for e in self.excluded:
-            if path.startswith(e):
+            if fnmatch.fnmatch(path, e):
                 return None
         return self._getPageInfo(path)
 
@@ -83,7 +85,11 @@ class FileSystem(object):
         return self._getPhysicalPath(url, False)
 
     def _getPageInfo(self, path):
+        meta = None
         rel_path = os.path.relpath(path, self.root)
+        if rel_path.startswith(META_ENDPOINT + os.sep):
+            rel_path = rel_path[len(META_ENDPOINT) + 1:]
+            meta, rel_path = rel_path.split(os.sep, 1)
         rel_path_split = os.path.splitext(rel_path)
         ext = rel_path_split[1].lstrip('.')
         name = rel_path_split[0]
@@ -93,22 +99,50 @@ class FileSystem(object):
             return None
 
         url = path_to_url(unicode(name), strip_ext=True)
+        if meta:
+            url = u"%s:%s" % (meta.lower(), url)
         return PageInfo(url, path)
 
     def _getPhysicalPath(self, url, is_file):
+        endpoint = None
+        m = re.match(r'(\w[\w\d]+)\:(.*)', url)
+        if m:
+            endpoint = str(m.group(1))
+            url = str(m.group(2)).strip()
+
         if url[0] != '/':
             raise ValueError("Page URLs need to be absolute: " + url)
         if string.find(url, '..') >= 0:
             raise ValueError("Page URLs can't contain '..': " + url)
 
+        # Find the root directory in which we'll be searching for the
+        # page file.
+        skip_endpoint = True
+        if endpoint:
+            # Find the endpoint that gets transformed to the value
+            # we see in the URL.
+            endpoint_root = os.path.join(self.root, META_ENDPOINT)
+            names = os.listdir(endpoint_root)
+            for name in names:
+                name_formatted = title_to_url(name)
+                if name_formatted == endpoint:
+                    current = os.path.join(endpoint_root, name)
+                    break
+            else:
+                raise PageNotFoundError("No such meta endpoint: %s" % endpoint)
+            skip_endpoint = False
+        else:
+            current = self.root
+
         # For each "part" in the given URL, find the first
         # file-system entry that would get slugified to an
         # equal string.
-        current = self.root
         parts = unicode(url[1:]).lower().split('/')
         for i, part in enumerate(parts):
             names = os.listdir(current)
             for name in names:
+                if skip_endpoint and i == 0 and name == META_ENDPOINT:
+                    continue
                 name_formatted = title_to_url(name)
                 if is_file and i == len(parts) - 1:
                     # If we're looking for a file and this is the last part,
@@ -122,6 +156,6 @@ class FileSystem(object):
                         break
             else:
                 # Failed to find a part of the URL.
-                raise PageNotFoundError("No such page: " + url)
+                raise PageNotFoundError("No such page: %s" % url)
         return current
 

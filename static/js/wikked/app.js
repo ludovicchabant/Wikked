@@ -64,7 +64,7 @@ define([
         routes: {
             'read/*path':           "readPage",
             '':                     "readMainPage",
-            'category/*path':       "readCategoryPage",
+            'meta/:name/*path':     "readMetaPage",
             'edit/*path':           "editPage",
             'changes/*path':        "showPageHistory",
             'inlinks/*path':        "showIncomingLinks",
@@ -93,12 +93,12 @@ define([
         readMainPage: function() {
             this.readPage('main-page');
         },
-        readCategoryPage: function(path) {
-            var view = new Views.CategoryView({
-                model: new Models.CategoryModel({ path: path })
+        readMetaPage: function(name, path) {
+            var view = new Views.MetaPageView({
+                model: new Models.MetaPageModel({ name: name, path: path })
             });
             this.viewManager.switchView(view);
-            this.navigate('/category/' + path);
+            this.navigate('/meta/' + name + '/' + path);
         },
         editPage: function(path) {
             var view = new Views.PageEditView({

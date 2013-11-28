@@ -180,6 +180,8 @@ class Wiki(object):
     def getPages(self, subdir=None, meta_query=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
         """
+        if meta_query:
+            self._cachePages()
         for page in self.db.getPages(subdir, meta_query):
             yield DatabasePage(self, db_obj=page)
 
@@ -258,10 +260,14 @@ class Wiki(object):
 
     def _cachePages(self, only_urls=None):
         self.logger.debug("Caching extended page data...")
-        urls = only_urls or self.getPageUrls()
-        for url in urls:
-            page = self.getPage(url)
-            page._ensureExtendedData()
+        if only_urls:
+            for url in only_urls:
+                page = self.getPage(url)
+                page._ensureExtendedData()
+        else:
+            for db_obj in self.db.getUncachedPages():
+                page = DatabasePage(self, db_obj=db_obj)
+                page._ensureExtendedData()
 
     def _loadConfig(self, parameters):
         # Merge the default settings with any settings provided by
