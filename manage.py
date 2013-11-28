@@ -49,11 +49,15 @@ def update(url=None, cache=False):
 
 
 @manager.command
-def list():
+def list(fs=False):
     """ Lists page names in the wiki.
     """
-    for url in wiki.db.getPageUrls():
-        print url
+    if fs:
+        for pi in wiki.fs.getPageInfos():
+            print pi.url
+    else:
+        for url in wiki.db.getPageUrls():
+            print url
 
 
 @manager.command
