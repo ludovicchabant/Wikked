@@ -9,11 +9,10 @@ from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
 from web import app, login_manager
-from page import Page, DatabasePage, PageData, PageLoadingError
+from page import Page, PageData, PageLoadingError
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
-from utils import title_to_url, path_to_url, namespace_title_to_url
-import scm
+from scm.base import STATE_NAMES, ACTION_NAMES
 
 
 DONT_CHECK = 0
@@ -21,22 +20,9 @@ CHECK_FOR_READ = 1
 CHECK_FOR_WRITE = 2
 
 
-def get_category_meta(category):
-    result = []
-    for item in category:
-        result.append({
-            'url': urllib.quote_plus(item),
-            'name': item
-            })
-    return result
-
-COERCE_META = {
-    'redirect': title_to_url,
-    'category': get_category_meta
-    }
-
-
 class DummyPage(Page):
+    """ A dummy page for previewing in-progress editing.
+    """
     def __init__(self, wiki, url, text):
         Page.__init__(self, wiki, url)
         self._text = text
@@ -55,12 +41,27 @@ class DummyPage(Page):
         data.local_meta = ctx.meta
         data.local_links = ctx.out_links
 
-        data.title = Page.url_to_title(self.url)
+        data.title = make_page_title(self.url)
 
         return data
 
 
+def url_from_viewarg(url):
+    url = urllib.unquote(url)
+    m = re.match(r'(\w[\w\d]+)\:(.*)', url)
+    if m:
+        endpoint = str(m.group(1))
+        path = string.lstrip(str(m.group(2)), '/')
+        return '%s:/%s' % (endpoint, path)
+    return '/' + string.lstrip(url, '/')
+
+
+def make_page_title(url):
+    return url[1:]
+
+
 def get_page_or_none(url, force_resolve=False):
+    url = url_from_viewarg(url)
     try:
         page = g.wiki.getPage(url)
         if force_resolve:
@@ -79,16 +80,8 @@ def get_page_or_404(url, check_perms=DONT_CHECK, force_resolve=False):
         elif check_perms == CHECK_FOR_WRITE and not is_page_writable(page):
             abort(401)
         return page
+    app.logger.error("No such page: " + url)
     abort(404)
-
-
-def make_absolute(url):
-    m = re.match(r'(\w[\w\d]+)\:(.*)', url)
-    if m:
-        endpoint = str(m.group(1))
-        path = string.lstrip(str(m.group(2)), '/')
-        return '%s:/%s' % (endpoint, path)
-    return '/' + string.lstrip(url, '/')
 
 
 def is_page_readable(page, user=current_user):
@@ -105,11 +98,21 @@ def get_page_meta(page, local_only=False):
     else:
         meta = dict(page.meta)
     meta['title'] = page.title
-    meta['url'] = page.url
+    meta['url'] = urllib.quote(page.url)
     for name in COERCE_META:
         if name in meta:
             meta[name] = COERCE_META[name](meta[name])
     return meta
+
+
+def get_category_meta(category):
+    result = []
+    for item in category:
+        result.append({
+            'url': urllib.quote(item),
+            'name': item
+            })
+    return result
 
 
 def get_history_data(history, needs_files=False):
@@ -128,23 +131,21 @@ def get_history_data(history, needs_files=False):
             for f in rev.files:
                 url = None
                 path = os.path.join(g.wiki.root, f['path'])
-                db_obj = g.wiki.db.getPage(path=path)
-                if db_obj is not None:
-                    try:
-                        # Hide pages that the user can't see.
-                        page = DatabasePage(g.wiki, db_obj=db_obj)
-                        if not is_page_readable(page):
-                            continue
-                        url = page.url
-                    except PageNotFoundError:
-                        pass
-                    except PageLoadingError:
-                        pass
+                try:
+                    page = g.wiki.db.getPage(path=path)
+                    # Hide pages that the user can't see.
+                    if not is_page_readable(page):
+                        continue
+                    url = page.url
+                except PageNotFoundError:
+                    pass
+                except PageLoadingError:
+                    pass
                 if not url:
-                    url = path_to_url(f['path'])
+                    url = os.path.splitext(f['path'])[0]
                 rev_data['pages'].append({
                     'url': url,
-                    'action': scm.ACTION_NAMES[f['action']]
+                    'action': ACTION_NAMES[f['action']]
                     })
             rev_data['num_pages'] = len(rev_data['pages'])
             rev_data['make_collapsable'] = len(rev_data['pages']) > 1
@@ -153,6 +154,63 @@ def get_history_data(history, needs_files=False):
         else:
             hist_data.append(rev_data)
     return hist_data
+
+
+def get_edit_page(url, default_title=None, custom_data=None):
+    page = get_page_or_none(url)
+    if page is None:
+        result = {
+                'meta': {
+                    'url': urllib.quote(url),
+                    'title': default_title or make_page_title(url)
+                    },
+                'text': ''
+                }
+    else:
+        if not is_page_writable(page):
+            abort(401)
+        result = {
+                'meta': get_page_meta(page, True),
+                'text': page.raw_text
+                }
+    result['commit_meta'] = {
+            'author': request.remote_addr,
+            'desc': 'Editing ' + result['meta']['title']
+            }
+    if custom_data:
+        result.update(custom_data)
+    return make_auth_response(result)
+
+
+def do_edit_page(url, default_message):
+    page = get_page_or_none(url)
+    if page and not is_page_writable(page):
+        app.logger.error("Page '%s' is not writable for user '%s'." % (url, current_user.get_id()))
+        abort(401)
+
+    if not 'text' in request.form:
+        abort(400)
+    text = request.form['text']
+    author = request.remote_addr
+    if 'author' in request.form and len(request.form['author']) > 0:
+        author = request.form['author']
+    message = 'Edited ' + url
+    if 'message' in request.form and len(request.form['message']) > 0:
+        message = request.form['message']
+
+    page_fields = {
+            'text': text,
+            'author': author,
+            'message': message
+            }
+    g.wiki.setPage(url, page_fields)
+    result = {'saved': 1}
+    return make_auth_response(result)
+
+
+COERCE_META = {
+    'category': get_category_meta
+    }
 
 
 def make_auth_response(data):
@@ -195,16 +253,21 @@ def api_list_all_pages():
 
 @app.route('/api/list/<path:url>')
 def api_list_pages(url):
-    pages = filter(is_page_readable, g.wiki.getPages(make_absolute(url)))
+    pages = filter(is_page_readable, g.wiki.getPages(url_from_viewarg(url)))
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
     return make_auth_response(result)
 
 
+@app.route('/api/read/')
+def api_read_main_page():
+    return api_read_page(g.wiki.main_page_url)
+
+
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
     page = get_page_or_404(
-            make_absolute(url), 
+            url,
             check_perms=CHECK_FOR_READ,
             force_resolve=('force_resolve' in request.args))
     result = {'meta': get_page_meta(page), 'text': page.text}
@@ -213,24 +276,28 @@ def api_read_page(url):
 
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     result = {'meta': get_page_meta(page), 'text': page.raw_text}
     return make_auth_response(result)
 
 
 @app.route('/api/read_meta/<name>/<value>')
 def api_read_meta_page(name, value):
+    quoted_value = value
+    value = urllib.unquote(value)
+
     query = {name: [value]}
     pages = g.wiki.getPages(meta_query=query)
     tpl_data = {
             'name': name,
             'value': value,
+            'safe_value': quoted_value,
             'pages': [get_page_meta(p) for p in pages]
         }
 
-    url_value = namespace_title_to_url(value)
+    meta_page_url = '%s:/%s' % (name, value)
     info_page = get_page_or_none(
-            "%s:/%s" % (name, url_value),
+            meta_page_url,
             force_resolve=('force_resolve' in request.args))
     if info_page:
         tpl_data['info_text'] = info_page.text
@@ -240,7 +307,10 @@ def api_read_meta_page(name, value):
             'meta_query': name,
             'meta_value': value,
             'query': query,
-            'meta': {},
+            'meta': {
+                    'url': urllib.quote(meta_page_url),
+                    'title': value
+                },
             'text': text
         }
     if info_page:
@@ -254,7 +324,7 @@ def api_read_page_rev(url):
     rev = request.args.get('rev')
     if rev is None:
         abort(400)
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
@@ -278,7 +348,7 @@ def api_diff_page(url):
     rev2 = request.args.get('rev2')
     if rev1 is None:
         abort(400)
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     diff = page.getDiff(rev1, rev2)
     if 'raw' not in request.args:
         lexer = get_lexer_by_name('diff')
@@ -294,17 +364,17 @@ def api_diff_page(url):
 
 @app.route('/api/state/<path:url>')
 def api_get_state(url):
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     state = page.getState()
     return make_auth_response({
         'meta': get_page_meta(page, True),
-        'state': scm.STATE_NAMES[state]
+        'state': STATE_NAMES[state]
         })
 
 
 @app.route('/api/outlinks/<path:url>')
 def api_get_outgoing_links(url):
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     links = []
     for link in page.links:
         other = get_page_or_none(link)
@@ -322,7 +392,7 @@ def api_get_outgoing_links(url):
 
 @app.route('/api/inlinks/<path:url>')
 def api_get_incoming_links(url):
-    page = get_page_or_404(make_absolute(url), CHECK_FOR_READ)
+    page = get_page_or_404(url, CHECK_FOR_READ)
     links = []
     for link in page.getIncomingLinks():
         other = get_page_or_none(link)
@@ -340,51 +410,31 @@ def api_get_incoming_links(url):
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
 def api_edit_page(url):
-    url = make_absolute(url)
+    url = url_from_viewarg(url)
     if request.method == 'GET':
-        page = get_page_or_none(url)
-        if page is None:
-            result = {
-                    'meta': {
-                        'url': url,
-                        'name': os.path.basename(url),
-                        'title': Page.url_to_title(url)
-                        },
-                    'text': ''
-                    }
-        else:
-            if not is_page_writable(page):
-                abort(401)
-            result = {
-                    'meta': get_page_meta(page, True),
-                    'text': page.raw_text
-                    }
-        result['commit_meta'] = {
-                'author': request.remote_addr,
-                'desc': 'Editing ' + result['meta']['title']
+        return get_edit_page(url)
+
+    default_message = 'Edited ' + url
+    return do_edit_page(url, default_message)
+
+
+@app.route('/api/edit_meta/<name>/<path:value>', methods=['GET', 'POST'])
+def api_edit_meta_page(name, value):
+    value = urllib.unquote(value)
+    meta_page_url = '%s:/%s' % (name, value)
+
+    if request.method == 'GET':
+        custom_data = {
+                'meta_query': name,
+                'meta_value': value
                 }
-        return make_auth_response(result)
+        return get_edit_page(
+                meta_page_url,
+                default_title=('%s: %s' % (name, value)),
+                custom_data=custom_data)
 
-    get_page_or_404(url, CHECK_FOR_WRITE)
-
-    if not 'text' in request.form:
-        abort(400)
-    text = request.form['text']
-    author = request.remote_addr
-    if 'author' in request.form and len(request.form['author']) > 0:
-        author = request.form['author']
-    message = 'Edited ' + url
-    if 'message' in request.form and len(request.form['message']) > 0:
-        message = request.form['message']
-
-    page_fields = {
-            'text': text,
-            'author': author,
-            'message': message
-            }
-    g.wiki.setPage(url, page_fields)
-    result = {'saved': 1}
-    return make_auth_response(result)
+    default_message = 'Edited %s %s' % (name, value)
+    return do_edit_page(meta_page_url, default_message)
 
 
 @app.route('/api/revert/<path:url>', methods=['POST'])
@@ -399,7 +449,7 @@ def api_revert_page(url):
     if 'message' in request.form and len(request.form['message']) > 0:
         message = request.form['message']
 
-    url = make_absolute(url)
+    url = url_from_viewarg(url)
     page_fields = {
             'rev': rev,
             'author': author,
@@ -457,7 +507,6 @@ def api_site_history():
 
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
-    url = make_absolute(url)
     page = get_page_or_404(url, CHECK_FOR_READ)
     history = page.getHistory()
     hist_data = get_history_data(history)

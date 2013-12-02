@@ -1,10 +1,14 @@
 import os
 import os.path
+import logging
 
 try:
     import simplejson as json
 except ImportError:
     import json
+
+
+logger = logging.getLogger(__name__)
 
 
 class Cache(object):

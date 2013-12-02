@@ -5,77 +5,20 @@ import time
 import logging
 import tempfile
 import subprocess
-
-try:
-    import pygit2
-    SUPPORTS_GIT = True
-except ImportError:
-    SUPPORTS_GIT = False
-
-
-STATE_COMMITTED = 0
-STATE_MODIFIED = 1
-STATE_NEW = 2
-STATE_NAMES = ['committed', 'modified', 'new']
-
-ACTION_ADD = 0
-ACTION_DELETE = 1
-ACTION_EDIT = 2
-ACTION_NAMES = ['add', 'delete', 'edit']
+from hglib.error import CommandError
+from hglib.util import cmdbuilder
+from base import (
+        SourceControl, Revision,
+        ACTION_ADD, ACTION_EDIT, ACTION_DELETE,
+        STATE_NEW, STATE_MODIFIED, STATE_COMMITTED)
 
 
-class SourceControl(object):
-    def __init__(self, logger=None):
-        self.logger = logger
-        if logger is None:
-            self.logger = logging.getLogger('wikked.scm')
-
-    def initRepo(self):
-        raise NotImplementedError()
-
-    def getSpecialFilenames(self):
-        raise NotImplementedError()
-
-    def getHistory(self, path=None, limit=10):
-        raise NotImplementedError()
-
-    def getState(self, path):
-        raise NotImplementedError()
-
-    def getRevision(self, path, rev):
-        raise NotImplementedError()
-
-    def diff(self, path, rev1, rev2):
-        raise NotImplementedError()
-
-    def commit(self, paths, op_meta):
-        raise NotImplementedError()
-
-    def revert(self, paths=None):
-        raise NotImplementedError()
-
-
-class Revision(object):
-    def __init__(self, rev_id=-1):
-        self.rev_id = rev_id
-        self.rev_name = rev_id
-        self.author = None
-        self.timestamp = 0
-        self.description = None
-        self.files = []
-
-    @property
-    def is_local(self):
-        return self.rev_id == -1
-
-    @property
-    def is_committed(self):
-        return self.rev_id != -1
+logger = logging.getLogger(__name__)
 
 
 class MercurialBaseSourceControl(SourceControl):
-    def __init__(self, root, logger=None):
-        SourceControl.__init__(self, logger)
+    def __init__(self, root):
+        SourceControl.__init__(self)
         self.root = root
         self.actions = {
                 'A': ACTION_ADD,
@@ -83,16 +26,16 @@ class MercurialBaseSourceControl(SourceControl):
                 'M': ACTION_EDIT
                 }
 
-    def initRepo(self):
+    def initRepo(self, wiki):
         # Make a Mercurial repo if there's none.
         if not os.path.isdir(os.path.join(self.root, '.hg')):
-            self.logger.info("Creating Mercurial repository at: " + self.root)
+            logger.info("Creating Mercurial repository at: " + self.root)
             self._run('init', self.root, norepo=True)
 
         # Create a `.hgignore` file is there's none.
         ignore_path = os.path.join(self.root, '.hgignore')
         if not os.path.isfile(ignore_path):
-            self.logger.info("Creating `.hgignore` file.")
+            logger.info("Creating `.hgignore` file.")
             with open(ignore_path, 'w') as f:
                 f.write('.wiki')
             self._run('add', ignore_path)
@@ -108,13 +51,13 @@ class MercurialBaseSourceControl(SourceControl):
             exe += ['-R', self.root]
         exe.append(cmd)
         exe += args
-        self.logger.debug("Running Mercurial: " + str(exe))
+        logger.debug("Running Mercurial: " + str(exe))
         return subprocess.check_output(exe)
 
 
 class MercurialSourceControl(MercurialBaseSourceControl):
-    def __init__(self, root, logger=None):
-        MercurialBaseSourceControl.__init__(self, root, logger)
+    def __init__(self, root):
+        MercurialBaseSourceControl.__init__(self, root)
 
         self.hg = 'hg'
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
@@ -227,8 +170,8 @@ class MercurialSourceControl(MercurialBaseSourceControl):
 
 
 class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
-    def __init__(self, root, logger=None):
-        MercurialBaseSourceControl.__init__(self, root, logger)
+    def __init__(self, root):
+        MercurialBaseSourceControl.__init__(self, root)
 
         import hglib
         self.client = hglib.open(self.root)
@@ -289,23 +232,21 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         if 'message' not in op_meta or not op_meta['message']:
             raise ValueError("No commit message specified.")
 
-        # Get repo-relative paths.
-        rel_paths = [os.path.relpath(p, self.root) for p in paths]
-
-        # Check if any of those paths needs to be added.
-        status = self.client.status(unknown=True)
-        add_paths = []
-        for s in status:
-            if s[1] in rel_paths:
-                add_paths.append(s[1])
-        if len(add_paths) > 0:
-            self.client.add(files=add_paths)
-
-        # Commit!
+        kwargs = {}
         if 'author' in op_meta:
-            self.client.commit(include=rel_paths, message=op_meta['message'], user=op_meta['author'])
-        else:
-            self.client.commit(include=rel_paths, message=op_meta['message'])
+            kwargs['u'] = op_meta['author']
+        try:
+            # We need to write our own command because somehow the `commit`
+            # method in `hglib` doesn't support specifying the file(s)
+            # directly -- only with `--include`. Weird.
+            args = cmdbuilder('commit', *paths,
+                    debug=True, m=op_meta['message'], A=True,
+                    **kwargs)
+            self.client.rawcommand(args)
+        except CommandError as e:
+            logger.error("Failed running command '%s', got code '%s' and message '%s'. Output: %s" % (
+                e.args, e.ret, e.err, e.out))
+            raise
 
     def revert(self, paths=None):
         if paths is not None:
@@ -313,76 +254,3 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             self.client.revert(files=rel_paths, nobackup=True)
         else:
             self.client.revert(all=True, nobackup=True)
-
-
-class GitBaseSourceControl(SourceControl):
-    def __init__(self, root, logger=None):
-        SourceControl.__init__(self, logger)
-        self.root = root
-
-    def initRepo(self):
-        # Make a Git repo if there's none.
-        if not os.path.isdir(os.path.join(self.root, '.git')):
-            self.logger.info("Creating Git repository at: " + self.root)
-            self._initRepo(self.root)
-
-        # Create a `.gitignore` file there's none.
-        ignore_path = os.path.join(self.root, '.gitignore')
-        if not os.path.isfile(ignore_path):
-            self.logger.info("Creating `.gitignore` file.")
-            with open(ignore_path, 'w') as f:
-                f.write('.wiki')
-            self._add(ignore_path)
-            self._commit('Created .gitignore.', [ignore_path])
-
-    def getSpecialFilenames(self):
-        specials = ['.git', '.gitignore']
-        return [os.path.join(self.root, d) for d in specials]
-
-    def getState(self, path):
-        return self._status(path)
-
-    def _run(self, cmd, *args, **kwargs):
-        exe = [self.git]
-        if 'norepo' not in kwargs or not kwargs['norepo']:
-            exe.append('--git-dir="%s"' % self.root)
-        exe.append(cmd)
-        exe += args
-        self.logger.debug("Running Git: " + str(exe))
-        return subprocess.check_output(exe)
-
-
-class GitLibSourceControl(GitBaseSourceControl):
-    def __init__(self, root, logger=None):
-        if not SUPPORTS_GIT:
-            raise Exception("Can't support Git because pygit2 is not available.")
-        GitBaseSourceControl.__init__(self, root, logger)
-
-    def initRepo(self):
-        GitBaseSourceControl.initRepo(self)
-        self.repo = pygit2.Repository(self.root)
-
-    def _initRepo(self, path):
-        pygit2.init_repository(path, False)
-
-    def _add(self, paths):
-        pass
-
-    def _commit(self, message, paths):
-        pass
-
-    def _status(self, path):
-        flags = self.repo.status_file(self._getRepoPath(path))
-        if flags == pygit2.GIT_STATUS_CURRENT:
-            return STATE_COMMITTED
-        if (flags & pygit2.GIT_STATUS_WT_MODIFIED or
-                flags & pygit2.GIT_STATUS_INDEX_MODIFIED):
-            return STATE_MODIFIED
-        if (flags & pygit2.GIT_STATUS_WT_NEW or
-                flags & pygit2.GIT_STATUS_INDEX_NEW):
-            return STATE_NEW
-        raise Exception("Unsupported status flag combination: %s" % flags)
-
-    def _getRepoPath(self, path):
-        return os.path.relpath(path, self.root).replace('\\', '/')
-

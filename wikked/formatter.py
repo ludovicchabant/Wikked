@@ -1,6 +1,7 @@
 import os
 import os.path
 import re
+import logging
 import jinja2
 from StringIO import StringIO
 from utils import get_meta_name_and_modifiers, html_escape
@@ -9,6 +10,9 @@ from utils import get_meta_name_and_modifiers, html_escape
 SINGLE_METAS = ['redirect', 'title']
 
 FILE_FORMAT_REGEX = re.compile(r'\r\n?', re.MULTILINE)
+
+
+logger = logging.getLogger(__name__)
 
 
 class BaseContext(object):
@@ -197,7 +201,8 @@ class PageFormatter(object):
         return '<a class="wiki-asset" href="%s">%s</a>' % (abs_url, display)
 
     def _formatMetaLink(self, ctx, endpoint, value, display):
-        ctx.out_links.append("%s:%s" % (endpoint, value))
+        meta_url = '%s:%s' % (endpoint, value)
+        ctx.out_links.append(meta_url)
         return '<a class="wiki-meta-link" data-wiki-meta="%s" data-wiki-value="%s">%s</a>' % (endpoint, value, display)
 
     def _formatWikiLink(self, ctx, display, url):

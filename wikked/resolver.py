@@ -1,8 +1,15 @@
 import re
+import urllib
 import os.path
+import logging
 import jinja2
-from utils import (get_meta_name_and_modifiers, namespace_title_to_url,
-        get_absolute_url, html_unescape)
+from utils import (
+        PageNotFoundError,
+        get_meta_name_and_modifiers, get_absolute_url,
+        html_unescape)
+
+
+logger = logging.getLogger(__name__)
 
 
 class FormatterNotFound(Exception):
@@ -12,20 +19,33 @@ class FormatterNotFound(Exception):
     pass
 
 
-class CircularIncludeError(Exception):
+class IncludeError(Exception):
+    """ An exception raised when an include cannot be resolved.
+    """
+    def __init__(self, include_url, ref_url, message=None, *args):
+        Exception.__init__(self, include_url, ref_url, message, *args)
+
+    def __str__(self):
+        include_url = self.args[0]
+        ref_url = self.args[1]
+        message = self.args[2]
+        res = "Error including '%s' from '%s'." % (include_url, ref_url)
+        if message:
+            res += " " + message
+        return res
+
+
+class CircularIncludeError(IncludeError):
     """ An exception raised when a circular include is found
         while rendering a page.
     """
-    def __init__(self, current_url, url_trail, message=None):
-        Exception.__init__(self, current_url, url_trail, message)
+    def __init__(self, include_url, ref_url, url_trail):
+        IncludeError.__init__(self, include_url, ref_url, None, url_trail)
 
     def __str__(self):
-        current_url = self.args[0]
-        url_trail = self.args[1]
-        message = self.args[2]
-        res = "Circular include detected at '%s' (after %s)" % (current_url, url_trail)
-        if message:
-            res += ": %s" % message
+        url_trail = self.args[3]
+        res = IncludeError.__init__(self)
+        res += " Circular include detected after: %s" % url_trail
         return res
 
 
@@ -46,10 +66,10 @@ class ResolveContext(object):
             return len(self.url_trail) > 1
         raise ValueError("Unknown modifier: " + modifier)
 
-    def getAbsoluteUrl(self, url, base_url=None):
+    def getAbsoluteUrl(self, url, base_url=None, quote=False):
         if base_url is None:
             base_url = self.root_page.url
-        return get_absolute_url(base_url, url)
+        return get_absolute_url(base_url, url, quote)
 
 
 class ResolveOutput(object):
@@ -111,8 +131,8 @@ class PageResolver(object):
         try:
             return self._unsafeRun()
         except Exception as e:
-            self.wiki.logger.error("Error resolving page '%s':" % self.page.url)
-            self.wiki.logger.exception(unicode(e.message))
+            logger.error("Error resolving page '%s':" % self.page.url)
+            logger.exception(unicode(e.message))
             self.output = ResolveOutput(self.page)
             self.output.text = u'<div class="error">%s</div>' % e
             return self.output
@@ -174,12 +194,12 @@ class PageResolver(object):
             # Resolve link states.
             def repl1(m):
                 raw_url = unicode(m.group('url'))
-                raw_url = self.ctx.getAbsoluteUrl(raw_url)
-                url = namespace_title_to_url(raw_url)
+                url = self.ctx.getAbsoluteUrl(raw_url)
                 self.output.out_links.append(url)
+                quoted_url = urllib.quote(url)
                 if self.wiki.pageExists(url):
-                    return '<a class="wiki-link" data-wiki-url="%s">' % url
-                return '<a class="wiki-link missing" data-wiki-url="%s">' % url
+                    return '<a class="wiki-link" data-wiki-url="%s">' % quoted_url
+                return '<a class="wiki-link missing" data-wiki-url="%s">' % quoted_url
 
             final_text = re.sub(
                     r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
@@ -204,7 +224,9 @@ class PageResolver(object):
         # `Templates` folder.
         include_url = opts['url']
         if include_url[0] != '/':
-            include_url = self.ctx.getAbsoluteUrl('/templates/' + include_url, self.page.url)
+            include_url = self.ctx.getAbsoluteUrl(
+                    self.page.wiki.templates_url + include_url,
+                    self.page.url)
             if not self.wiki.pageExists(include_url):
                 include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
         else:
@@ -212,7 +234,7 @@ class PageResolver(object):
 
         # Check for circular includes.
         if include_url in self.ctx.url_trail:
-            raise CircularIncludeError(include_url, self.ctx.url_trail)
+            raise CircularIncludeError(include_url, self.page.url, self.ctx.url_trail)
 
         # Parse the templating parameters.
         parameters = dict(self.parameters)
@@ -235,7 +257,10 @@ class PageResolver(object):
 
         # Re-run the resolver on the included page to get its final
         # formatted text.
-        page = self.wiki.getPage(include_url)
+        try:
+            page = self.wiki.getPage(include_url)
+        except PageNotFoundError:
+            raise IncludeError(include_url, self.page.url)
         current_url_trail = list(self.ctx.url_trail)
         self.ctx.url_trail.append(page.url)
         child = PageResolver(page, self.ctx, parameters)
@@ -278,8 +303,8 @@ class PageResolver(object):
                     if self._isPageMatch(p, key, value):
                         matched_pages.append(p)
                 except Exception as e:
-                    self.wiki.logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
-                    self.wiki.logger.exception(unicode(e.message))
+                    logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
+                    logger.exception(unicode(e.message))
 
         # No match: return the 'empty' template.
         if len(matched_pages) == 0:
@@ -301,7 +326,11 @@ class PageResolver(object):
 
     def _valueOrPageText(self, value, with_url=False):
         if re.match(r'^\[\[.*\]\]$', value):
-            page = self.wiki.getPage(value[2:-2])
+            include_url = value[2:-2]
+            try:
+                page = self.wiki.getPage(include_url)
+            except PageNotFoundError:
+                raise IncludeError(include_url, self.page.url)
             if with_url:
                 return (page.url, page.text)
             return page.text
@@ -347,7 +376,9 @@ class PageResolver(object):
                 v = v[:pipe_idx]
 
             if v[0] != '/':
-                include_url = self.ctx.getAbsoluteUrl('/templates/' + v, page.url)
+                include_url = self.ctx.getAbsoluteUrl(
+                        self.page.wiki.templates_url + v,
+                        page.url)
                 if not self.wiki.pageExists(include_url):
                     include_url = self.ctx.getAbsoluteUrl(v, page.url)
             else:
@@ -356,7 +387,10 @@ class PageResolver(object):
 
         # Recurse into included pages.
         for url in included_urls:
-            p = self.wiki.getPage(url)
+            try:
+                p = self.wiki.getPage(url)
+            except PageNotFoundError:
+                raise IncludeError(url, page.url)
             if self._isPageMatch(p, name, value, level + 1):
                 return True
 

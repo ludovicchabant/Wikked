@@ -1,15 +1,22 @@
 import os
 import os.path
+import logging
 from flask import Flask, abort, g
 from utils import find_wiki_root
 
 # Create the main app.
-app = Flask("wikked")
+app = Flask("wikked.web")
 app.config.from_object('wikked.settings')
 app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
-# Find the wiki root.
+# Setup some config defaults.
+app.config.setdefault('SQL_DEBUG', False)
+app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
+
+
+# Find the wiki root, and further configure the app if there's a
+# config file in there.
 wiki_root = find_wiki_root()
 config_path = os.path.join(wiki_root, '.wiki', 'app.cfg')
 if os.path.isfile(config_path):
@@ -29,13 +36,13 @@ if app.config['DEBUG']:
 
 
 # Customize logging.
-if app.config.get('LOG_FORMAT'):
-    import logging
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(logging.Formatter(app.config['LOG_FORMAT']))
-    app.logger.handlers = []
-    app.logger.addHandler(handler)
+if app.config['DEBUG']:
+    l = logging.getLogger('wikked')
+    l.setLevel(logging.DEBUG)
+
+if app.config['SQL_DEBUG']:
+    l = logging.getLogger('sqlalchemy')
+    l.setLevel(logging.DEBUG)
 
 
 # Set the wiki as a request global, and open/close the database.
@@ -50,15 +57,18 @@ def before_request():
 
 @app.teardown_request
 def teardown_request(exception):
-    pass
+    return exception
 
 
-# SQLAlchemy extension.
-from flask.ext.sqlalchemy import SQLAlchemy
-# TODO: get the path from the wiki parameters
-app.config['SQLALCHEMY_DATABASE_URI'] = ('sqlite:///' + 
-        os.path.join(wiki_root, '.wiki', 'wiki.db'))
-db = SQLAlchemy(app)
+# SQLAlchemy.
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    wiki = getattr(g, 'wiki', None)
+    if wiki:
+        if app.config['SQL_COMMIT_ON_TEARDOWN'] and exception is None:
+            wiki.db.session.commit()
+        wiki.db.session.remove()
+        return exception
 
 
 # Login extension.
@@ -98,7 +108,6 @@ from wiki import Wiki, WikiParameters
 
 def create_wiki(update_on_start=True):
     params = WikiParameters(root=wiki_root)
-    params.logger = app.logger
     wiki = Wiki(params)
     wiki.start(update_on_start)
     return wiki
@@ -108,5 +117,6 @@ wiki = create_wiki(bool(app.config.get('UPDATE_WIKI_ON_START')))
 
 
 # Import the views.
+# (this creates a PyLint warning but it's OK)
 import views
 

@@ -5,52 +5,24 @@ import string
 import logging
 import datetime
 from sqlalchemy import (
+        create_engine,
         and_, or_,
         Column, Boolean, Integer, String, Text, DateTime, ForeignKey)
-from sqlalchemy.orm import relationship, backref, defer
-from wikked.web import db
+from sqlalchemy.orm import (
+        scoped_session, sessionmaker,
+        relationship, backref, defer)
+from sqlalchemy.ext.declarative import declarative_base
+from base import Database
+from wikked.page import Page, FileSystemPage, PageData, PageLoadingError
+from wikked.formatter import SINGLE_METAS
+from wikked.utils import PageNotFoundError
 
 
-class Database(object):
-    """ The base class for a database cache.
-    """
-    def __init__(self, logger=None):
-        if logger is None:
-            logger = logging.getLogger('wikked.db')
-        self.logger = logger
-
-    def initDb(self):
-        raise NotImplementedError()
-
-    def open(self):
-        raise NotImplementedError()
-
-    def close(self):
-        raise NotImplementedError()
-
-    def reset(self, pages):
-        raise NotImplementedError()
-
-    def update(self, pages, force=False):
-        raise NotImplementedError()
-
-    def getPageUrls(self, subdir=None):
-        raise NotImplementedError()
-
-    def getPages(self, subdir=None, meta_query=None):
-        raise NotImplementedError()
-
-    def getPage(self, url=None, path=None):
-        raise NotImplementedError()
-
-    def pageExists(self, url=None, path=None):
-        raise NotImplementedError()
-
-    def getLinksTo(self, url):
-        raise NotImplementedError()
+logger = logging.getLogger(__name__)
 
 
-Base = db.Model
+Base = declarative_base()
+
 
 class SQLPage(Base):
     __tablename__ = 'pages'
@@ -144,27 +116,39 @@ class SQLDatabase(Database):
     """
     schema_version = 3
 
-    def __init__(self, db_path, logger=None):
-        Database.__init__(self, logger)
+    def __init__(self, db_path):
+        Database.__init__(self)
         self.db_path = db_path
+        self.engine = None
 
-    def initDb(self):
+    def initDb(self, wiki):
+        self.wiki = wiki
+
+        engine_url = 'sqlite:///' + self.db_path
+        self.engine = create_engine(engine_url, convert_unicode=True)
+        self.session = scoped_session(sessionmaker(
+                autocommit=False,
+                autoflush=False,
+                bind=self.engine))
+
+        Base.query = self.session.query_property()
+
         create_schema = False
         if self.db_path != 'sqlite:///:memory:':
             if not os.path.exists(os.path.dirname(self.db_path)):
                 # No database on disk... create one.
-                self.logger.debug("Creating SQL database at: %s" % self.db_path)
+                logger.debug("Creating SQL database at: %s" % self.db_path)
                 create_schema = True
             else:
                 # The existing schema is outdated, re-create it.
                 schema_version = self._getSchemaVersion()
                 if schema_version < self.schema_version:
-                    self.logger.debug(
+                    logger.debug(
                             "SQL database is outdated (got version %s), will re-create.",
                             schema_version)
                     create_schema = True
                 else:
-                    self.logger.debug(
+                    logger.debug(
                             "SQL database has up-to-date schema.")
         else:
             create_schema = True
@@ -172,17 +156,17 @@ class SQLDatabase(Database):
             self._createSchema()
 
     def open(self):
-        self.logger.debug("Opening connection")
+        logger.debug("Opening connection")
 
     def close(self):
-        self.logger.debug("Closing connection")
+        logger.debug("Closing connection")
 
     def reset(self, pages):
-        self.logger.debug("Re-creating SQL database.")
+        logger.debug("Re-creating SQL database.")
         self._createSchema()
         for page in pages:
             self._addPage(page)
-        db.session.commit()
+        self.session.commit()
 
     def update(self, pages, force=False):
         to_update = set()
@@ -190,9 +174,9 @@ class SQLDatabase(Database):
         to_remove = []
         pages = list(pages)
 
-        self.logger.debug("Updating SQL database...")
+        logger.debug("Updating SQL database...")
         page_urls = [p.url for p in pages]
-        db_pages = db.session.query(SQLPage).\
+        db_pages = self.session.query(SQLPage).\
                 all()
         for p in db_pages:
             if not os.path.isfile(p.path):
@@ -209,7 +193,7 @@ class SQLDatabase(Database):
         for p in to_remove:
             self._removePage(p)
 
-        db.session.commit()
+        self.session.commit()
 
         added_db_objs = []
         for p in pages:
@@ -217,12 +201,12 @@ class SQLDatabase(Database):
                 p.path not in already_added):
                 added_db_objs.append(self._addPage(p))
 
-        db.session.commit()
+        self.session.commit()
 
         if to_remove or added_db_objs:
             # If pages have been added/removed/updated, invalidate everything
             # in the wiki that has includes or queries.
-            db_pages = db.session.query(SQLPage).\
+            db_pages = self.session.query(SQLPage).\
                     options(
                             defer(SQLPage.title),
                             defer(SQLPage.raw_text),
@@ -234,13 +218,13 @@ class SQLDatabase(Database):
             for p in db_pages:
                 p.is_ready = False
             
-            db.session.commit()
+            self.session.commit()
 
-        self.logger.debug("...done updating SQL database.")
+        logger.debug("...done updating SQL database.")
         return [o.id for o in added_db_objs]
 
     def getPageUrls(self, subdir=None):
-        q = db.session.query(SQLPage.url)
+        q = self.session.query(SQLPage.url)
         if subdir:
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
@@ -250,7 +234,7 @@ class SQLDatabase(Database):
         return urls
 
     def getPages(self, subdir=None, meta_query=None):
-        q = db.session.query(SQLPage)
+        q = self.session.query(SQLPage)
         if meta_query:
             q = q.join(SQLReadyMeta)
             for name, values in meta_query.iteritems():
@@ -259,30 +243,38 @@ class SQLDatabase(Database):
         if subdir:
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
-        pages = []
         for p in q.all():
-            pages.append(p)
-        return pages
+            yield SQLDatabasePage(self.wiki, db_obj=p)
 
-    def getPage(self, url=None, path=None):
+    def getPage(self, url=None, path=None, raise_if_none=True):
         if not url and not path:
             raise ValueError("Either URL or path need to be specified.")
         if url and path:
             raise ValueError("Can't specify both URL and path.")
         if url:
-            q = db.session.query(SQLPage).filter_by(url=url)
+            q = self.session.query(SQLPage).filter_by(url=url)
             page = q.first()
-            return page
+            if page is None:
+                if raise_if_none:
+                    raise PageNotFoundError(url)
+                return None
+            return SQLDatabasePage(self.wiki, db_obj=page)
         if path:
-            q = db.session.query(SQLPage).filter_by(path=path)
+            q = self.session.query(SQLPage).filter_by(path=path)
             page = q.first()
-            return page
+            if page is None:
+                if raise_if_none:
+                    raise PageNotFoundError(path)
+                return None
+            return SQLDatabasePage(self.wiki, db_obj=page)
+        raise NotImplementedError()
 
     def pageExists(self, url=None, path=None):
-        return self.getPage(url, path) is not None
+        # TODO: replace with an `EXIST` query.
+        return self.getPage(url, path, raise_if_none=False) is not None
 
     def getLinksTo(self, url):
-        q = db.session.query(SQLReadyLink).\
+        q = self.session.query(SQLReadyLink).\
                 filter(SQLReadyLink.target_url == url).\
                 join(SQLReadyLink.source).\
                 all()
@@ -290,25 +282,25 @@ class SQLDatabase(Database):
             yield l.source.url
 
     def getUncachedPages(self):
-        q = db.session.query(SQLPage).\
+        q = self.session.query(SQLPage).\
                 filter(SQLPage.is_ready == False).\
                 all()
         for p in q:
-            yield p
+            yield SQLDatabasePage(self.wiki, db_obj=p)
 
     def _createSchema(self):
-        db.drop_all()
-        db.create_all()
+        Base.metadata.drop_all(self.engine)
+        Base.metadata.create_all(self.engine)
 
         ver = SQLInfo()
         ver.name = 'schema_version'
         ver.int_value = self.schema_version
-        db.session.add(ver)
-        db.session.commit()
+        self.session.add(ver)
+        self.session.commit()
 
     def _getSchemaVersion(self):
         try:
-            q = db.session.query(SQLInfo).\
+            q = self.session.query(SQLInfo).\
                     filter(SQLInfo.name == 'schema_version').\
                     first()
             if q is None:
@@ -318,7 +310,7 @@ class SQLDatabase(Database):
         return q.int_value
 
     def _addPage(self, page):
-        self.logger.debug("Adding page '%s' to SQL database." % page.url)
+        logger.debug("Adding page '%s' to SQL database." % page.url)
 
         po = SQLPage()
         po.time = datetime.datetime.now()
@@ -342,16 +334,16 @@ class SQLDatabase(Database):
         for link_url in page.getLocalLinks():
             po.links.append(SQLLink(link_url))
 
-        db.session.add(po)
+        self.session.add(po)
 
         return po
 
     def _cacheExtendedData(self, page):
-        self.logger.debug("Caching extended data for page '%s' [%d]." % (page.url, page._id))
+        logger.debug("Caching extended data for page '%s' [%d]." % (page.url, page._id))
 
         if not hasattr(page, '_id') or not page._id:
             raise Exception("Given page '%s' has no `_id` attribute set." % page.url)
-        db_obj = db.session.query(SQLPage).filter(SQLPage.id == page._id).one()
+        db_obj = self.session.query(SQLPage).filter(SQLPage.id == page._id).one()
 
         db_obj.ready_text = page._data.text
 
@@ -371,11 +363,106 @@ class SQLDatabase(Database):
 
         db_obj.is_ready = True
 
-        db.session.commit()
+        self.session.commit()
 
 
     def _removePage(self, page):
-        self.logger.debug("Removing page '%s' [%d] from SQL database." %
+        logger.debug("Removing page '%s' [%d] from SQL database." %
             (page.url, page.id))
-        db.session.delete(page)
+        self.session.delete(page)
+
+
+class SQLDatabasePage(Page):
+    """ A page that can load its properties from a database.
+    """
+    def __init__(self, wiki, url=None, db_obj=None):
+        if url and db_obj:
+            raise Exception("You can't specify both an url and a database object.")
+        if not url and not db_obj:
+            raise Exception("You need to specify either a url or a database object.")
+
+        super(SQLDatabasePage, self).__init__(wiki, url or db_obj.url)
+        self.auto_update = wiki.config.get('wiki', 'auto_update')
+        self._db_obj = db_obj
+
+    @property
+    def path(self):
+        if self._db_obj:
+            return self._db_obj.path
+        return super(SQLDatabasePage, self).path
+
+    @property
+    def _id(self):
+        if self._db_obj:
+            return self._db_obj.id
+        self._ensureData()
+        return self._data._db_id
+
+    def _loadData(self):
+        try:
+            db_obj = self._db_obj or self.wiki.db.getPage(self.url)
+        except PageNotFoundError:
+            raise PageNotFoundError(self.url, "Please run `update` or `reset`.")
+        data = self._loadFromDbObject(db_obj)
+        self._db_obj = None
+        return data
+
+    def _onExtendedDataLoaded(self):
+        self.wiki.db._cacheExtendedData(self)
+
+    def _loadFromDbObject(self, db_obj, bypass_auto_update=False):
+        if not bypass_auto_update and self.auto_update:
+            path_time = datetime.datetime.fromtimestamp(
+                os.path.getmtime(db_obj.path))
+            if path_time >= db_obj.time:
+                logger.debug(
+                    "Updating database cache for page '%s'." % self.url)
+                try:
+                    fs_page = FileSystemPage(self.wiki, self.url)
+                    fs_page._ensureData()
+                    added_ids = self.wiki.db.update([fs_page])
+                    fs_page._data._db_id = added_ids[0]
+                    return fs_page._data
+                except Exception as e:
+                    msg = "Error updating database cache from the file-system: %s" % e
+                    raise PageLoadingError(msg, e)
+
+        data = PageData()
+        data._db_id = db_obj.id
+        data.path = db_obj.path
+        split = os.path.splitext(data.path)
+        data.filename = split[0]
+        data.extension = split[1].lstrip('.')
+        data.title = db_obj.title
+        data.raw_text = db_obj.raw_text
+        data.formatted_text = db_obj.formatted_text
+
+        data.local_meta = {}
+        for m in db_obj.meta:
+            value = data.local_meta.get(m.name)
+            if m.name in SINGLE_METAS:
+                data.local_meta[m.name] = m.value
+            else:
+                if value is None:
+                    data.local_meta[m.name] = [m.value]
+                else:
+                    data.local_meta[m.name].append(m.value)
+
+        data.local_links = [l.target_url for l in db_obj.links]
+
+        if db_obj.is_ready and not self._force_resolve:
+            # If we have extended cache data from the database, we might as
+            # well load it now too.
+            data.text = db_obj.ready_text
+            for m in db_obj.ready_meta:
+                value = data.ext_meta.get(m.name)
+                if value is None:
+                    data.ext_meta[m.name] = [m.value]
+                else:
+                    data.ext_meta[m.name].append(m.value)
+            data.ext_links = [l.target_url for l in db_obj.ready_links]
+            # Flag this data as completely loaded.
+            data.has_extended_data = True
+
+        return data
 

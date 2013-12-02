@@ -2,15 +2,18 @@ import os
 import os.path
 import time
 import logging
-import itertools
 import importlib
 from ConfigParser import SafeConfigParser, NoOptionError
-from page import DatabasePage, FileSystemPage
+from page import FileSystemPage
 from fs import FileSystem
-from db import SQLDatabase
-from scm import MercurialCommandServerSourceControl, GitLibSourceControl
-from indexer import WhooshWikiIndex
+from db.sql import SQLDatabase
+from scm.mercurial import MercurialCommandServerSourceControl
+from scm.git import GitLibSourceControl
+from indexer.native import WhooshWikiIndex
 from auth import UserManager
+
+
+logger = logging.getLogger(__name__)
 
 
 def passthrough_formatter(text):
@@ -39,19 +42,14 @@ class WikiParameters(object):
         self.index_path = os.path.join(self.root, '.wiki', 'index')
         self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
 
-    def logger_factory(self):
-        if getattr(self, 'logger', None):
-            return self.logger
-        return logging.getLogger(__name__)
-
     def fs_factory(self, config):
-        return FileSystem(self.root, logger=self.logger_factory())
+        return FileSystem(self.root)
 
     def index_factory(self, config):
-        return WhooshWikiIndex(self.index_path, logger=self.logger_factory())
+        return WhooshWikiIndex(self.index_path)
 
     def db_factory(self, config):
-        return SQLDatabase(self.db_path, logger=self.logger_factory())
+        return SQLDatabase(self.db_path)
 
     def scm_factory(self, config):
         try:
@@ -67,9 +65,9 @@ class WikiParameters(object):
                 scm_type = 'hg'
 
         if scm_type == 'hg':
-            return MercurialCommandServerSourceControl(self.root, logger=self.logger_factory())
+            return MercurialCommandServerSourceControl(self.root)
         elif scm_type == 'git':
-            return GitLibSourceControl(self.root, logger=self.logger_factory())
+            return GitLibSourceControl(self.root)
         else:
             raise InitializationError("No such source control: " + scm_type)
 
@@ -105,10 +103,12 @@ class Wiki(object):
         if parameters is None:
             raise ValueError("No parameters were given to the wiki.")
 
-        self.logger = parameters.logger_factory()
-        self.logger.debug("Initializing wiki.")
+        logger.debug("Initializing wiki.")
 
+        self.parameters = parameters
         self.config = self._loadConfig(parameters)
+        self.main_page_url = '/' + self.config.get('wiki', 'main_page').strip('/')
+        self.templates_url = '/' + self.config.get('wiki', 'templates_dir').strip('/') + '/'
 
         self.formatters = parameters.formatters
 
@@ -117,12 +117,7 @@ class Wiki(object):
         self.db = parameters.db_factory(self.config)
         self.scm = parameters.scm_factory(self.config)
 
-        self.auth = UserManager(self.config, logger=self.logger)
-
-        self.fs.page_extensions = list(set(
-            itertools.chain(*self.formatters.itervalues())))
-        self.fs.excluded += parameters.getSpecialFilenames()
-        self.fs.excluded += self.scm.getSpecialFilenames()
+        self.auth = UserManager(self.config)
 
     @property
     def root(self):
@@ -131,9 +126,10 @@ class Wiki(object):
     def start(self, update=True):
         """ Properly initializes the wiki and all its sub-systems.
         """
-        self.scm.initRepo()
-        self.index.initIndex()
-        self.db.initDb()
+        self.fs.initFs(self)
+        self.scm.initRepo(self)
+        self.index.initIndex(self)
+        self.db.initDb(self)
 
         if update:
             self.update()
@@ -142,7 +138,7 @@ class Wiki(object):
         self.db.close()
 
     def reset(self, cache_ext_data=True):
-        self.logger.debug("Resetting wiki data...")
+        logger.debug("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
         fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
         self.db.reset(fs_pages)
@@ -153,7 +149,7 @@ class Wiki(object):
 
     def update(self, url=None, cache_ext_data=True):
         updated_urls = []
-        self.logger.debug("Updating pages...")
+        logger.debug("Updating pages...")
         if url:
             page_info = self.fs.getPage(url)
             fs_page = FileSystemPage(self, page_info=page_info)
@@ -183,12 +179,12 @@ class Wiki(object):
         if meta_query:
             self._cachePages()
         for page in self.db.getPages(subdir, meta_query):
-            yield DatabasePage(self, db_obj=page)
+            yield page
 
     def getPage(self, url):
         """ Gets the page for a given URL.
         """
-        return DatabasePage(self, url)
+        return self.db.getPage(url)
 
     def setPage(self, url, page_fields):
         """ Updates or creates a page for a given URL.
@@ -259,14 +255,13 @@ class Wiki(object):
         return self.scm.getHistory(limit=limit)
 
     def _cachePages(self, only_urls=None):
-        self.logger.debug("Caching extended page data...")
+        logger.debug("Caching extended page data...")
         if only_urls:
             for url in only_urls:
                 page = self.getPage(url)
                 page._ensureExtendedData()
         else:
-            for db_obj in self.db.getUncachedPages():
-                page = DatabasePage(self, db_obj=db_obj)
+            for page in self.db.getUncachedPages():
                 page._ensureExtendedData()
 
     def _loadConfig(self, parameters):

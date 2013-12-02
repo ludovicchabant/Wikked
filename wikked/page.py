@@ -1,11 +1,13 @@
 import os
 import os.path
 import re
-import datetime
+import logging
 import jinja2
-from formatter import PageFormatter, FormattingContext, SINGLE_METAS
+from formatter import PageFormatter, FormattingContext
 from resolver import PageResolver, CircularIncludeError
-from utils import PageNotFoundError
+
+
+logger = logging.getLogger(__name__)
 
 
 class PageLoadingError(Exception):
@@ -210,98 +212,4 @@ class FileSystemPage(Page):
     def fromPageInfos(wiki, page_infos):
         for p in page_infos:
             yield FileSystemPage(wiki, page_info=p)
-
-
-class DatabasePage(Page):
-    """ A page that can load its properties from a database.
-    """
-    def __init__(self, wiki, url=None, db_obj=None):
-        if url and db_obj:
-            raise Exception("You can't specify both an url and a database object.")
-        if not url and not db_obj:
-            raise Exception("You need to specify either a url or a database object.")
-
-        super(DatabasePage, self).__init__(wiki, url or db_obj.url)
-        self.auto_update = wiki.config.get('wiki', 'auto_update')
-        self._db_obj = db_obj
-
-    @property
-    def path(self):
-        if self._db_obj:
-            return self._db_obj.path
-        return super(DatabasePage, self).path
-
-    @property
-    def _id(self):
-        if self._db_obj:
-            return self._db_obj.id
-        self._ensureData()
-        return self._data._db_id
-
-    def _loadData(self):
-        db_obj = self._db_obj or self.wiki.db.getPage(self.url)
-        if db_obj is None:
-            raise PageNotFoundError("Can't find page '%s' in the database. Please run `update` or `reset`." % self.url)
-        data = self._loadFromDbObject(db_obj)
-        self._db_obj = None
-        return data
-
-    def _onExtendedDataLoaded(self):
-        self.wiki.db._cacheExtendedData(self)
-
-    def _loadFromDbObject(self, db_obj, bypass_auto_update=False):
-        if not bypass_auto_update and self.auto_update:
-            path_time = datetime.datetime.fromtimestamp(
-                os.path.getmtime(db_obj.path))
-            if path_time >= db_obj.time:
-                self.wiki.logger.debug(
-                    "Updating database cache for page '%s'." % self.url)
-                try:
-                    fs_page = FileSystemPage(self.wiki, self.url)
-                    fs_page._ensureData()
-                    added_ids = self.wiki.db.update([fs_page])
-                    fs_page._data._db_id = added_ids[0]
-                    return fs_page._data
-                except Exception as e:
-                    msg = "Error updating database cache from the file-system: %s" % e
-                    raise PageLoadingError(msg, e)
-
-        data = PageData()
-        data._db_id = db_obj.id
-        data.path = db_obj.path
-        split = os.path.splitext(data.path)
-        data.filename = split[0]
-        data.extension = split[1].lstrip('.')
-        data.title = db_obj.title
-        data.raw_text = db_obj.raw_text
-        data.formatted_text = db_obj.formatted_text
-
-        data.local_meta = {}
-        for m in db_obj.meta:
-            value = data.local_meta.get(m.name)
-            if m.name in SINGLE_METAS:
-                data.local_meta[m.name] = m.value
-            else:
-                if value is None:
-                    data.local_meta[m.name] = [m.value]
-                else:
-                    data.local_meta[m.name].append(m.value)
-
-        data.local_links = [l.target_url for l in db_obj.links]
-
-        if db_obj.is_ready and not self._force_resolve:
-            # If we have extended cache data from the database, we might as
-            # well load it now too.
-            data.text = db_obj.ready_text
-            for m in db_obj.ready_meta:
-                value = data.ext_meta.get(m.name)
-                if value is None:
-                    data.ext_meta[m.name] = [m.value]
-                else:
-                    data.ext_meta[m.name].append(m.value)
-            data.ext_links = [l.target_url for l in db_obj.ready_links]
-            # Flag this data as completely loaded.
-            data.has_extended_data = True
-
-        return data
 

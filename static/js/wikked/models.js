@@ -265,15 +265,13 @@ define([
     });
 
     var PageEditModel = exports.PageEditModel = MasterPageModel.extend({
-        urlRoot: '/api/edit/',
         action: 'edit',
+        urlRoot: '/api/edit/',
         doEdit: function(form) {
             var $model = this;
-            var path = this.get('path');
-            this.navigate('/read/' + path, { trigger: true });
-            $.post('/api/edit/' + path, $(form).serialize())
+            $.post(this.url(), $(form).serialize())
                 .success(function(data) {
-                    $model.navigate('/read/' + path, { trigger: true });
+                    $model._onEditSuccess();
                 })
                 .error(function() {
                     alert('Error saving page...');
@@ -281,7 +279,38 @@ define([
         },
         _onChangePath: function(path) {
             PageEditModel.__super__._onChangePath.apply(this, arguments);
-            this.set('url_read', '/#/read/' + path);
+            this.set('url_read', this._getReadPath(path));
+        },
+        _onEditSuccess: function() {
+            this.navigate('/read/' + this.get('path'), { trigger: true });
+        },
+        _getReadPath: function(path) {
+            return '/#/read/' + path;
+        }
+    });
+
+    var MetaPageEditModel = exports.MetaPageEditModel = PageEditModel.extend({
+        action: 'edit',
+        url: function() {
+            return '/api/edit_meta/' + this.get('name') + '/' + this.get('path');
+        },
+        initialize: function() {
+            MetaPageEditModel.__super__.initialize.apply(this, arguments);
+            this.on('change:name', function(model, name) {
+                model._onChangeName(name);
+            });
+        },
+        _onChangeName: function(name) {
+            this.set('url_read', name + '/' + this.get('path'));
+        },
+        _onEditSuccess: function() {
+            this.navigate(
+                '/meta/' + this.get('name') + '/' + this.get('path'),
+                { trigger: true }
+            );
+        },
+        _getReadPath: function(path) {
+            return '/#/meta/' + this.get('name') + '/' + path;
         }
     });
 

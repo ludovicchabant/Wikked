@@ -244,12 +244,22 @@ define([
 
             // Replace all wiki links with proper hyperlinks using the JS app's
             // URL scheme.
-            this.$('a.wiki-link[data-wiki-url]').each(function(i) {
+            this.$('a.wiki-link').each(function(i) {
                 var jel = $(this);
+                var wiki_url = jel.attr('data-wiki-url').replace(/^\//, '');
                 if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                    jel.attr('href', '/#/edit' + jel.attr('data-wiki-url'));
+                    jel.attr('href', '/#/edit/' + wiki_url);
                 else
-                    jel.attr('href', '/#/read' + jel.attr('data-wiki-url'));
+                    jel.attr('href', '/#/read/' + wiki_url);
+            });
+            this.$('a.wiki-meta-link').each(function(i) {
+                var jel = $(this);
+                var meta_name = jel.attr('data-wiki-meta');
+                var meta_value = jel.attr('data-wiki-value');
+                if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
+                    jel.attr('href', '/#/edit_meta/' + meta_name + '/' + meta_value);
+                else
+                    jel.attr('href', '/#/meta/' + meta_name + '/' + meta_value);
             });
             // If we've already rendered the content, see if we need to display a
             // warning about the page's state.
@@ -441,6 +451,9 @@ define([
         titleFormat: function(title) {
             return 'Editing: ' + title;
         }
+    });
+
+    var MetaPageEditView = exports.MetaPageEditView = PageEditView.extend({
     });
 
     var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({

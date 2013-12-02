@@ -1,4 +1,8 @@
 
+# Configure logging.
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 # Configure a simpler log format.
 from wikked import settings
 settings.LOG_FORMAT = "[%(levelname)s]: %(message)s"
@@ -46,6 +50,13 @@ def update(url=None, cache=False):
         changed/new files.
     """
     wiki.update(url, cache_ext_data=cache)
+
+
+@manager.command
+def cache():
+    """ Makes sure the extended cache is valid for the whole wiki.
+    """
+    wiki._cachePages()
 
 
 @manager.command

@@ -5,10 +5,14 @@ import string
 import codecs
 import fnmatch
 import logging
-from utils import PageNotFoundError, title_to_url, path_to_url
+import itertools
+from utils import PageNotFoundError, NamespaceNotFoundError
 
 
 META_ENDPOINT = '_meta'
+
+
+logger = logging.getLogger(__name__)
 
 
 class PageInfo(object):
@@ -30,15 +34,21 @@ class FileSystem(object):
         file-system paths, and for scanning the file-system
         to list existing pages.
     """
-    def __init__(self, root, logger=None):
+    def __init__(self, root):
         self.root = unicode(root)
-
-        if logger is None:
-            logger = logging.getLogger('wikked.fs')
-        self.logger = logger
 
         self.excluded = []
         self.page_extensions = None
+        self.default_extension = '.txt'
+
+    def initFs(self, wiki):
+        self.page_extensions = list(set(
+            itertools.chain(*wiki.formatters.itervalues())))
+
+        self.excluded += wiki.parameters.getSpecialFilenames()
+        self.excluded += wiki.scm.getSpecialFilenames()
+
+        self.default_extension = wiki.config.get('wiki', 'default_extension')
 
     def getPageInfos(self, subdir=None):
         basepath = self.root
@@ -66,7 +76,8 @@ class FileSystem(object):
         return PageInfo(url, path)
 
     def setPage(self, url, content):
-        path = self.getPhysicalPagePath(url)
+        path = self.getPhysicalPagePath(url, make_new=True)
+        logger.debug("Saving page '%s' to: %s" % (url, path))
         with codecs.open(path, 'w', encoding='utf-8') as f:
             f.write(content)
         return PageInfo(url, path)
@@ -78,11 +89,11 @@ class FileSystem(object):
         except PageNotFoundError:
             return False
 
-    def getPhysicalPagePath(self, url):
-        return self._getPhysicalPath(url, True)
+    def getPhysicalPagePath(self, url, make_new=False):
+        return self._getPhysicalPath(url, is_file=True, make_new=make_new)
 
-    def getPhysicalNamespacePath(self, url):
-        return self._getPhysicalPath(url, False)
+    def getPhysicalNamespacePath(self, url, make_new=False):
+        return self._getPhysicalPath(url, is_file=False, make_new=make_new)
 
     def _getPageInfo(self, path):
         meta = None
@@ -98,12 +109,12 @@ class FileSystem(object):
         if self.page_extensions is not None and ext not in self.page_extensions:
             return None
 
-        url = path_to_url(unicode(name), strip_ext=True)
+        url = '/' + name
         if meta:
-            url = u"%s:%s" % (meta.lower(), url)
+            url = u"%s:/%s" % (meta.lower(), name)
         return PageInfo(url, path)
 
-    def _getPhysicalPath(self, url, is_file):
+    def _getPhysicalPath(self, url, is_file=True, make_new=False):
         endpoint = None
         m = re.match(r'(\w[\w\d]+)\:(.*)', url)
         if m:
@@ -117,45 +128,37 @@ class FileSystem(object):
 
         # Find the root directory in which we'll be searching for the
         # page file.
-        skip_endpoint = True
+        root = self.root
         if endpoint:
-            # Find the endpoint that gets transformed to the value
-            # we see in the URL.
-            endpoint_root = os.path.join(self.root, META_ENDPOINT)
-            names = os.listdir(endpoint_root)
-            for name in names:
-                name_formatted = title_to_url(name)
-                if name_formatted == endpoint:
-                    current = os.path.join(endpoint_root, name)
-                    break
-            else:
-                raise PageNotFoundError("No such meta endpoint: %s" % endpoint)
-            skip_endpoint = False
-        else:
-            current = self.root
+            root = os.path.join(self.root, META_ENDPOINT, endpoint)
 
-        # For each "part" in the given URL, find the first
-        # file-system entry that would get slugified to an
-        # equal string.
-        parts = unicode(url[1:]).lower().split('/')
-        for i, part in enumerate(parts):
-            names = os.listdir(current)
-            for name in names:
-                if skip_endpoint and i == 0 and name == META_ENDPOINT:
-                    continue
-                name_formatted = title_to_url(name)
-                if is_file and i == len(parts) - 1:
-                    # If we're looking for a file and this is the last part,
-                    # look for something similar but with an extension.
-                    if re.match(r"%s\.[a-z]+" % re.escape(part), name_formatted):
-                        current = os.path.join(current, name)
-                        break
-                else:
-                    if name_formatted == part:
-                        current = os.path.join(current, name)
-                        break
-            else:
-                # Failed to find a part of the URL.
-                raise PageNotFoundError("No such page: %s" % url)
-        return current
+        # Make the URL into a relative file-system path.
+        url_path = url[1:].replace('/', os.sep)
+
+        # If we want a non-existing file's path, just build that.
+        if make_new:
+            return os.path.join(root, url_path + '.' + self.default_extension)
+
+        # Find the right file-system entry for this URL.
+        url_path = os.path.join(root, url_path)
+        if is_file:
+            dirname, basename = os.path.split(url_path)
+            if not os.path.isdir(dirname):
+                self._throwNotFoundError(url, root, is_file)
+            filenames = os.listdir(dirname)
+            for filename in filenames:
+                name, ext = os.path.splitext(filename)
+                if name == basename:
+                    return os.path.join(dirname, filename)
+            self._throwNotFoundError(url, root, is_file)
+        else:
+            if os.path.isdir(url_path):
+                return url_path
+            self._throwNotFoundError(url, root, is_file)
+
+    def _throwNotFoundError(self, url, searched, is_file):
+        if is_file:
+            raise PageNotFoundError("No such page '%s' in: %s" % (url, searched))
+        else:
+            raise NamespaceNotFoundError("No such namespace '%s' in: %s" % (url, searched))
 

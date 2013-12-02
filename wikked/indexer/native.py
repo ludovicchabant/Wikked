@@ -2,45 +2,30 @@ import os
 import os.path
 import codecs
 import logging
+from base import WikiIndex
 from whoosh.index import create_in, open_dir
 from whoosh.fields import Schema, ID, TEXT, STORED
 from whoosh.qparser import QueryParser
 
 
-class WikiIndex(object):
-    def __init__(self, logger=None):
-        self.logger = logger
-        if logger is None:
-            self.logger = logging.getLogger('wikked.index')
-
-    def initIndex(self):
-        raise NotImplementedError()
-
-    def reset(self, pages):
-        raise NotImplementedError()
-
-    def update(self, pages):
-        raise NotImplementedError()
-
-    def search(self, query):
-        raise NotImplementedError()
+logger = logging.getLogger(__name__)
 
 
 class WhooshWikiIndex(WikiIndex):
-    def __init__(self, store_dir, logger=None):
-        WikiIndex.__init__(self, logger)
+    def __init__(self, store_dir):
+        WikiIndex.__init__(self)
         self.store_dir = store_dir
 
-    def initIndex(self):
+    def initIndex(self, wiki):
         if not os.path.isdir(self.store_dir):
-            self.logger.debug("Creating new index in: " + self.store_dir)
+            logger.debug("Creating new index in: " + self.store_dir)
             os.makedirs(self.store_dir)
             self.ix = create_in(self.store_dir, self._getSchema())
         else:
             self.ix = open_dir(self.store_dir)
 
     def reset(self, pages):
-        self.logger.debug("Re-creating new index in: " + self.store_dir)
+        logger.debug("Re-creating new index in: " + self.store_dir)
         self.ix = create_in(self.store_dir, schema=self._getSchema())
         writer = self.ix.writer()
         for page in pages:
@@ -48,7 +33,7 @@ class WhooshWikiIndex(WikiIndex):
         writer.commit()
 
     def update(self, pages):
-        self.logger.debug("Updating index...")
+        logger.debug("Updating index...")
         to_reindex = set()
         already_indexed = set()
 
@@ -75,7 +60,7 @@ class WhooshWikiIndex(WikiIndex):
                     self._indexPage(writer, page)
 
             writer.commit()
-        self.logger.debug("...done updating index.")
+        logger.debug("...done updating index.")
 
     def search(self, query):
         with self.ix.searcher() as searcher:
@@ -108,7 +93,7 @@ class WhooshWikiIndex(WikiIndex):
         return schema
 
     def _indexPage(self, writer, page):
-        self.logger.debug("Indexing '%s'." % page.url)
+        logger.debug("Indexing '%s'." % page.url)
         writer.add_document(
             url=unicode(page.url),
             title=unicode(page.title),
@@ -118,5 +103,6 @@ class WhooshWikiIndex(WikiIndex):
             )
 
     def _unindexPage(self, writer, url):
-        self.logger.debug("Removing '%s' from index." % url)
+        logger.debug("Removing '%s' from index." % url)
         writer.delete_by_term('url', url)
+

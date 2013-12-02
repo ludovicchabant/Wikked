@@ -2,6 +2,9 @@ import re
 import logging
 
 
+logger = logging.getLogger(__name__)
+
+
 class User(object):
     """ A user with an account on the wiki.
     """
@@ -29,10 +32,7 @@ class User(object):
 class UserManager(object):
     """ A class that keeps track of users and their permissions.
     """
-    def __init__(self, config, logger=None):
-        if logger is None:
-            logger = logging.getLogger('wikked.auth')
-        self.logger = logger
+    def __init__(self, config):
         self._updatePermissions(config)
         self._updateUserInfos(config)
 

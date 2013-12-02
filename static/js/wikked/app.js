@@ -66,6 +66,7 @@ define([
             '':                     "readMainPage",
             'meta/:name/*path':     "readMetaPage",
             'edit/*path':           "editPage",
+            'edit_meta/:name/*path':"editMetaPage",
             'changes/*path':        "showPageHistory",
             'inlinks/*path':        "showIncomingLinks",
             'revision/*path/:rev':  "readPageRevision",
@@ -91,7 +92,7 @@ define([
             this.navigate('/read/' + path);
         },
         readMainPage: function() {
-            this.readPage('main-page');
+            this.readPage('');
         },
         readMetaPage: function(name, path) {
             var view = new Views.MetaPageView({
@@ -106,6 +107,13 @@ define([
             });
             this.viewManager.switchView(view);
             this.navigate('/edit/' + path);
+        },
+        editMetaPage: function(name, path) {
+            var view = new Views.MetaPageEditView({
+                model: new Models.MetaPageEditModel({ name: name, path: path })
+            });
+            this.viewManager.switchView(view);
+            this.navigate('/edit_meta/' + name + '/' + path);
         },
         showPageHistory: function(path) {
             var view = new Views.PageHistoryView({
