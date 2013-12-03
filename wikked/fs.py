@@ -103,7 +103,7 @@ class FileSystem(object):
             meta, rel_path = rel_path.split(os.sep, 1)
         rel_path_split = os.path.splitext(rel_path)
         ext = rel_path_split[1].lstrip('.')
-        name = rel_path_split[0]
+        name = rel_path_split[0].replace(os.sep, '/')
         if len(ext) == 0:
             return None
         if self.page_extensions is not None and ext not in self.page_extensions:
