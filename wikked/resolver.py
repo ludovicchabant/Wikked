@@ -260,7 +260,7 @@ class PageResolver(object):
         try:
             page = self.wiki.getPage(include_url)
         except PageNotFoundError:
-            raise IncludeError(include_url, self.page.url)
+            raise IncludeError(include_url, self.page.url, "Page not found")
         current_url_trail = list(self.ctx.url_trail)
         self.ctx.url_trail.append(page.url)
         child = PageResolver(page, self.ctx, parameters)
@@ -330,7 +330,7 @@ class PageResolver(object):
             try:
                 page = self.wiki.getPage(include_url)
             except PageNotFoundError:
-                raise IncludeError(include_url, self.page.url)
+                raise IncludeError(include_url, self.page.url, "Page not found")
             if with_url:
                 return (page.url, page.text)
             return page.text
@@ -390,7 +390,7 @@ class PageResolver(object):
             try:
                 p = self.wiki.getPage(url)
             except PageNotFoundError:
-                raise IncludeError(url, page.url)
+                raise IncludeError(url, page.url, "Page not found")
             if self._isPageMatch(p, name, value, level + 1):
                 return True
 
