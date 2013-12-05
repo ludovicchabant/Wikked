@@ -246,29 +246,6 @@ class SQLDatabase(Database):
         for p in q.all():
             yield SQLDatabasePage(self.wiki, db_obj=p)
 
-    def getPage(self, url=None, path=None, raise_if_none=True):
-        if not url and not path:
-            raise ValueError("Either URL or path need to be specified.")
-        if url and path:
-            raise ValueError("Can't specify both URL and path.")
-        if url:
-            q = self.session.query(SQLPage).filter_by(url=url)
-            page = q.first()
-            if page is None:
-                if raise_if_none:
-                    raise PageNotFoundError(url)
-                return None
-            return SQLDatabasePage(self.wiki, db_obj=page)
-        if path:
-            q = self.session.query(SQLPage).filter_by(path=path)
-            page = q.first()
-            if page is None:
-                if raise_if_none:
-                    raise PageNotFoundError(path)
-                return None
-            return SQLDatabasePage(self.wiki, db_obj=page)
-        raise NotImplementedError()
-
     def pageExists(self, url=None, path=None):
         # TODO: replace with an `EXIST` query.
         return self.getPage(url, path, raise_if_none=False) is not None
@@ -287,6 +264,20 @@ class SQLDatabase(Database):
                 all()
         for p in q:
             yield SQLDatabasePage(self.wiki, db_obj=p)
+
+    def _getPageByUrl(self, url):
+        q = self.session.query(SQLPage).filter_by(url=url)
+        page = q.first()
+        if page is None:
+            return None
+        return SQLDatabasePage(self.wiki, db_obj=page)
+
+    def _getPageByPath(self, path):
+        q = self.session.query(SQLPage).filter_by(path=path)
+        page = q.first()
+        if page is None:
+            return None
+        return SQLDatabasePage(self.wiki, db_obj=page)
 
     def _createSchema(self):
         Base.metadata.drop_all(self.engine)
