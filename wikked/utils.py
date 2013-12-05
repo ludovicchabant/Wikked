@@ -5,6 +5,9 @@ import urllib
 from xml.sax.saxutils import escape, unescape
 
 
+endpoint_regex = re.compile(r'(\w[\w\d]*)\:(.*)')
+
+
 class PageNotFoundError(Exception):
     """ An error raised when no physical file
        is found for a given URL.
@@ -61,6 +64,15 @@ def get_absolute_url(base_url, url, quote=False):
     if quote:
         abs_url = urllib.quote(abs_url)
     return abs_url
+
+
+def split_page_url(url):
+    m = endpoint_regex.match(url)
+    if m is None:
+        return (None, url)
+    endpoint = unicode(m.group(1))
+    path = unicode(m.group(2))
+    return (endpoint, path)
 
 
 def get_meta_name_and_modifiers(name):

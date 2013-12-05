@@ -16,7 +16,7 @@ define([
         idAttribute: 'path',
         defaults: function() {
             return {
-                path: "main-page",
+                path: "",
                 action: "read",
                 user: false
             };
@@ -52,7 +52,7 @@ define([
         },
         _onChangePath: function(path) {
             this.set({
-                url_home: '/#/read/main-page',
+                url_home: '/',
                 url_read: '/#/read/' + path,
                 url_edit: '/#/edit/' + path,
                 url_hist: '/#/changes/' + path,
@@ -249,16 +249,6 @@ define([
         }
     });
 
-    var MetaPageModel = exports.MetaPageModel = MasterPageModel.extend({
-        action: 'read',
-        url: function() {
-            return '/api/read_meta/' + this.get('name') + '/' + this.get('path');
-        },
-        checkStatePath: function() {
-            return this.getMeta('url');
-        }
-    });
-
     var PageSourceModel = exports.PageSourceModel = MasterPageModel.extend({
         urlRoot: '/api/raw/',
         action: 'source'
@@ -286,31 +276,6 @@ define([
         },
         _getReadPath: function(path) {
             return '/#/read/' + path;
-        }
-    });
-
-    var MetaPageEditModel = exports.MetaPageEditModel = PageEditModel.extend({
-        action: 'edit',
-        url: function() {
-            return '/api/edit_meta/' + this.get('name') + '/' + this.get('path');
-        },
-        initialize: function() {
-            MetaPageEditModel.__super__.initialize.apply(this, arguments);
-            this.on('change:name', function(model, name) {
-                model._onChangeName(name);
-            });
-        },
-        _onChangeName: function(name) {
-            this.set('url_read', name + '/' + this.get('path'));
-        },
-        _onEditSuccess: function() {
-            this.navigate(
-                '/meta/' + this.get('name') + '/' + this.get('path'),
-                { trigger: true }
-            );
-        },
-        _getReadPath: function(path) {
-            return '/#/meta/' + this.get('name') + '/' + path;
         }
     });
 

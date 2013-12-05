@@ -257,9 +257,9 @@ define([
                 var meta_name = jel.attr('data-wiki-meta');
                 var meta_value = jel.attr('data-wiki-value');
                 if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                    jel.attr('href', '/#/edit_meta/' + meta_name + '/' + meta_value);
+                    jel.attr('href', '/#/edit/' + meta_name + ':' + meta_value);
                 else
-                    jel.attr('href', '/#/meta/' + meta_name + '/' + meta_value);
+                    jel.attr('href', '/#/read/' + meta_name + ':' + meta_value);
             });
             // If we've already rendered the content, see if we need to display a
             // warning about the page's state.
@@ -309,10 +309,6 @@ define([
                 }
             });
         }
-    });
-
-    var MetaPageView = exports.MetaPageView = PageReadView.extend({
-        defaultTemplateSource: tplMetaPage
     });
 
     var PageEditView = exports.PageEditView = MasterPageView.extend({
@@ -451,9 +447,6 @@ define([
         titleFormat: function(title) {
             return 'Editing: ' + title;
         }
-    });
-
-    var MetaPageEditView = exports.MetaPageEditView = PageEditView.extend({
     });
 
     var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({

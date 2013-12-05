@@ -1,4 +1,3 @@
-import re
 import time
 import urllib
 import string
@@ -13,6 +12,7 @@ from page import Page, PageData, PageLoadingError
 from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
 from scm.base import STATE_NAMES, ACTION_NAMES
+from utils import split_page_url
 
 
 DONT_CHECK = 0
@@ -48,37 +48,44 @@ class DummyPage(Page):
 
 def url_from_viewarg(url):
     url = urllib.unquote(url)
-    m = re.match(r'(\w[\w\d]+)\:(.*)', url)
-    if m:
-        endpoint = str(m.group(1))
-        path = string.lstrip(str(m.group(2)), '/')
-        return '%s:/%s' % (endpoint, path)
-    return '/' + string.lstrip(url, '/')
+    endpoint, path = split_page_url(url)
+    if endpoint:
+        return u'%s:/%s' % (endpoint, path)
+    return u'/' + path
+
+
+def split_url_from_viewarg(url):
+    url = urllib.unquote(url)
+    endpoint, path = split_page_url(url)
+    value = string.rsplit(path, '/', 1)[-1]
+    return (endpoint, value, u'/' + path)
 
 
 def make_page_title(url):
     return url[1:]
 
 
-def get_page_or_none(url, force_resolve=False):
-    url = url_from_viewarg(url)
+def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolve=False):
+    if convert_url:
+        url = url_from_viewarg(url)
     try:
         page = g.wiki.getPage(url)
-        if force_resolve:
-            page._force_resolve = True
-        page._ensureData()
-        return page
     except PageNotFoundError:
         return None
 
+    if force_resolve:
+        page._force_resolve = True
+    if check_perms == CHECK_FOR_READ and not is_page_readable(page):
+        abort(401)
+    elif check_perms == CHECK_FOR_WRITE and not is_page_writable(page):
+        abort(401)
 
-def get_page_or_404(url, check_perms=DONT_CHECK, force_resolve=False):
-    page = get_page_or_none(url, force_resolve)
+    return page
+
+
+def get_page_or_404(url, convert_url=True, check_perms=DONT_CHECK, force_resolve=False):
+    page = get_page_or_none(url, convert_url, check_perms, force_resolve)
     if page is not None:
-        if check_perms == CHECK_FOR_READ and not is_page_readable(page):
-            abort(401)
-        elif check_perms == CHECK_FOR_WRITE and not is_page_writable(page):
-            abort(401)
         return page
     app.logger.error("No such page: " + url)
     abort(404)
@@ -157,7 +164,7 @@ def get_history_data(history, needs_files=False):
 
 
 def get_edit_page(url, default_title=None, custom_data=None):
-    page = get_page_or_none(url)
+    page = get_page_or_none(url, convert_url=False)
     if page is None:
         result = {
                 'meta': {
@@ -183,7 +190,7 @@ def get_edit_page(url, default_title=None, custom_data=None):
 
 
 def do_edit_page(url, default_message):
-    page = get_page_or_none(url)
+    page = get_page_or_none(url, convert_url=False)
     if page and not is_page_writable(page):
         app.logger.error("Page '%s' is not writable for user '%s'." % (url, current_user.get_id()))
         abort(401)
@@ -261,50 +268,50 @@ def api_list_pages(url):
 
 @app.route('/api/read/')
 def api_read_main_page():
-    return api_read_page(g.wiki.main_page_url)
+    return api_read_page(g.wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
-    page = get_page_or_404(
-            url,
-            check_perms=CHECK_FOR_READ,
-            force_resolve=('force_resolve' in request.args))
-    result = {'meta': get_page_meta(page), 'text': page.text}
-    return make_auth_response(result)
+    #TODO: remove redundant quoting/spliting/unquoting around here.
+    endpoint, value, path = split_url_from_viewarg(url)
+    if endpoint is None:
+        # Normal page.
+        page = get_page_or_404(
+                path,
+                convert_url=False,
+                check_perms=CHECK_FOR_READ,
+                force_resolve=('force_resolve' in request.args))
 
+        result = {'meta': get_page_meta(page), 'text': page.text}
+        return make_auth_response(result)
 
-@app.route('/api/raw/<path:url>')
-def api_read_page_raw(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
-    result = {'meta': get_page_meta(page), 'text': page.raw_text}
-    return make_auth_response(result)
-
-
-@app.route('/api/read_meta/<name>/<value>')
-def api_read_meta_page(name, value):
-    quoted_value = value
-    value = urllib.unquote(value)
-
-    query = {name: [value]}
-    pages = g.wiki.getPages(meta_query=query)
-    tpl_data = {
-            'name': name,
-            'value': value,
-            'safe_value': quoted_value,
-            'pages': [get_page_meta(p) for p in pages]
-        }
-
-    meta_page_url = '%s:/%s' % (name, value)
+    # Meta listing page.
+    meta_page_url = '%s:%s' % (endpoint, path)
     info_page = get_page_or_none(
             meta_page_url,
+            convert_url=False,
+            check_perms=CHECK_FOR_READ,
             force_resolve=('force_resolve' in request.args))
+
+    # Get the list of pages to show here.
+    query = {endpoint: [value]}
+    pages = g.wiki.getPages(meta_query=query)
+    tpl_data = {
+            'name': endpoint,
+            'value': value,
+            'safe_value': urllib.quote(value),
+            'pages': [get_page_meta(p) for p in pages]
+            # TODO: skip pages that are forbidden for the current user
+        }
     if info_page:
         tpl_data['info_text'] = info_page.text
 
+    # Render the final page as the list of pages matching the query,
+    # under either a default text, or the text from the meta page.
     text = render_template('meta_page.html', **tpl_data)
     result = {
-            'meta_query': name,
+            'meta_query': endpoint,
             'meta_value': value,
             'query': query,
             'meta': {
@@ -319,12 +326,19 @@ def api_read_meta_page(name, value):
     return make_auth_response(result)
 
 
+@app.route('/api/raw/<path:url>')
+def api_read_page_raw(url):
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
+    result = {'meta': get_page_meta(page), 'text': page.raw_text}
+    return make_auth_response(result)
+
+
 @app.route('/api/revision/<path:url>')
 def api_read_page_rev(url):
     rev = request.args.get('rev')
     if rev is None:
         abort(400)
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
@@ -348,7 +362,7 @@ def api_diff_page(url):
     rev2 = request.args.get('rev2')
     if rev1 is None:
         abort(400)
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     diff = page.getDiff(rev1, rev2)
     if 'raw' not in request.args:
         lexer = get_lexer_by_name('diff')
@@ -364,7 +378,7 @@ def api_diff_page(url):
 
 @app.route('/api/state/<path:url>')
 def api_get_state(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     state = page.getState()
     return make_auth_response({
         'meta': get_page_meta(page, True),
@@ -374,7 +388,7 @@ def api_get_state(url):
 
 @app.route('/api/outlinks/<path:url>')
 def api_get_outgoing_links(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     links = []
     for link in page.links:
         other = get_page_or_none(link)
@@ -392,7 +406,7 @@ def api_get_outgoing_links(url):
 
 @app.route('/api/inlinks/<path:url>')
 def api_get_incoming_links(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     links = []
     for link in page.getIncomingLinks():
         other = get_page_or_none(link)
@@ -410,31 +424,31 @@ def api_get_incoming_links(url):
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
 def api_edit_page(url):
-    url = url_from_viewarg(url)
-    if request.method == 'GET':
-        return get_edit_page(url)
-
-    default_message = 'Edited ' + url
-    return do_edit_page(url, default_message)
-
-
-@app.route('/api/edit_meta/<name>/<path:value>', methods=['GET', 'POST'])
-def api_edit_meta_page(name, value):
-    value = urllib.unquote(value)
-    meta_page_url = '%s:/%s' % (name, value)
+    endpoint, value, path = split_url_from_viewarg(url)
 
     if request.method == 'GET':
-        custom_data = {
-                'meta_query': name,
-                'meta_value': value
-                }
+        url = path
+        default_title = None
+        custom_data = None
+        if endpoint is not None:
+            url = u'%s:%s' % (endpoint, path)
+            default_title = u'%s: %s' % (endpoint, value)
+            custom_data = {
+                    'meta_query': endpoint,
+                    'meta_value': value
+                    }
+
         return get_edit_page(
-                meta_page_url,
-                default_title=('%s: %s' % (name, value)),
+                url,
+                default_title=default_title,
                 custom_data=custom_data)
 
-    default_message = 'Edited %s %s' % (name, value)
-    return do_edit_page(meta_page_url, default_message)
+    url = path
+    default_message = u'Edited ' + url
+    if endpoint is not None:
+        url = u'%s:%s' % (endpoint, path)
+        default_message = u'Edited %s %s' % (endpoint, value)
+    return do_edit_page(url, default_message)
 
 
 @app.route('/api/revert/<path:url>', methods=['POST'])
@@ -507,7 +521,7 @@ def api_site_history():
 
 @app.route('/api/history/<path:url>')
 def api_page_history(url):
-    page = get_page_or_404(url, CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     history = page.getHistory()
     hist_data = get_history_data(history)
     result = {'url': url, 'meta': get_page_meta(page), 'history': hist_data}
