@@ -176,8 +176,6 @@ class Wiki(object):
     def getPages(self, subdir=None, meta_query=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
         """
-        if meta_query:
-            self._cachePages()
         for page in self.db.getPages(subdir, meta_query):
             yield page
 
@@ -186,7 +184,7 @@ class Wiki(object):
         """
         return self.db.getPage(url)
 
-    def setPage(self, url, page_fields):
+    def setPage(self, url, page_fields, do_update=True):
         """ Updates or creates a page for a given URL.
         """
         # Validate the parameters.
@@ -211,7 +209,8 @@ class Wiki(object):
         self.scm.commit([page_info.path], commit_meta)
 
         # Update the DB and index with the new/modified page.
-        self.update(url, cache_ext_data=False)
+        if do_update:
+            self.update(url, cache_ext_data=False)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.

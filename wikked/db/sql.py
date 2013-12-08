@@ -330,7 +330,7 @@ class SQLDatabase(Database):
         return po
 
     def _cacheExtendedData(self, page):
-        logger.debug("Caching extended data for page '%s' [%d]." % (page.url, page._id))
+        logger.info("Caching extended data for page '%s' [%d]." % (page.url, page._id))
 
         if not hasattr(page, '_id') or not page._id:
             raise Exception("Given page '%s' has no `_id` attribute set." % page.url)

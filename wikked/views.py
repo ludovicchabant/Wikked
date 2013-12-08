@@ -13,6 +13,7 @@ from fs import PageNotFoundError
 from formatter import PageFormatter, FormattingContext
 from scm.base import STATE_NAMES, ACTION_NAMES
 from utils import split_page_url
+from tasks import update_wiki
 
 
 DONT_CHECK = 0
@@ -210,7 +211,8 @@ def do_edit_page(url, default_message):
             'author': author,
             'message': message
             }
-    g.wiki.setPage(url, page_fields)
+    g.wiki.setPage(url, page_fields, do_update=False)
+    update_wiki.delay(g.wiki.root)
     result = {'saved': 1}
     return make_auth_response(result)
 
@@ -543,6 +545,7 @@ def api_search():
 @app.route('/api/preview', methods=['POST'])
 def api_preview():
     url = request.form.get('url')
+    url = url_from_viewarg(url)
     text = request.form.get('text')
     dummy = DummyPage(g.wiki, url, text)
 
