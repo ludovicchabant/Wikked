@@ -57,9 +57,31 @@ define([
             );
         });
     };
-    jQuery.fn.unwatch = function( id ) {
+    jQuery.fn.unwatch = function(id) {
         return this.each(function() {
             clearInterval($(this).data('watch_timer'));
+        });
+    };
+
+    // Utility function to make wiki links into usable links for
+    // this UI frontend.
+    var processWikiLinks = function(el) {
+        $('a.wiki-link', el).each(function(i) {
+            var jel = $(this);
+            var wiki_url = jel.attr('data-wiki-url').replace(/^\//, '');
+            if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
+                jel.attr('href', '/#/edit/' + wiki_url);
+            else
+                jel.attr('href', '/#/read/' + wiki_url);
+        });
+        $('a.wiki-meta-link', el).each(function(i) {
+            var jel = $(this);
+            var meta_name = jel.attr('data-wiki-meta');
+            var meta_value = jel.attr('data-wiki-value');
+            if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
+                jel.attr('href', '/#/edit/' + meta_name + ':' + meta_value);
+            else
+                jel.attr('href', '/#/read/' + meta_name + ':' + meta_value);
         });
     };
 
@@ -242,25 +264,8 @@ define([
                 return;
             }
 
-            // Replace all wiki links with proper hyperlinks using the JS app's
-            // URL scheme.
-            this.$('a.wiki-link').each(function(i) {
-                var jel = $(this);
-                var wiki_url = jel.attr('data-wiki-url').replace(/^\//, '');
-                if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                    jel.attr('href', '/#/edit/' + wiki_url);
-                else
-                    jel.attr('href', '/#/read/' + wiki_url);
-            });
-            this.$('a.wiki-meta-link').each(function(i) {
-                var jel = $(this);
-                var meta_name = jel.attr('data-wiki-meta');
-                var meta_value = jel.attr('data-wiki-value');
-                if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                    jel.attr('href', '/#/edit/' + meta_name + ':' + meta_value);
-                else
-                    jel.attr('href', '/#/read/' + meta_name + ':' + meta_value);
-            });
+            processWikiLinks(this.$el);
+
             // If we've already rendered the content, see if we need to display a
             // warning about the page's state.
             if (this.model.get('content')) {
@@ -379,33 +384,33 @@ define([
         },
         _addPreview: function() {
             $('#app')
-                    .removeClass('container')
-                    .addClass('container-fluid');
-                $('#page-edit')
-                    .removeClass('row')
-                    .addClass('row-fluid');
-                $('#wmd-form-wrapper')
-                    .removeClass('span12')
-                    .addClass('span6');
-                $('#wmd-preview-wrapper')
-                    .show()
-                    .addClass('span6');
+                .removeClass('container')
+                .addClass('container-fluid');
+            $('#page-edit')
+                .removeClass('row')
+                .addClass('row-fluid');
+            $('#wmd-form-wrapper')
+                .removeClass('span12')
+                .addClass('span6');
+            $('#wmd-preview-wrapper')
+                .show()
+                .addClass('span6');
 
             this._updateUI(true);
         },
         _removePreview: function() {
             $('#wmd-form-wrapper')
-                    .removeClass('span6')
-                    .addClass('span12');
-                $('#wmd-preview-wrapper')
-                    .hide()
-                    .removeClass('span6');
-                $('#page-edit')
-                    .removeClass('row-fluid')
-                    .addClass('row');
-                $('#app')
-                    .removeClass('container-fluid')
-                    .addClass('container');
+                .removeClass('span6')
+                .addClass('span12');
+            $('#wmd-preview-wrapper')
+                .hide()
+                .removeClass('span6');
+            $('#page-edit')
+                .removeClass('row-fluid')
+                .addClass('row');
+            $('#app')
+                .removeClass('container-fluid')
+                .addClass('container');
 
             this._ctrlInput.height(this._originalInputHeight);
             this._updateUI();
@@ -418,7 +423,9 @@ define([
             };
             $.post('/api/preview', previewData)
                 .success(function(data) {
-                    $('#wmd-preview').html(data.text);
+                    var previewEl = $('#wmd-preview');
+                    previewEl.html(data.text);
+                    processWikiLinks(previewEl);
                     $view._updateUI(true);
                 })
                 .error(function() {
