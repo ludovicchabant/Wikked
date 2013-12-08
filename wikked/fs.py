@@ -145,7 +145,12 @@ class FileSystem(object):
             dirname, basename = os.path.split(url_path)
             if not os.path.isdir(dirname):
                 self._throwNotFoundError(url, root, is_file)
-            filenames = os.listdir(dirname)
+
+            it = os.walk(dirname)
+            # TODO: This is weird, `itertools.islice` seems useless here.
+            for _, __, ___ in it:
+                filenames = ___
+                break
             for filename in filenames:
                 name, ext = os.path.splitext(filename)
                 if name == basename:
