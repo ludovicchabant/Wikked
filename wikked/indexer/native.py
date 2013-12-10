@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class WhooshWikiIndex(WikiIndex):
-    def __init__(self, store_dir):
+    def __init__(self):
         WikiIndex.__init__(self)
-        self.store_dir = store_dir
 
     def initIndex(self, wiki):
+        self.store_dir = os.path.join(wiki.root, '.wiki', 'index')
         if not os.path.isdir(self.store_dir):
             logger.debug("Creating new index in: " + self.store_dir)
             os.makedirs(self.store_dir)

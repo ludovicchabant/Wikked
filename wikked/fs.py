@@ -45,7 +45,7 @@ class FileSystem(object):
         self.page_extensions = list(set(
             itertools.chain(*wiki.formatters.itervalues())))
 
-        self.excluded += wiki.parameters.getSpecialFilenames()
+        self.excluded += wiki.getSpecialFilenames()
         self.excluded += wiki.scm.getSpecialFilenames()
 
         self.default_extension = wiki.config.get('wiki', 'default_extension')

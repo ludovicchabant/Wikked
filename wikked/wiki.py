@@ -38,18 +38,14 @@ class WikiParameters(object):
 
         self.formatters = self.getFormatters()
 
-        self.config_path = os.path.join(self.root, '.wikirc')
-        self.index_path = os.path.join(self.root, '.wiki', 'index')
-        self.db_path = os.path.join(self.root, '.wiki', 'wiki.db')
-
     def fs_factory(self, config):
         return FileSystem(self.root)
 
     def index_factory(self, config):
-        return WhooshWikiIndex(self.index_path)
+        return WhooshWikiIndex()
 
     def db_factory(self, config):
-        return SQLDatabase(self.db_path)
+        return SQLDatabase()
 
     def scm_factory(self, config):
         try:
@@ -70,10 +66,6 @@ class WikiParameters(object):
             return GitLibSourceControl(self.root)
         else:
             raise InitializationError("No such source control: " + scm_type)
-
-    def getSpecialFilenames(self):
-        yield self.config_path
-        yield os.path.join(self.root, '.wiki')
 
     def getFormatters(self):
         formatters = {passthrough_formatter: ['txt', 'html']}
@@ -104,6 +96,7 @@ class Wiki(object):
             raise ValueError("No parameters were given to the wiki.")
 
         logger.debug("Initializing wiki.")
+
 
         self.parameters = parameters
         self.config = self._loadConfig(parameters)
@@ -253,6 +246,11 @@ class Wiki(object):
         """
         return self.scm.getHistory(limit=limit)
 
+    def getSpecialFilenames(self):
+        yield os.path.join(self.root, '.wikirc')
+        yield os.path.join(self.root, '.wikirc.local')
+        yield os.path.join(self.root, '.wiki')
+
     def _cachePages(self, only_urls=None):
         logger.debug("Caching extended page data...")
         if only_urls:
@@ -266,11 +264,14 @@ class Wiki(object):
     def _loadConfig(self, parameters):
         # Merge the default settings with any settings provided by
         # the parameters.
+        config_path = os.path.join(parameters.root, '.wikirc')
+        local_config_path = config_path + '.local'
         default_config_path = os.path.join(
             os.path.dirname(__file__), 'resources', 'defaults.cfg')
+
         config = SafeConfigParser()
         config.readfp(open(default_config_path))
-        config.read([parameters.config_path])
+        config.read([config_path, local_config_path])
         return config
 
 

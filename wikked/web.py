@@ -5,7 +5,10 @@ from flask import Flask, abort, g
 from utils import find_wiki_root
 
 # Create the main app.
-app = Flask("wikked.web")
+app = Flask(
+        'wikked',
+        static_folder='build',
+        static_url_path='/')
 app.config.from_object('wikked.settings')
 app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
@@ -13,11 +16,17 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 # Setup some config defaults.
 app.config.setdefault('SQL_DEBUG', False)
 app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
+app.config.setdefault('WIKI_ROOT', None)
+app.config.setdefault('UPDATE_WIKI_ON_START', True)
 
 
 # Find the wiki root, and further configure the app if there's a
 # config file in there.
-wiki_root = find_wiki_root()
+wiki_root = app.config['WIKI_ROOT']
+if wiki_root is None:
+    wiki_root = find_wiki_root()
+if wiki_root is None:
+    raise Exception("Can't find the wiki root to use.")
 config_path = os.path.join(wiki_root, '.wiki', 'app.cfg')
 if os.path.isfile(config_path):
     app.config.from_pyfile(config_path)
@@ -28,10 +37,7 @@ if app.config['DEBUG']:
     from werkzeug import SharedDataMiddleware
     import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-      '/': os.path.join(
-          os.path.dirname(os.path.dirname(__file__)),
-          'build'),
-      '/files': os.path.join(wiki_root)
+      '/files': os.path.join(wiki_root, '_files')
     })
 
 

@@ -116,15 +116,16 @@ class SQLDatabase(Database):
     """
     schema_version = 3
 
-    def __init__(self, db_path):
+    def __init__(self):
         Database.__init__(self)
-        self.db_path = db_path
         self.engine = None
 
     def initDb(self, wiki):
         self.wiki = wiki
 
-        engine_url = 'sqlite:///' + self.db_path
+        url_params = {'root': wiki.root}
+        engine_url = wiki.config.get('wiki', 'database_url') % url_params
+        logger.info("Using database from URL: %s" % engine_url)
         self.engine = create_engine(engine_url, convert_unicode=True)
         self.session = scoped_session(sessionmaker(
                 autocommit=False,
@@ -134,22 +135,17 @@ class SQLDatabase(Database):
         Base.query = self.session.query_property()
 
         create_schema = False
-        if self.db_path != 'sqlite:///:memory:':
-            if not os.path.exists(os.path.dirname(self.db_path)):
-                # No database on disk... create one.
-                logger.debug("Creating SQL database at: %s" % self.db_path)
+        if engine_url != 'sqlite:///:memory:':
+            # The existing schema is outdated, re-create it.
+            schema_version = self._getSchemaVersion()
+            if schema_version < self.schema_version:
+                logger.debug(
+                        "SQL database is outdated (got version %s), will re-create.",
+                        schema_version)
                 create_schema = True
             else:
-                # The existing schema is outdated, re-create it.
-                schema_version = self._getSchemaVersion()
-                if schema_version < self.schema_version:
-                    logger.debug(
-                            "SQL database is outdated (got version %s), will re-create.",
-                            schema_version)
-                    create_schema = True
-                else:
-                    logger.debug(
-                            "SQL database has up-to-date schema.")
+                logger.debug(
+                        "SQL database has up-to-date schema.")
         else:
             create_schema = True
         if create_schema:
