@@ -30,7 +30,7 @@ class MercurialBaseSourceControl(SourceControl):
         # Make a Mercurial repo if there's none.
         if not os.path.isdir(os.path.join(self.root, '.hg')):
             logger.info("Creating Mercurial repository at: " + self.root)
-            self._run('init', self.root, norepo=True)
+            self._initRepo(self.root)
 
         # Create a `.hgignore` file is there's none.
         ignore_path = os.path.join(self.root, '.hgignore')
@@ -38,21 +38,11 @@ class MercurialBaseSourceControl(SourceControl):
             logger.info("Creating `.hgignore` file.")
             with open(ignore_path, 'w') as f:
                 f.write('.wiki')
-            self._run('add', ignore_path)
-            self._run('commit', ignore_path, '-m', 'Created .hgignore.')
+            self.commit([ignore_path], "Created `.hgignore`.")
 
     def getSpecialFilenames(self):
         specials = ['.hg', '.hgignore', '.hgtags']
         return [os.path.join(self.root, d) for d in specials]
-
-    def _run(self, cmd, *args, **kwargs):
-        exe = [self.hg]
-        if 'norepo' not in kwargs or not kwargs['norepo']:
-            exe += ['-R', self.root]
-        exe.append(cmd)
-        exe += args
-        logger.debug("Running Mercurial: " + str(exe))
-        return subprocess.check_output(exe)
 
 
 class MercurialSourceControl(MercurialBaseSourceControl):
@@ -135,6 +125,9 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         else:
             self._run('revert', '-a', '-C')
 
+    def _initRepo(self, path):
+        self._run('init', path, norepo=True)
+
     def _parseRevision(self, group):
         lines = group.split("\n")
 
@@ -167,6 +160,15 @@ class MercurialSourceControl(MercurialBaseSourceControl):
                 })
 
         return rev
+
+    def _run(self, cmd, *args, **kwargs):
+        exe = [self.hg]
+        if 'norepo' not in kwargs or not kwargs['norepo']:
+            exe += ['-R', self.root]
+        exe.append(cmd)
+        exe += args
+        logger.debug("Running Mercurial: " + str(exe))
+        return subprocess.check_output(exe)
 
 
 class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
