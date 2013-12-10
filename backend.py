@@ -1,6 +1,5 @@
 import logging
 from celery import Celery
-from utils import find_wiki_root
 
 
 logging.basicConfig(level=logging.DEBUG)
