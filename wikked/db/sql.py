@@ -369,7 +369,7 @@ class SQLDatabasePage(Page):
             raise Exception("You need to specify either a url or a database object.")
 
         super(SQLDatabasePage, self).__init__(wiki, url or db_obj.url)
-        self.auto_update = wiki.config.get('wiki', 'auto_update')
+        self.auto_update = wiki.config.getboolean('wiki', 'auto_update')
         self._db_obj = db_obj
 
     @property
@@ -408,6 +408,8 @@ class SQLDatabasePage(Page):
                     fs_page = FileSystemPage(self.wiki, self.url)
                     fs_page._ensureData()
                     added_ids = self.wiki.db.update([fs_page])
+                    if not added_ids:
+                        raise Exception("Page '%s' has been updated, but the database can't find it." % self.url)
                     fs_page._data._db_id = added_ids[0]
                     return fs_page._data
                 except Exception as e:
