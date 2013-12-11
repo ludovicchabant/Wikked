@@ -328,6 +328,11 @@ def api_read_page(url):
     return make_auth_response(result)
 
 
+@app.route('/api/raw/')
+def api_read_main_page_raw():
+    return api_read_page_raw(g.wiki.main_page_url.lstrip('/'))
+
+
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
@@ -378,6 +383,11 @@ def api_diff_page(url):
     return make_auth_response(result)
 
 
+@app.route('/api/state/')
+def api_get_main_page_state():
+    return api_get_state(g.wiki.main_page_url.lstrip('/'))
+
+
 @app.route('/api/state/<path:url>')
 def api_get_state(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
@@ -386,6 +396,11 @@ def api_get_state(url):
         'meta': get_page_meta(page, True),
         'state': STATE_NAMES[state]
         })
+
+
+@app.route('/api/outlinks/')
+def api_get_main_page_outgoing_links():
+    return api_get_outgoing_links(g.wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/outlinks/<path:url>')
@@ -406,6 +421,11 @@ def api_get_outgoing_links(url):
     return make_auth_response(result)
 
 
+@app.route('/api/inlinks/')
+def api_get_main_page_incoming_links():
+    return api_get_incoming_links(g.wiki.main_page_url.lstrip('/'))
+
+
 @app.route('/api/inlinks/<path:url>')
 def api_get_incoming_links(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
@@ -422,6 +442,11 @@ def api_get_incoming_links(url):
 
     result = {'meta': get_page_meta(page), 'in_links': links}
     return make_auth_response(result)
+
+
+@app.route('/api/edit/', methods=['GET', 'POST'])
+def api_edit_main_page():
+    return api_edit_page(g.wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
