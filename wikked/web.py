@@ -5,10 +5,11 @@ from flask import Flask, abort, g
 from utils import find_wiki_root
 
 # Create the main app.
+static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build')
 app = Flask(
         'wikked',
-        static_folder='build',
-        static_url_path='/')
+        static_folder=static_folder,
+        static_url_path='/static')
 app.config.from_object('wikked.settings')
 app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
@@ -37,7 +38,7 @@ if app.config['DEBUG']:
     from werkzeug import SharedDataMiddleware
     import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-      '/files': os.path.join(wiki_root, '_files')
+        '/files': os.path.join(wiki_root, '_files')
     })
 
 
