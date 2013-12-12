@@ -12,6 +12,11 @@
                     </ul>
                 </div>
             </section>
+            {{#if error}}
+            <section class="alert alert-danger">
+                <p><strong>Error:</strong> {{error.message}}</p>
+            </section>
+            {{/if}}
             <section id="wmd-input-wrapper">
                 <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
                 <div id="wmd-input-grip"></div>

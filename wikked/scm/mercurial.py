@@ -8,7 +8,7 @@ import subprocess
 from hglib.error import CommandError
 from hglib.util import cmdbuilder
 from base import (
-        SourceControl, Revision,
+        SourceControl, Revision, SourceControlError,
         ACTION_ADD, ACTION_EDIT, ACTION_DELETE,
         STATE_NEW, STATE_MODIFIED, STATE_COMMITTED)
 
@@ -246,9 +246,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
                     **kwargs)
             self.client.rawcommand(args)
         except CommandError as e:
-            logger.error("Failed running command '%s', got code '%s' and message '%s'. Output: %s" % (
-                e.args, e.ret, e.err, e.out))
-            raise
+            raise SourceControlError('commit', e.out, e.args, e.out)
 
     def revert(self, paths=None):
         if paths is not None:

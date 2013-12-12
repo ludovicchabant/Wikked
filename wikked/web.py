@@ -126,5 +126,11 @@ wiki = create_wiki(bool(app.config.get('UPDATE_WIKI_ON_START')))
 
 # Import the views.
 # (this creates a PyLint warning but it's OK)
-import views
+# pylint: disable=unused-import
+import views.error
+import views.read
+import views.edit
+import views.history
+import views.special
+import views.admin
 

@@ -39,11 +39,11 @@ define([
             this._isSearching = true;
             var $model = this;
             $.getJSON('/api/search', { q: query })
-                .success(function (data) {
+                .done(function (data) {
                     $model._isSearching = false;
                     callback(data);
                 })
-                .error(function() {
+                .fail(function() {
                     $model._isSearching = false;
                 });
         },
@@ -104,10 +104,10 @@ define([
         doLogin: function(form) {
             var $model = this;
             $.post('/api/user/login', $(form).serialize())
-                .success(function() {
+                .done(function() {
                     $model.navigate('/', { trigger: true });
                 })
-                .error(function() {
+                .fail(function() {
                     $model.set('has_error', true);
                 });
         }
@@ -259,12 +259,13 @@ define([
         urlRoot: '/api/edit/',
         doEdit: function(form) {
             var $model = this;
-            $.post(this.url(), $(form).serialize())
-                .success(function(data) {
+            $.post(this.url(), $(form).serialize(), null, 'json')
+                .done(function(data) {
                     $model._onEditSuccess();
                 })
-                .error(function() {
-                    alert('Error saving page...');
+                .fail(function(jqxhr) {
+                    var err = $.parseJSON(jqxhr.responseText);
+                    $model.set('error', err.error);
                 });
         },
         _onChangePath: function(path) {

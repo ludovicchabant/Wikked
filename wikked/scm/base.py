@@ -57,3 +57,15 @@ class Revision(object):
         return self.rev_id != -1
 
 
+class SourceControlError(Exception):
+    def __init__(self, operation, message, command, output, *args):
+        Exception.__init__(self, *args)
+        self.operation = operation
+        self.message = message
+        self.command = command
+        self.output = output
+
+    def __str__(self):
+        return "Error running '%s': %s\nCommand: %s\nOutput: %s" % (
+                self.operation, self.message, self.command, self.output)
+
