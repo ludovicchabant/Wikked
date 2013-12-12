@@ -248,7 +248,6 @@ class Wiki(object):
 
     def getSpecialFilenames(self):
         yield os.path.join(self.root, '.wikirc')
-        yield os.path.join(self.root, '.wikirc.local')
         yield os.path.join(self.root, '.wiki')
 
     def _cachePages(self, only_urls=None):
@@ -265,12 +264,13 @@ class Wiki(object):
         # Merge the default settings with any settings provided by
         # the parameters.
         config_path = os.path.join(parameters.root, '.wikirc')
-        local_config_path = config_path + '.local'
+        local_config_path = os.path.join(parameters.root, '.wiki', 'wikirc')
         default_config_path = os.path.join(
             os.path.dirname(__file__), 'resources', 'defaults.cfg')
 
         config = SafeConfigParser()
         config.readfp(open(default_config_path))
+        config.set('wiki', 'root', parameters.root)
         config.read([config_path, local_config_path])
         return config
 

@@ -123,8 +123,7 @@ class SQLDatabase(Database):
     def initDb(self, wiki):
         self.wiki = wiki
 
-        url_params = {'root': wiki.root}
-        engine_url = wiki.config.get('wiki', 'database_url') % url_params
+        engine_url = wiki.config.get('wiki', 'database_url')
         logger.info("Using database from URL: %s" % engine_url)
         self.engine = create_engine(engine_url, convert_unicode=True)
         self.session = scoped_session(sessionmaker(

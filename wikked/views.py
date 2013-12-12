@@ -211,8 +211,11 @@ def do_edit_page(url, default_message):
             'author': author,
             'message': message
             }
-    g.wiki.setPage(url, page_fields, do_update=False)
-    update_wiki.delay(g.wiki.root)
+    do_sync_update = app.config['SYNCHRONOUS_UPDATE']
+    g.wiki.setPage(url, page_fields, do_update=do_sync_update)
+    if not do_sync_update:
+        update_wiki.delay(g.wiki.root)
+
     result = {'saved': 1}
     return make_auth_response(result)
 
