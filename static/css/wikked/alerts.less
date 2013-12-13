@@ -1,0 +1,50 @@
+
+.tooltip {
+    font-size: @font-size-base*0.75;
+}
+.alert {
+    font-size: @font-size-small;
+}
+
+// Page alerts
+article .alert {
+    float: right;
+    margin-left: -100%;
+    position: relative;
+    width: 50%;
+    -webkit-border-radius: 0;
+    -moz-border-radius: 0;
+    border-radius: 0;
+}
+
+// Corner ribbon
+.makeRibbon(@bgColor) {
+    background-color: @bgColor;
+    overflow: hidden;
+    transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    -moz-transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    -webkit-transform: translate(50%, 0) translate(-3em, 2.05em) rotate(45deg);
+    box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    -moz-box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    -webkit-box-shadow: 0 0 1em rgba(0, 0, 0, 0.4);
+    float: right;
+}
+.makeRibbonContent(@borderColor, @textColor) {
+    border: 1px solid @borderColor;
+    color: @textColor;
+    display: block;
+    margin: 0.05em 0 0.05em 0;
+    padding: 0.5em 5em;
+    text-align: center;
+    text-shadow: 0 0 0.5em rgba(1, 1, 1, 0.2);
+}
+.ribbon {
+    .makeRibbon(lighten(@colorOrange, 10%));
+    float: right;
+
+    .ribbon-inner {
+        .makeRibbonContent(@colorOrange, @colorPage);
+        a { color: #fff; text-decoration: none; }
+    }
+}
+

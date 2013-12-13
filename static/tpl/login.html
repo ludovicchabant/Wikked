@@ -13,21 +13,14 @@
             <strong>Begone!</strong> Those credentials don't seem to work here.
         </div>
         {{/if}}
-        <form id="login">
-            <div class="control-group input-prepend">
-                <label for="username" class="control-label add-on">Username: </label>
-                <input type="text" name="username" placeholder="Username..."></input>
-            </div>
-            <div class="control-group input-prepend">
-                <label for="password" class="control-label add-on">Password: </label>
-                <input type="password" name="password" placeholder="Password..."></input>
-            </div>
-            <div class="control-group">
-                <label>Remember Me
-                    <input type="checkbox" name="remember"></input>
-                </label>
-            </div>
-            <button type="submit" class="btn btn-primary">Login</button>
+        <form id="login" class="form-signin" role="form">
+            <h2 class="form-signin-heading">Log in</h2>
+            <input type="text" name="username" class="form-control" placeholder="Username" required="true" autofocus="true"></input>
+            <input type="password" name="password" class="form-control" placeholder="Password" required="true"></input>
+            <label class="checkbox">
+                <input type="checkbox" name="remember" value="remember-me"> Remember me</input>
+            </label>
+            <button class="btn btn-lg btn-primary btn-block" type="submit">Log in</button>
         </form>
     </section>
 </article>

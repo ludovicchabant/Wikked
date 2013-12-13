@@ -4,7 +4,7 @@
  * We need to alias/shim some of the libraries.
  */
 require.config({
-    urlArgs: "bust=" + (new Date()).getTime(),
+    //urlArgs: "bust=" + (new Date()).getTime(),
     paths: {
         jquery: 'js/jquery-1.8.3.min',
         underscore: 'js/underscore-min',
@@ -12,8 +12,9 @@ require.config({
         handlebars: 'js/handlebars-1.0.rc.1',
         moment: 'js/moment.min',
         text: 'js/text',
-        bootstrap_modal: 'bootstrap/js/bootstrap-modal',
-        bootstrap_tooltip: 'bootstrap/js/bootstrap-tooltip'
+        bootstrap_modal: 'bootstrap/js/modal',
+        bootstrap_tooltip: 'bootstrap/js/tooltip',
+        bootstrap_collapse: 'bootstrap/js/collapse'
     },
     shim: {
         'jquery': {
@@ -33,6 +34,9 @@ require.config({
             deps: ['jquery']
         },
         'bootstrap_tooltip': {
+            deps: ['jquery']
+        },
+        'bootstrap_collapse': {
             deps: ['jquery']
         }
     }

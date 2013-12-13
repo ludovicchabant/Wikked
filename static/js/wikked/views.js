@@ -7,6 +7,7 @@ define([
         'backbone',
         'handlebars',
         'bootstrap_tooltip',
+        'bootstrap_collapse',
         'js/wikked/client',
         'js/wikked/models',
         'js/wikked/util',
@@ -30,7 +31,7 @@ define([
         'text!tpl/special-changes.html',
         'text!tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars, BootstrapTooltip, Client, Models, Util,
+    function($, _, Backbone, Handlebars, BootstrapTooltip, BootstrapCollapse, Client, Models, Util,
         tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
@@ -152,8 +153,8 @@ define([
         },
         events: {
             "submit #search": "_submitSearch",
-            "input #search>.search-query": "_previewSearch",
-            "keyup #search>.search-query": "_searchQueryChanged"
+            "input #search-query": "_previewSearch",
+            "keyup #search-query": "_searchQueryChanged"
         },
         _submitSearch: function(e) {
             e.preventDefault();
@@ -227,10 +228,10 @@ define([
             return this;
         },
         renderCallback: function() {
-            this.$el.prepend('<nav></nav>');
-            this.$el.append('<footer></footer>');
-            this.nav.setElement(this.$('>nav')).render();
-            this.footer.setElement(this.$('>footer')).render();
+            this.$el.prepend('<div class="nav-wrapper"></div>');
+            this.$el.append('<div class="footer-wrapper"></div>');
+            this.nav.setElement(this.$('>.nav-wrapper')).render();
+            this.footer.setElement(this.$('>.footer-wrapper')).render();
             this.isError = (this.model.get('error_code') !== undefined);
         },
         templateSource: function() {

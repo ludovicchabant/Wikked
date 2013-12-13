@@ -1,6 +1,8 @@
-<section>
-    {{#each url_extras}}
-        <a href="{{url}}">{{name}}</a>
-    {{/each}}
-    <!-- TODO: last modified, etc. -->
-</section>
+<footer class="navbar" role="navigation">
+    <ul class="nav navbar-nav">
+        {{#each url_extras}}
+        <li><a href="{{url}}">{{name}}</a></li>
+        {{/each}}
+        <!-- TODO: last modified, etc. -->
+    </ul>
+</footer>
