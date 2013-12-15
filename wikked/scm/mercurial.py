@@ -180,8 +180,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def getHistory(self, path=None, limit=10):
         if path is not None:
-            rel_path = os.path.relpath(path, self.root)
-            status = self.client.status(include=[rel_path])
+            status = self.client.status(include=[path])
             if len(status) > 0 and status[0] == '?':
                 return []
 
@@ -209,8 +208,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         return revisions
 
     def getState(self, path):
-        rel_path = os.path.relpath(path, self.root)
-        statuses = self.client.status(include=[rel_path])
+        statuses = self.client.status(include=[path])
         if len(statuses) == 0:
             return STATE_COMMITTED
         status = statuses[0]
@@ -221,14 +219,12 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         raise Exception("Unsupported status: %s" % status)
             
     def getRevision(self, path, rev):
-        rel_path = os.path.relpath(path, self.root)
-        return self.client.cat([rel_path], rev=rev)
+        return self.client.cat([path], rev=rev)
 
     def diff(self, path, rev1, rev2):
-        rel_path = os.path.relpath(path, self.root)
         if rev2 is None:
-            return self.client.diff(files=[rel_path], change=rev1, git=True)
-        return self.client.diff(files=[rel_path], revs=[rev1, rev2], git=True)
+            return self.client.diff(files=[path], change=rev1, git=True)
+        return self.client.diff(files=[path], revs=[rev1, rev2], git=True)
 
     def commit(self, paths, op_meta):
         if 'message' not in op_meta or not op_meta['message']:
@@ -250,7 +246,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def revert(self, paths=None):
         if paths is not None:
-            rel_paths = [os.path.relpath(p, self.root) for p in paths]
-            self.client.revert(files=rel_paths, nobackup=True)
+            self.client.revert(files=paths, nobackup=True)
         else:
             self.client.revert(all=True, nobackup=True)
+
