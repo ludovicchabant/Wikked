@@ -4,13 +4,9 @@ import time
 import logging
 import importlib
 from ConfigParser import SafeConfigParser, NoOptionError
-from page import FileSystemPage
-from fs import FileSystem
-from db.sql import SQLDatabase
-from scm.mercurial import MercurialCommandServerSourceControl
-from scm.git import GitLibSourceControl
-from indexer.native import WhooshWikiIndex
-from auth import UserManager
+from wikked.page import FileSystemPage
+from wikked.fs import FileSystem
+from wikked.auth import UserManager
 
 
 logger = logging.getLogger(__name__)
@@ -42,14 +38,23 @@ class WikiParameters(object):
         return FileSystem(self.root)
 
     def index_factory(self, config):
-        return WhooshWikiIndex()
+        index_type = config.get('wiki', 'indexer')
+        if index_type == 'whoosh':
+            from wikked.indexer.whoosh import WhooshWikiIndex
+            return WhooshWikiIndex()
+        elif index_type == 'elastic':
+            from wikked.indexer.elastic import ElasticWikiIndex
+            return ElasticWikiIndex()
+        else:
+            raise InitializationError("No such indexer: " + index_type)
 
     def db_factory(self, config):
+        from wikked.db.sql import SQLDatabase
         return SQLDatabase()
 
     def scm_factory(self, config):
         try:
-            scm_type = config.get('wiki', 'scm')
+            scm_type = config.get('wiki', 'sourcecontrol')
         except NoOptionError:
             # Auto-detect
             if os.path.isdir(os.path.join(self.root, '.hg')):
@@ -61,8 +66,10 @@ class WikiParameters(object):
                 scm_type = 'hg'
 
         if scm_type == 'hg':
+            from wikked.scm.mercurial import MercurialCommandServerSourceControl
             return MercurialCommandServerSourceControl(self.root)
         elif scm_type == 'git':
+            from wikked.scm.git import GitLibSourceControl
             return GitLibSourceControl(self.root)
         else:
             raise InitializationError("No such source control: " + scm_type)

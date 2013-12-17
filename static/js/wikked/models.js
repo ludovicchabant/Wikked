@@ -398,20 +398,13 @@ define([
     });
 
     var WikiSearchModel = exports.WikiSearchModel = MasterPageModel.extend({
-        urlRoot: '/api/search/',
+        urlRoot: '/api/search',
         action: 'search',
         title: function() {
             return 'Search';
         },
-        execute: function(query) {
-            var $model = this;
-            $.getJSON('/api/search', { q: query })
-                .success(function (data) {
-                    $model.set('hits', data.hits);
-                })
-                .error(function() {
-                    alert("Error searching...");
-                });
+        url: function() {
+            return this.urlRoot + '?q=' + this.get('query');
         }
     });
 

@@ -143,7 +143,7 @@ define([
                 query = this.getQueryVariable('q');
             }
             var view = new Views.WikiSearchView({
-                model: new Models.WikiSearchModel()
+                model: new Models.WikiSearchModel({ query: query })
             });
             this.viewManager.switchView(view);
             this.navigate('/search/' + query);

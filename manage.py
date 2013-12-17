@@ -38,10 +38,13 @@ def user(username=None, password=None):
 
 
 @manager.command
-def reset(cache=False):
+def reset(cache=False, index_only=False):
     """ Re-generates the database and the full-text-search index.
     """
-    wiki.reset(cache_ext_data=cache)
+    if index_only:
+        wiki.index.reset(wiki.getPages())
+    else:
+        wiki.reset(cache_ext_data=cache)
 
 
 @manager.command
@@ -82,6 +85,14 @@ def get(url, force_resolve=False, rev=None):
         print page.getRevision(rev)
         return
     print page.text
+
+
+@manager.command
+def search(query):
+    """ Searches the wiki.
+    """
+    hits = wiki.index.search(query)
+    print hits
 
 
 @manager.command

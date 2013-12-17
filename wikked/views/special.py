@@ -30,10 +30,13 @@ def api_special_orphans():
 def api_search():
     query = request.args.get('q')
 
-    def is_hit_readable(hit):
-        page = get_page_or_none(hit['url'])
-        return page is None or is_page_readable(page)
-    hits = filter(is_hit_readable, g.wiki.index.search(query))
-    result = {'query': query, 'hits': hits}
+    readable_hits = []
+    hits = list(g.wiki.index.search(query))
+    for h in hits:
+        page = get_page_or_none(h.url, convert_url=False)
+        if page is not None and is_page_readable(page):
+            readable_hits.append({'url': h.url, 'title': h.title, 'text': h.hl_text})
+
+    result = {'query': query, 'hit_count': len(readable_hits), 'hits': readable_hits}
     return make_auth_response(result)
 
