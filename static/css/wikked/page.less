@@ -71,20 +71,29 @@
 }
 
 // Search
-form.form-search {
-    display: inline-block;
+ul#search-preview {
+    position: absolute;
+    list-style: none;
     margin: 0;
+    padding: 0;
 
-    .search-query {
-        font-size: @font-size-small;
-        height: @font-size-small * 1.5;
+    li {
+        background: #fff;
+        border: 1px solid #eee;
+        margin: 0;
+        padding: 0;
+    }
+    a {
+        margin: 0;
+        padding: 0.5em;
+        display: inline-block;
+        width: 100%;
     }
 }
 ul.search-results {
     list-style: none;
 }
 b.match {
-    padding: 0 0.2em;
     background: #ffeb84;
 }
 

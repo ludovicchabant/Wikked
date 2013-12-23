@@ -34,17 +34,21 @@ define([
         },
         doPreviewSearch: function(query, callback) {
             if (this._isSearching) {
+                this._pendingQuery = query;
+                this._pendingCallback = callback;
                 return;
             }
             this._isSearching = true;
             var $model = this;
-            $.getJSON('/api/search', { q: query })
+            $.getJSON('/api/searchpreview', { q: query })
                 .done(function (data) {
                     $model._isSearching = false;
                     callback(data);
+                    this._flushPendingQuery();
                 })
                 .fail(function() {
                     $model._isSearching = false;
+                    this._flushPendingQuery();
                 });
         },
         doSearch: function(form) {
@@ -60,6 +64,17 @@ define([
             });
         },
         _isSearching: false,
+        _pendingQuery: null,
+        _pendingCallback: null,
+        _flushPendingQuery: function() {
+            if (this._pendingQuery && this._pendingCallback) {
+                var q = this._pendingQuery;
+                var c = this._pendingCallback;
+                this._pendingQuery = null;
+                this._pendingCallback = null;
+                this.doPreviewSearch(q, c);
+            }
+        },
         _onChangeAuth: function(auth) {
             if (auth) {
                 this.set({

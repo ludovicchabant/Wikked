@@ -1,11 +1,13 @@
 import os
 import os.path
-import codecs
 import logging
-from base import WikiIndex
-from whoosh.index import create_in, open_dir
+from base import WikiIndex, HitResult
+from whoosh.analysis import StemmingAnalyzer, CharsetFilter, NgramFilter
 from whoosh.fields import Schema, ID, TEXT, STORED
+from whoosh.highlight import WholeFragmenter
+from whoosh.index import create_in, open_dir
 from whoosh.qparser import QueryParser
+from whoosh.support.charset import accent_map
 
 
 logger = logging.getLogger(__name__)
@@ -62,31 +64,45 @@ class WhooshWikiIndex(WikiIndex):
             writer.commit()
         logger.debug("...done updating index.")
 
+    def previewSearch(self, query):
+        with self.ix.searcher() as searcher:
+            title_qp = QueryParser("title_preview", self.ix.schema).parse(query)
+            results = searcher.search(title_qp)
+            results.fragmenter = WholeFragmenter()
+
+            hits = []
+            for result in results:
+                hit = HitResult(
+                        result['url'],
+                        result.highlights('title_preview', text=result['title']))
+                hits.append(hit)
+            return hits
+
     def search(self, query):
         with self.ix.searcher() as searcher:
             title_qp = QueryParser("title", self.ix.schema).parse(query)
-            content_qp = QueryParser("content", self.ix.schema).parse(query)
-            comp_query = title_qp | content_qp
+            text_qp = QueryParser("text", self.ix.schema).parse(query)
+            comp_query = title_qp | text_qp
             results = searcher.search(comp_query)
 
-            page_infos = []
-            for hit in results:
-                page_info = {
-                        'title': hit['title'],
-                        'url': hit['url']
-                        }
-                page_info['title_highlights'] = hit.highlights('title')
-                with codecs.open(hit['path'], 'r', encoding='utf-8') as f:
-                    content = f.read()
-                page_info['content_highlights'] = hit.highlights('content', text=content)
-                page_infos.append(page_info)
-            return page_infos
+            hits = []
+            for result in results:
+                hit = HitResult(
+                        result['url'],
+                        result.highlights('title'),
+                        result.highlights('text'))
+                hits.append(hit)
+            return hits
 
     def _getSchema(self):
+        preview_analyzer = (StemmingAnalyzer() | CharsetFilter(accent_map) |
+                NgramFilter(minsize=3))
+        text_analyzer = StemmingAnalyzer() | CharsetFilter(accent_map)
         schema = Schema(
                 url=ID(stored=True),
-                title=TEXT(stored=True),
-                content=TEXT,
+                title_preview=TEXT(analyzer=preview_analyzer, stored=False),
+                title=TEXT(analyzer=text_analyzer, stored=True),
+                text=TEXT(analyzer=text_analyzer, stored=True),
                 path=STORED,
                 time=STORED
                 )
@@ -96,8 +112,9 @@ class WhooshWikiIndex(WikiIndex):
         logger.debug("Indexing '%s'." % page.url)
         writer.add_document(
             url=unicode(page.url),
+            title_preview=unicode(page.title),
             title=unicode(page.title),
-            content=unicode(page.raw_text),
+            text=unicode(page.text),
             path=page.path,
             time=os.path.getmtime(page.path)
             )

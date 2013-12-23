@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class ElasticWikiIndex(WikiIndex):
     def __init__(self):
-        pass
+        WikiIndex.__init__(self)
 
     def initIndex(self, wiki):
         self.es = Elasticsearch()

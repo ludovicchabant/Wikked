@@ -148,7 +148,8 @@ define([
         },
         render: function() {
             NavigationView.__super__.render.apply(this, arguments);
-            this.origPageEl = $('.wrapper>article');
+            this.searchPreviewList = this.$('#search-preview');
+            this.searchPreviewList.hide();
             return this;
         },
         events: {
@@ -162,34 +163,33 @@ define([
             return false;
         },
         _previewSearch: function(e) {
-            // Restore the original content if the query is now
-            // empty. Otherwise, run a search and render only the
-            // `article` portion of the results page.
-            var origPageEl = this.origPageEl;
-            var curPreviewEl = $('.wrapper>article[class~="preview-search-results"]');
             var query = $(e.currentTarget).val();
-            if (query && query.length > 0) {
-                var template = Handlebars.compile(tplSearchResults);
+            if (query && query.length >= 3) {
+                var $view = this;
                 this.model.doPreviewSearch(query, function(data) {
-                    data.is_instant = true;
-                    var resultList = $(template(data));
-                    var inner = $(resultList)
-                        .addClass('preview-search-results');
-                    if (origPageEl.is(':visible')) {
-                        inner.insertAfter(origPageEl);
-                        origPageEl.hide();
-                    } else {
-                        curPreviewEl.replaceWith(inner);
+                    var resultStr = '';
+                    for (var i = 0; i < data.hits.length; ++i) {
+                        var hitUrl = data.hits[i].url.replace(/^\//, '');
+                        console.log(hitUrl, data.hits[i].title);
+                        resultStr += '<li>' +
+                            '<a href="/#read/' + hitUrl + '">' +
+                            data.hits[i].title +
+                            '</a>' +
+                            '</li>';
                     }
+                    console.log("Adding hits to the preview list.");
+                    $view.searchPreviewList.html(resultStr);
+                    if (!$view.searchPreviewList.is(':visible'))
+                        $view.searchPreviewList.slideDown(200);
                 });
-            } else {
-                curPreviewEl.remove();
-                origPageEl.show();
+            } else if(!query || query.length === 0) {
+                this.searchPreviewList.slideUp(200);
             }
         },
         _searchQueryChanged: function(e) {
             if (e.keyCode == 27) {
                 // Clear search on `Esc`.
+                console.log("Clearing search results.");
                 $(e.currentTarget).val('').trigger('input');
             }
         }

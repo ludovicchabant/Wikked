@@ -40,7 +40,7 @@ class WikiParameters(object):
     def index_factory(self, config):
         index_type = config.get('wiki', 'indexer')
         if index_type == 'whoosh':
-            from wikked.indexer.whoosh import WhooshWikiIndex
+            from wikked.indexer.whooshidx import WhooshWikiIndex
             return WhooshWikiIndex()
         elif index_type == 'elastic':
             from wikked.indexer.elastic import ElasticWikiIndex
