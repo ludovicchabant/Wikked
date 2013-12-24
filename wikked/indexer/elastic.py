@@ -27,14 +27,53 @@ class ElasticWikiIndex(WikiIndex):
         self.es.indices.create(
                 'pages',
                 body={
+                    'settings': {
+                        'analysis': {
+                            'analyzer': {
+                                'pageTitlePreviewAnalyzer': {
+                                    'type': 'custom',
+                                    'tokenizer': 'standard',
+                                    'filter': ['pageTitlePreviewFilter', 'lowercase']
+                                    },
+                                'pageTextAnalyzer': {
+                                    'type': 'custom',
+                                    'tokenizer': 'standard',
+                                    'filter': ['standard', 'lowercase', 'stop'],
+                                    'char_filter': 'html_strip'
+                                    }
+                                },
+                            'filter': {
+                                'pageTitlePreviewFilter': {
+                                    'type': 'edgeNGram',
+                                    'min_gram': 2,
+                                    'max_gram': 10,
+                                    'token_chars': ['letter', 'digit']
+                                    }
+                                }
+                            }
+                        },
                     'mappings': {
                         'page': {
                             'properties': {
                                 'url': {'type': 'string', 'index': 'not_analyzed'},
                                 'path': {'type': 'string', 'index': 'not_analyzed'},
                                 'time': {'type': 'float', 'index': 'not_analyzed'},
-                                'title': {'type': 'string', 'boost': 2.0},
-                                'text': {'type': 'string', 'index': 'analyzed', 'store': 'yes', 'analyzer': 'pageTextAnalyzer'}
+                                'title_preview': {
+                                    'type': 'string',
+                                    'index': 'analyzed',
+                                    'analyzer': 'pageTitlePreviewAnalyzer'
+                                    },
+                                'title': {
+                                    'type': 'string',
+                                    'boost': 4.0,
+                                    'store': 'yes'
+                                    },
+                                'text': {
+                                    'type': 'string',
+                                    'index': 'analyzed',
+                                    'store': 'yes',
+                                    'analyzer': 'pageTextAnalyzer'
+                                    }
                                 },
                             '_meta': {
                                 'version': INDEX_VERSION
@@ -114,17 +153,21 @@ class ElasticWikiIndex(WikiIndex):
         actions = action_maker()
         bulk_index(self.es, actions)
 
-    def search(self, query):
+    def previewSearch(self, query):
         body = {
+                'explain': True,
+                'fields': ['title_preview', 'url'],
                 'query': {
-                    'match': {'text': query}
+                    'query_string': {
+                        'fields': ['title_preview'],
+                        'query': query
+                        }
                     },
                 'highlight': {
                     'tags_schema': 'styled',
-                    'fragment_size': 150,
+                    'order': 'score',
                     'fields': {
-                        'title': {'number_of_fragments': 0},
-                        'text': {'number_of_fragments': 5, 'order': 'score'}
+                        'title_preview': {'number_of_fragments': 2}
                         }
                     }
                 }
@@ -132,15 +175,42 @@ class ElasticWikiIndex(WikiIndex):
                 index='pages',
                 doc_type='page',
                 body=body)
-        logger.debug("Got %d hits." % res['hits']['total'])
         for h in res['hits']['hits']:
-            yield HitResult(h['_source']['url'], h['_source']['title'], h['highlight']['text'])
+            yield HitResult(h['fields']['url'], h['highlight']['title_preview'])
+
+    def search(self, query):
+        body = {
+                'fields': ['url', 'title', 'text'],
+                'query': {
+                    'query_string': {
+                        'fields': ['title', 'text'],
+                        'query': query
+                        }
+                    },
+                'highlight': {
+                    'tags_schema': 'styled',
+                    'order': 'score',
+                    'fragment_size': 150,
+                    'fields': {
+                        'title': {'number_of_fragments': 2},
+                        'text': {'number_of_fragments': 5}
+                        }
+                    }
+                }
+        res = self.es.search(
+                index='pages',
+                doc_type='page',
+                body=body)
+        for h in res['hits']['hits']:
+            yield HitResult(h['fields']['url'], h['fields']['title'],
+                    h['highlight']['text'])
 
     def _get_body(self, page):
         return {
                 'url': page.url,
                 'path': page.path,
                 'time': os.path.getmtime(page.path),
+                'title_preview': page.title,
                 'title': page.title,
                 'text': page.text
                 }
