@@ -170,14 +170,12 @@ define([
                     var resultStr = '';
                     for (var i = 0; i < data.hits.length; ++i) {
                         var hitUrl = data.hits[i].url.replace(/^\//, '');
-                        console.log(hitUrl, data.hits[i].title);
                         resultStr += '<li>' +
                             '<a href="/#read/' + hitUrl + '">' +
                             data.hits[i].title +
                             '</a>' +
                             '</li>';
                     }
-                    console.log("Adding hits to the preview list.");
                     $view.searchPreviewList.html(resultStr);
                     if (!$view.searchPreviewList.is(':visible'))
                         $view.searchPreviewList.slideDown(200);
@@ -189,7 +187,6 @@ define([
         _searchQueryChanged: function(e) {
             if (e.keyCode == 27) {
                 // Clear search on `Esc`.
-                console.log("Clearing search results.");
                 $(e.currentTarget).val('').trigger('input');
             }
         }
