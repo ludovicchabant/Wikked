@@ -160,6 +160,7 @@ class ElasticWikiIndex(WikiIndex):
                 'query': {
                     'query_string': {
                         'fields': ['title_preview'],
+                        'default_operator': 'AND',
                         'query': query
                         }
                     },
@@ -184,6 +185,7 @@ class ElasticWikiIndex(WikiIndex):
                 'query': {
                     'query_string': {
                         'fields': ['title', 'text'],
+                        'default_operator': 'AND',
                         'query': query
                         }
                     },
