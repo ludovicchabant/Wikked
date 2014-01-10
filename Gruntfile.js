@@ -71,7 +71,6 @@ module.exports = function(grunt) {
       production: {
         files: [
           {expand: true, cwd: 'static/', dest: 'build/', src: ['js/require.js']},
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['css/*.css']},
           {expand: true, cwd: 'static/', dest: 'build/', src: ['font-awesome/font/**']}
         ]
       }
