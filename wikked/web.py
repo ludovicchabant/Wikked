@@ -5,7 +5,7 @@ from flask import Flask, abort, g
 from utils import find_wiki_root
 
 # Create the main app.
-static_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'build')
+static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app = Flask(
         'wikked',
         static_folder=static_folder,

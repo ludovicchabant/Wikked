@@ -1,0 +1,5 @@
+include wikked/static/css/wikked.min.css
+include wikked/static/img/*.png
+include wikked/static/js/require.js
+include wikked/static/js/wikked.min.js
+

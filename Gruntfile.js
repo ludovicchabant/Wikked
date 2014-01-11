@@ -6,19 +6,19 @@ module.exports = function(grunt) {
     less: {
       development: {
         options: {
-          paths: ["static"]
+          paths: ["wikked/assets"]
         },
         files: {
-          "build/css/wikked.min.css": "static/css/wikked.less"
+          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less"
         }
       },
       production: {
         options: {
-          paths: ["static"],
+          paths: ["wikked/assets"],
           compress: true
         },
         files: {
-          "build/css/wikked.min.css": "static/css/wikked.less"
+          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less"
         }
       }
     },
@@ -26,70 +26,73 @@ module.exports = function(grunt) {
       development: {
         options: {
           optimize: "none",
-          baseUrl: "static",
-          mainConfigFile: "static/js/wikked.js",
+          baseUrl: "wikked/assets",
+          mainConfigFile: "wikked/assets/js/wikked.js",
           name: "js/wikked",
-          out: "build/js/wikked.min.js"
+          out: "wikked/static/js/wikked.min.js"
         }
       },
       production: {
         options: {
           optimize: "uglify",
-          baseUrl: "static",
-          mainConfigFile: "static/js/wikked.js",
+          baseUrl: "wikked/assets",
+          mainConfigFile: "wikked/assets/js/wikked.js",
           name: "js/wikked",
-          out: "build/js/wikked.min.js"
+          out: "wikked/static/js/wikked.min.js"
         }
       }
     },
     imagemin: {
       all: {
-        files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['img/*.{png,jpg,gif}']}
-        ]
+        files: [{
+              expand: true,
+              cwd: 'wikked/assets/',
+              dest: 'wikked/static/',
+              src: ['img/*.{png,jpg,gif}']
+        }]
       }
     },
     copy: {
       development: {
         files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['img/**']},
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['js/**']},
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['tpl/**']},
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['bootstrap/js/*.js']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['img/**']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/**']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/js/*.js']}
         ]
       },
       dev_scripts: {
         files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['js/wikked.js', 'js/wikked/**']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/wikked.js', 'js/wikked/**']}
         ]
       },
       dev_templates: {
         files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['tpl/**']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']}
         ]
       },
       production: {
         files: [
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['js/require.js']},
-          {expand: true, cwd: 'static/', dest: 'build/', src: ['font-awesome/font/**']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/require.js']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['font-awesome/font/**']}
         ]
       }
     },
     jshint: {
-      all: ['static/js/wikked.js', 'static/js/wikked/**/*.js'],
+      all: ['wikked/assets/js/wikked.js', 'wikked/assets/js/wikked/**/*.js'],
       gruntfile: ['Gruntfile.js']
     },
     watch: {
       scripts: {
-        files: ['static/js/wikked.js', 'static/js/wikked/**'],
+        files: ['wikked/assets/js/wikked.js', 'wikked/assets/js/wikked/**'],
         tasks: ['jshint:all', 'copy:dev_scripts']
       },
       templates: {
-        files: ['static/tpl/**/*.html'],
+        files: ['wikked/assets/tpl/**/*.html'],
         tasks: ['copy:dev_templates']
       },
       styles: {
-        files: ['static/css/**/*.less'],
+        files: ['wikked/assets/css/**/*.less'],
         tasks: ['less:development']
       },
       gruntfile: {

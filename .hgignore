@@ -1,8 +1,12 @@
 syntax:glob
 venv
 node_modules
+wikked/static
+dist
 build
 *.pyc
 *.pyo
 *.sublime-*
+MANIFEST
+Wikked.egg-info
 
