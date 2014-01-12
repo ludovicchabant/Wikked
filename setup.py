@@ -1,6 +1,7 @@
 import os
 import os.path
 from setuptools import setup, find_packages
+from wikked import VERSION
 
 
 def read(fname):
@@ -8,14 +9,19 @@ def read(fname):
         return fp.read()
 
 
+#TODO: get the build version from the source control revision.
+BUILD_VERSION = 4
+FULL_VERSION = '%s.%s' % (VERSION, BUILD_VERSION)
+
+
 setup(
         name='Wikked',
-        version='0.1.0.3',
+        version=FULL_VERSION,
         description=("A wiki engine entirely managed with text files "
             "stored in a revision control system."),
         author='Ludovic Chabant',
         author_email='ludovic@chabant.com',
-        url="http://bolt80.com/wikked/",
+        url="https://github.com/ludovicchabant/Wikked",
         license="Apache 2.0",
         keywords="wiki mercurial hg git",
         packages=find_packages(exclude=["tests"]),
