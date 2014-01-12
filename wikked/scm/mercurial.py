@@ -38,7 +38,7 @@ class MercurialBaseSourceControl(SourceControl):
             logger.info("Creating `.hgignore` file.")
             with open(ignore_path, 'w') as f:
                 f.write('.wiki')
-            self.commit([ignore_path], "Created `.hgignore`.")
+            self.commit([ignore_path], {'message': "Created `.hgignore`."})
 
     def getSpecialFilenames(self):
         return ['.hg*']
