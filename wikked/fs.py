@@ -37,7 +37,7 @@ class FileSystem(object):
     def __init__(self, root):
         self.root = unicode(root)
 
-        self.excluded = []
+        self.excluded = None
         self.page_extensions = None
         self.default_extension = '.txt'
 
@@ -45,8 +45,10 @@ class FileSystem(object):
         self.page_extensions = list(set(
             itertools.chain(*wiki.formatters.itervalues())))
 
-        self.excluded += wiki.getSpecialFilenames()
-        self.excluded += wiki.scm.getSpecialFilenames()
+        excluded = []
+        excluded += wiki.getSpecialFilenames()
+        excluded += wiki.scm.getSpecialFilenames()
+        self.excluded = [os.path.join(self.root, e) for e in excluded]
 
         self.default_extension = wiki.config.get('wiki', 'default_extension')
 
@@ -56,7 +58,15 @@ class FileSystem(object):
             basepath = self.getPhysicalNamespacePath(subdir)
 
         for dirpath, dirnames, filenames in os.walk(basepath):
-            dirnames[:] = [d for d in dirnames if os.path.join(dirpath, d) not in self.excluded]
+            incl_dirnames = []
+            for d in dirnames:
+                full_d = os.path.join(dirpath, d)
+                for e in self.excluded:
+                    if fnmatch.fnmatch(full_d, e):
+                        break
+                else:
+                    incl_dirnames.append(d)
+            dirnames[:] = incl_dirnames
             for filename in filenames:
                 path = os.path.join(dirpath, filename)
                 page_info = self.getPageInfo(path)

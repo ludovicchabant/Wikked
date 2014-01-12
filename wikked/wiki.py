@@ -119,6 +119,14 @@ class Wiki(object):
 
         self.auth = UserManager(self.config)
 
+        if self.config.getboolean('wiki', 'async_updates'):
+            logger.debug("Setting up asynchronous updater.")
+            from tasks import update_wiki
+            self._updateSetPage = lambda url: update_wiki.delay(self.root)
+        else:
+            logger.debug("Setting up simple updater.")
+            self._updateSetPage = lambda url: self.update(url, cache_ext_data=False)
+
     @property
     def root(self):
         return self.fs.root
@@ -210,7 +218,7 @@ class Wiki(object):
 
         # Update the DB and index with the new/modified page.
         if do_update:
-            self.update(url, cache_ext_data=False)
+            self._updateSetPage(url)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
@@ -254,8 +262,11 @@ class Wiki(object):
         return self.scm.getHistory(limit=limit)
 
     def getSpecialFilenames(self):
-        yield os.path.join(self.root, '.wikirc')
-        yield os.path.join(self.root, '.wiki')
+        yield '.wikirc'
+        yield '.wiki'
+        if self.config.has_section('ignore'):
+            for name, val in self.config.items('ignore'):
+                yield val
 
     def _cachePages(self, only_urls=None):
         logger.debug("Caching extended page data...")

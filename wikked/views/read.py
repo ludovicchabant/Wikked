@@ -80,7 +80,7 @@ def api_read_page(url):
     tpl_data = {
             'name': endpoint,
             'value': value,
-            'safe_value': urllib.quote(value),
+            'safe_value': urllib.quote(value.encode('utf-8')),
             'pages': [get_page_meta(p) for p in pages]
             # TODO: skip pages that are forbidden for the current user
         }
@@ -95,7 +95,7 @@ def api_read_page(url):
             'meta_value': value,
             'query': query,
             'meta': {
-                    'url': urllib.quote(meta_page_url),
+                    'url': urllib.quote(meta_page_url.encode('utf-8')),
                     'title': value
                 },
             'text': text

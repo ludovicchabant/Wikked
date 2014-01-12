@@ -3,7 +3,6 @@ from flask import g, abort, request, jsonify
 from flask.ext.login import current_user
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
-from wikked.tasks import update_wiki
 from wikked.views import (make_page_title, make_auth_response, get_page_or_none,
         is_page_writable, get_page_meta, url_from_viewarg,
         split_url_from_viewarg)
@@ -41,7 +40,7 @@ def get_edit_page(url, default_title=None, custom_data=None):
     if page is None:
         result = {
                 'meta': {
-                    'url': urllib.quote(url),
+                    'url': urllib.quote(url.encode('utf-8')),
                     'title': default_title or make_page_title(url)
                     },
                 'text': ''
@@ -83,10 +82,7 @@ def do_edit_page(url, default_message):
             'author': author,
             'message': message
             }
-    do_sync_update = app.config['SYNCHRONOUS_UPDATE']
-    g.wiki.setPage(url, page_fields, do_update=do_sync_update)
-    if not do_sync_update:
-        update_wiki.delay(g.wiki.root)
+    g.wiki.setPage(url, page_fields)
 
     result = {'saved': 1}
     return make_auth_response(result)

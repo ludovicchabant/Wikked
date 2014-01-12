@@ -41,8 +41,7 @@ class MercurialBaseSourceControl(SourceControl):
             self.commit([ignore_path], "Created `.hgignore`.")
 
     def getSpecialFilenames(self):
-        specials = ['.hg', '.hgignore', '.hgtags']
-        return [os.path.join(self.root, d) for d in specials]
+        return ['.hg*']
 
 
 class MercurialSourceControl(MercurialBaseSourceControl):
@@ -217,7 +216,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         if status[0] == 'M':
             return STATE_MODIFIED
         raise Exception("Unsupported status: %s" % status)
-            
+
     def getRevision(self, path, rev):
         return self.client.cat([path], rev=rev)
 

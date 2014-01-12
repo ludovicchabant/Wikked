@@ -71,7 +71,7 @@ def get_page_meta(page, local_only=False):
     else:
         meta = dict(page.meta)
     meta['title'] = page.title
-    meta['url'] = urllib.quote(page.url)
+    meta['url'] = urllib.quote(page.url.encode('utf-8'))
     for name in COERCE_META:
         if name in meta:
             meta[name] = COERCE_META[name](meta[name])
@@ -82,7 +82,7 @@ def get_category_meta(category):
     result = []
     for item in category:
         result.append({
-            'url': urllib.quote(item),
+            'url': urllib.quote(item.encode('utf-8')),
             'name': item
             })
     return result

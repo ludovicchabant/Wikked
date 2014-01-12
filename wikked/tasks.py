@@ -1,9 +1,17 @@
 import logging
-from backend import app
+from celery import Celery
 from wiki import Wiki, WikiParameters
 
 
 logger = logging.getLogger(__name__)
+
+
+#TODO: Make those settings configurable!
+app = Celery(
+        'wikked',
+        broker='amqp://',
+        backend='amqp://',
+        include=['wikked.tasks'])
 
 
 class wiki_session(object):

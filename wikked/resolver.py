@@ -196,7 +196,7 @@ class PageResolver(object):
                 raw_url = unicode(m.group('url'))
                 url = self.ctx.getAbsoluteUrl(raw_url)
                 self.output.out_links.append(url)
-                quoted_url = urllib.quote(url)
+                quoted_url = urllib.quote(url.encode('utf-8'))
                 if self.wiki.pageExists(url):
                     return '<a class="wiki-link" data-wiki-url="%s">' % quoted_url
                 return '<a class="wiki-link missing" data-wiki-url="%s">' % quoted_url

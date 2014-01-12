@@ -62,7 +62,7 @@ def get_absolute_url(base_url, url, quote=False):
         raw_abs_url = os.path.join(urldir, url)
         abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
     if quote:
-        abs_url = urllib.quote(abs_url)
+        abs_url = urllib.quote(abs_url.encode('utf-8'))
     return abs_url
 
 
