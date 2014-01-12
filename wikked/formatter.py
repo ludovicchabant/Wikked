@@ -141,7 +141,7 @@ class PageFormatter(object):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
             return s._formatWikiLink(ctx, b, url)
-        text = re.sub(r'\[\[([^\]]+/)?([^\]]+)\]\]', repl4, text)
+        text = re.sub(r'\[\[([^\]]*/)?([^/\]]+)\]\]', repl4, text)
 
         return text
 
