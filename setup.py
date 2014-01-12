@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
         name='Wikked',
-        version='0.1.0.0',
+        version='0.1.0.3',
         description=("A wiki engine entirely managed with text files "
             "stored in a revision control system."),
         author='Ludovic Chabant',
@@ -33,7 +33,7 @@ setup(
             'Whoosh>=2.4.1',
             'argparse>=1.2.1',
             'pybars>=0.0.4',
-            'python-hglib>=1.0',
+            'python-hglib',
             'twill>=0.9',
             'wsgiref>=0.1.2'
             ],
@@ -41,11 +41,13 @@ setup(
         include_package_data=True,
         package_data={
             'wikked': [
+                'resources/*',
                 'templates/*.html',
                 'static/css/wikked.min.css',
                 'static/img/*.png',
                 'static/js/require.js',
-                'static/js/wikked.min.js'
+                'static/js/wikked.min.js',
+                'static/js/pagedown/*.js'
                 ]
             },
         zip_safe=False,

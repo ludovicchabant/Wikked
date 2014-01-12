@@ -74,6 +74,7 @@ module.exports = function(grunt) {
       production: {
         files: [
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/require.js']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/pagedown/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['font-awesome/font/**']}
         ]
       }
