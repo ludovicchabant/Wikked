@@ -27,6 +27,9 @@ class MercurialBaseSourceControl(SourceControl):
                 }
 
     def initRepo(self, wiki):
+        pass
+
+    def createRepo(self):
         # Make a Mercurial repo if there's none.
         if not os.path.isdir(os.path.join(self.root, '.hg')):
             logger.info("Creating Mercurial repository at: " + self.root)

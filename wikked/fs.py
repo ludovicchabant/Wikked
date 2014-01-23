@@ -34,12 +34,12 @@ class FileSystem(object):
         file-system paths, and for scanning the file-system
         to list existing pages.
     """
-    def __init__(self, root):
+    def __init__(self, root, config):
         self.root = unicode(root)
 
         self.excluded = None
         self.page_extensions = None
-        self.default_extension = '.txt'
+        self.default_extension = config.get('wiki', 'default_extension')
 
     def initFs(self, wiki):
         self.page_extensions = list(set(
@@ -50,13 +50,12 @@ class FileSystem(object):
         excluded += wiki.scm.getSpecialFilenames()
         self.excluded = [os.path.join(self.root, e) for e in excluded]
 
-        self.default_extension = wiki.config.get('wiki', 'default_extension')
-
     def getPageInfos(self, subdir=None):
         basepath = self.root
         if subdir is not None:
             basepath = self.getPhysicalNamespacePath(subdir)
 
+        logger.debug("Scanning for pages in: %s" % basepath)
         for dirpath, dirnames, filenames in os.walk(basepath):
             incl_dirnames = []
             for d in dirnames:
@@ -74,6 +73,7 @@ class FileSystem(object):
                     yield page_info
 
     def getPageInfo(self, path):
+        logger.debug("Reading page info from: %s" % path)
         if not isinstance(path, unicode):
             path = unicode(path)
         for e in self.excluded:
@@ -82,6 +82,7 @@ class FileSystem(object):
         return self._getPageInfo(path)
 
     def getPage(self, url):
+        logger.debug("Searching for page: %s" % url)
         path = self.getPhysicalPagePath(url)
         return PageInfo(url, path)
 
@@ -93,6 +94,7 @@ class FileSystem(object):
         return PageInfo(url, path)
 
     def pageExists(self, url):
+        logger.debug("Searching for page: %s" % url)
         try:
             self.getPhysicalPagePath(url)
             return True

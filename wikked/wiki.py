@@ -31,48 +31,72 @@ class WikiParameters(object):
         if root is None:
             root = os.getcwd()
         self.root = root
-
         self.formatters = self.getFormatters()
+        self._config = None
+        self._index_factory = None
+        self._scm_factory = None
+        self._page_updater = None
 
-    def fs_factory(self, config):
-        return FileSystem(self.root)
+    @property
+    def config(self):
+        if self._config is None:
+            self._loadConfig()
+        return self._config
 
-    def index_factory(self, config):
-        index_type = config.get('wiki', 'indexer')
-        if index_type == 'whoosh':
-            from wikked.indexer.whooshidx import WhooshWikiIndex
-            return WhooshWikiIndex()
-        elif index_type == 'elastic':
-            from wikked.indexer.elastic import ElasticWikiIndex
-            return ElasticWikiIndex()
-        else:
-            raise InitializationError("No such indexer: " + index_type)
+    def fs_factory(self):
+        return FileSystem(self.root, self.config)
 
-    def db_factory(self, config):
-        from wikked.db.sql import SQLDatabase
-        return SQLDatabase()
-
-    def scm_factory(self, config):
-        try:
-            scm_type = config.get('wiki', 'sourcecontrol')
-        except NoOptionError:
-            # Auto-detect
-            if os.path.isdir(os.path.join(self.root, '.hg')):
-                scm_type = 'hg'
-            elif os.path.isdir(os.path.join(self.root, '.git')):
-                scm_type = 'git'
+    def index_factory(self):
+        if self._index_factory is None:
+            index_type = self.config.get('wiki', 'indexer')
+            if index_type == 'whoosh':
+                def impl():
+                    from wikked.indexer.whooshidx import WhooshWikiIndex
+                    return WhooshWikiIndex()
+                self._index_factory = impl
+            elif index_type == 'elastic':
+                def impl():
+                    from wikked.indexer.elastic import ElasticWikiIndex
+                    return ElasticWikiIndex()
+                self._index_factory = impl
             else:
-                # Default to Mercurial. Yes. I just decided that myself.
-                scm_type = 'hg'
+                raise InitializationError("No such indexer: " + index_type)
+        return self._index_factory()
 
-        if scm_type == 'hg':
-            from wikked.scm.mercurial import MercurialCommandServerSourceControl
-            return MercurialCommandServerSourceControl(self.root)
-        elif scm_type == 'git':
-            from wikked.scm.git import GitLibSourceControl
-            return GitLibSourceControl(self.root)
-        else:
-            raise InitializationError("No such source control: " + scm_type)
+    def db_factory(self):
+        from wikked.db.sql import SQLDatabase
+        return SQLDatabase(self.config)
+
+    def scm_factory(self):
+        if self._scm_factory is None:
+            try:
+                scm_type = self.config.get('wiki', 'sourcecontrol')
+            except NoOptionError:
+                # Auto-detect
+                if os.path.isdir(os.path.join(self.root, '.hg')):
+                    scm_type = 'hg'
+                elif os.path.isdir(os.path.join(self.root, '.git')):
+                    scm_type = 'git'
+                else:
+                    # Default to Mercurial. Yes. I just decided that myself.
+                    scm_type = 'hg'
+
+            if scm_type == 'hg':
+                def impl():
+                    from wikked.scm.mercurial import MercurialCommandServerSourceControl
+                    return MercurialCommandServerSourceControl(self.root)
+                self._scm_factory = impl
+            elif scm_type == 'git':
+                def impl():
+                    from wikked.scm.git import GitLibSourceControl
+                    return GitLibSourceControl(self.root)
+                self._scm_factory = impl
+            else:
+                raise InitializationError("No such source control: " + scm_type)
+        return self._scm_factory()
+
+    def auth_factory(self):
+        return UserManager(self.config)
 
     def getFormatters(self):
         formatters = {passthrough_formatter: ['txt', 'html']}
@@ -81,6 +105,24 @@ class WikiParameters(object):
         self.tryAddFormatter(formatters, 'creole', 'creole2html', ['cr', 'creole'])
         return formatters
 
+    def getSpecialFilenames(self):
+        yield '.wikirc'
+        yield '.wiki'
+        if self.config.has_section('ignore'):
+            for name, val in self.config.items('ignore'):
+                yield val
+
+    def getPageUpdater(self):
+        if self._page_updater is None:
+            if self.config.getboolean('wiki', 'async_updates'):
+                logger.debug("Setting up asynchronous updater.")
+                from tasks import update_wiki
+                self._page_updater = lambda url: update_wiki.delay(self.root)
+            else:
+                logger.debug("Setting up simple updater.")
+                self._page_updater = lambda url: self.update(url, cache_ext_data=False)
+        return self._page_updater
+
     def tryAddFormatter(self, formatters, module_name, module_func, extensions):
         try:
             module = importlib.import_module(module_name)
@@ -88,6 +130,20 @@ class WikiParameters(object):
             formatters[func] = extensions
         except ImportError:
             pass
+
+    def _loadConfig(self):
+        # Merge the default settings with any settings provided by
+        # the local config file(s).
+        config_path = os.path.join(self.root, '.wikirc')
+        local_config_path = os.path.join(self.root, '.wiki', 'wikirc')
+        default_config_path = os.path.join(
+            os.path.dirname(__file__), 'resources', 'defaults.cfg')
+
+        config = SafeConfigParser()
+        config.readfp(open(default_config_path))
+        config.set('wiki', 'root', self.root)
+        config.read([config_path, local_config_path])
+        self._config = config
 
 
 class Wiki(object):
@@ -104,34 +160,25 @@ class Wiki(object):
 
         logger.debug("Initializing wiki.")
 
-
-        self.parameters = parameters
-        self.config = self._loadConfig(parameters)
-        self.main_page_url = '/' + self.config.get('wiki', 'main_page').strip('/')
-        self.templates_url = '/' + self.config.get('wiki', 'templates_dir').strip('/') + '/'
-
         self.formatters = parameters.formatters
+        self.special_filenames = parameters.getSpecialFilenames()
 
-        self.fs = parameters.fs_factory(self.config)
-        self.index = parameters.index_factory(self.config)
-        self.db = parameters.db_factory(self.config)
-        self.scm = parameters.scm_factory(self.config)
+        self.main_page_url = '/' + parameters.config.get('wiki', 'main_page').strip('/')
+        self.templates_url = '/' + parameters.config.get('wiki', 'templates_dir').strip('/') + '/'
 
-        self.auth = UserManager(self.config)
+        self.fs = parameters.fs_factory()
+        self.index = parameters.index_factory()
+        self.db = parameters.db_factory()
+        self.scm = parameters.scm_factory()
+        self.auth = parameters.auth_factory()
 
-        if self.config.getboolean('wiki', 'async_updates'):
-            logger.debug("Setting up asynchronous updater.")
-            from tasks import update_wiki
-            self._updateSetPage = lambda url: update_wiki.delay(self.root)
-        else:
-            logger.debug("Setting up simple updater.")
-            self._updateSetPage = lambda url: self.update(url, cache_ext_data=False)
+        self._updateSetPage = parameters.getPageUpdater()
 
     @property
     def root(self):
         return self.fs.root
 
-    def start(self, update=True):
+    def start(self, update=False):
         """ Properly initializes the wiki and all its sub-systems.
         """
         self.fs.initFs(self)
@@ -262,11 +309,7 @@ class Wiki(object):
         return self.scm.getHistory(limit=limit)
 
     def getSpecialFilenames(self):
-        yield '.wikirc'
-        yield '.wiki'
-        if self.config.has_section('ignore'):
-            for name, val in self.config.items('ignore'):
-                yield val
+        return self.special_filenames
 
     def _cachePages(self, only_urls=None):
         logger.debug("Caching extended page data...")
@@ -277,20 +320,6 @@ class Wiki(object):
         else:
             for page in self.db.getUncachedPages():
                 page._ensureExtendedData()
-
-    def _loadConfig(self, parameters):
-        # Merge the default settings with any settings provided by
-        # the parameters.
-        config_path = os.path.join(parameters.root, '.wikirc')
-        local_config_path = os.path.join(parameters.root, '.wiki', 'wikirc')
-        default_config_path = os.path.join(
-            os.path.dirname(__file__), 'resources', 'defaults.cfg')
-
-        config = SafeConfigParser()
-        config.readfp(open(default_config_path))
-        config.set('wiki', 'root', parameters.root)
-        config.read([config_path, local_config_path])
-        return config
 
 
 def reloader_stat_loop(wiki, interval=1):

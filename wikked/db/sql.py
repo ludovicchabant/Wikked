@@ -34,11 +34,11 @@ class SQLPage(Base):
     title = Column(Text)
     raw_text = Column(Text)
     formatted_text = Column(Text)
-    
-    meta = relationship('SQLMeta', order_by='SQLMeta.id', 
+
+    meta = relationship('SQLMeta', order_by='SQLMeta.id',
             backref=backref('page'),
             cascade='all, delete, delete-orphan')
-    links = relationship('SQLLink', order_by='SQLLink.id', 
+    links = relationship('SQLLink', order_by='SQLLink.id',
             backref=backref('source'),
             cascade='all, delete, delete-orphan')
 
@@ -48,7 +48,7 @@ class SQLPage(Base):
     ready_meta = relationship('SQLReadyMeta', order_by='SQLReadyMeta.id',
             backref=backref('page'),
             cascade='all, delete, delete-orphan')
-    ready_links = relationship('SQLReadyLink', order_by='SQLReadyLink.id', 
+    ready_links = relationship('SQLReadyLink', order_by='SQLReadyLink.id',
             backref=backref('source'),
             cascade='all, delete, delete-orphan')
 
@@ -92,7 +92,7 @@ class SQLLink(Base):
 
 class SQLReadyLink(Base):
     __tablename__ = 'ready_links'
- 
+
     id = Column(Integer, primary_key=True)
     source_id = Column(Integer, ForeignKey('pages.id'))
     target_url = Column(Text)
@@ -116,16 +116,18 @@ class SQLDatabase(Database):
     """
     schema_version = 3
 
-    def __init__(self):
+    def __init__(self, config):
         Database.__init__(self)
         self.engine = None
+        self.session = None
+        self.engine_url = config.get('wiki', 'database_url')
+        self.auto_update = config.getboolean('wiki', 'auto_update')
 
     def initDb(self, wiki):
         self.wiki = wiki
 
-        engine_url = wiki.config.get('wiki', 'database_url')
-        logger.info("Using database from URL: %s" % engine_url)
-        self.engine = create_engine(engine_url, convert_unicode=True)
+        logger.info("Using database from URL: %s" % self.engine_url)
+        self.engine = create_engine(self.engine_url, convert_unicode=True)
         self.session = scoped_session(sessionmaker(
                 autocommit=False,
                 autoflush=False,
@@ -134,7 +136,7 @@ class SQLDatabase(Database):
         Base.query = self.session.query_property()
 
         create_schema = False
-        if engine_url != 'sqlite:///:memory:':
+        if self.engine_url != 'sqlite:///:memory:':
             # The existing schema is outdated, re-create it.
             schema_version = self._getSchemaVersion()
             if schema_version < self.schema_version:
@@ -212,7 +214,7 @@ class SQLDatabase(Database):
                     all()
             for p in db_pages:
                 p.is_ready = False
-            
+
             self.session.commit()
 
         logger.debug("...done updating SQL database.")
@@ -239,7 +241,7 @@ class SQLDatabase(Database):
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
         for p in q.all():
-            yield SQLDatabasePage(self.wiki, db_obj=p)
+            yield SQLDatabasePage(self, db_obj=p)
 
     def pageExists(self, url=None, path=None):
         # TODO: replace with an `EXIST` query.
@@ -258,21 +260,21 @@ class SQLDatabase(Database):
                 filter(SQLPage.is_ready == False).\
                 all()
         for p in q:
-            yield SQLDatabasePage(self.wiki, db_obj=p)
+            yield SQLDatabasePage(self, db_obj=p)
 
     def _getPageByUrl(self, url):
         q = self.session.query(SQLPage).filter_by(url=url)
         page = q.first()
         if page is None:
             return None
-        return SQLDatabasePage(self.wiki, db_obj=page)
+        return SQLDatabasePage(self, db_obj=page)
 
     def _getPageByPath(self, path):
         q = self.session.query(SQLPage).filter_by(path=path)
         page = q.first()
         if page is None:
             return None
-        return SQLDatabasePage(self.wiki, db_obj=page)
+        return SQLDatabasePage(self, db_obj=page)
 
     def _createSchema(self):
         Base.metadata.drop_all(self.engine)
@@ -361,14 +363,13 @@ class SQLDatabase(Database):
 class SQLDatabasePage(Page):
     """ A page that can load its properties from a database.
     """
-    def __init__(self, wiki, url=None, db_obj=None):
+    def __init__(self, db, url=None, db_obj=None):
         if url and db_obj:
             raise Exception("You can't specify both an url and a database object.")
         if not url and not db_obj:
             raise Exception("You need to specify either a url or a database object.")
 
-        super(SQLDatabasePage, self).__init__(wiki, url or db_obj.url)
-        self.auto_update = wiki.config.getboolean('wiki', 'auto_update')
+        super(SQLDatabasePage, self).__init__(db.wiki, url or db_obj.url)
         self._db_obj = db_obj
 
     @property
@@ -397,7 +398,7 @@ class SQLDatabasePage(Page):
         self.wiki.db._cacheExtendedData(self)
 
     def _loadFromDbObject(self, db_obj, bypass_auto_update=False):
-        if not bypass_auto_update and self.auto_update:
+        if not bypass_auto_update and self.wiki.db.auto_update:
             path_time = datetime.datetime.fromtimestamp(
                 os.path.getmtime(db_obj.path))
             if path_time >= db_obj.time:

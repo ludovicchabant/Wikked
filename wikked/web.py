@@ -2,7 +2,8 @@ import os
 import os.path
 import logging
 from flask import Flask, abort, g
-from utils import find_wiki_root
+from wikked.wiki import Wiki
+
 
 # Create the main app.
 static_folder = os.path.join(os.path.dirname(__file__), 'static')
@@ -26,6 +27,7 @@ app.config.setdefault('SYNCHRONOUS_UPDATE', True)
 # config file in there.
 wiki_root = app.config['WIKI_ROOT']
 if wiki_root is None:
+    from wikked.utils import find_wiki_root
     wiki_root = find_wiki_root()
 if wiki_root is None:
     raise Exception("Can't find the wiki root to use.")
@@ -60,6 +62,8 @@ if app.config['SQL_DEBUG']:
 #       access to the context instance for the wiki.
 @app.before_request
 def before_request():
+    wiki = Wiki(app.wiki_params)
+    wiki.start()
     g.wiki = wiki
 
 
@@ -69,10 +73,11 @@ def teardown_request(exception):
 
 
 # SQLAlchemy.
+# TODO: this totally assumes things about the wiki's DB API.
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     wiki = getattr(g, 'wiki', None)
-    if wiki:
+    if wiki and wiki.db.session is not None:
         if app.config['SQL_COMMIT_ON_TEARDOWN'] and exception is None:
             wiki.db.session.commit()
         wiki.db.session.remove()
@@ -111,26 +116,13 @@ except ImportError:
     app.bcrypt = SHA512Fallback()
 
 
-# Create the wiki.
-from wiki import Wiki, WikiParameters
-
-def create_wiki(update_on_start=True):
-    params = WikiParameters(root=wiki_root)
-    wiki = Wiki(params)
-    wiki.start(update_on_start)
-    return wiki
-
-
-wiki = create_wiki(bool(app.config.get('UPDATE_WIKI_ON_START')))
-
-
 # Import the views.
 # (this creates a PyLint warning but it's OK)
 # pylint: disable=unused-import
-import views.error
-import views.read
-import views.edit
-import views.history
-import views.special
-import views.admin
+import wikked.views.error
+import wikked.views.read
+import wikked.views.edit
+import wikked.views.history
+import wikked.views.special
+import wikked.views.admin
 
