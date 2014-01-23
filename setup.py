@@ -69,7 +69,7 @@ setup(
             ],
         entry_points={
                 'console_scripts': [
-                    'wk = wk:main'
+                    'wk = wikked.witch:main'
                 ]
             },
         )
