@@ -82,9 +82,12 @@ class WikiParameters(object):
                     scm_type = 'hg'
 
             if scm_type == 'hg':
+                # Only create the command server once.
+                import hglib
+                client = hglib.open(self.root)
                 def impl():
                     from wikked.scm.mercurial import MercurialCommandServerSourceControl
-                    return MercurialCommandServerSourceControl(self.root)
+                    return MercurialCommandServerSourceControl(self.root, client)
                 self._scm_factory = impl
             elif scm_type == 'git':
                 def impl():
@@ -157,8 +160,6 @@ class Wiki(object):
         """
         if parameters is None:
             raise ValueError("No parameters were given to the wiki.")
-
-        logger.debug("Initializing wiki.")
 
         self.formatters = parameters.formatters
         self.special_filenames = parameters.getSpecialFilenames()

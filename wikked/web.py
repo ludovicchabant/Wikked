@@ -77,11 +77,11 @@ def teardown_request(exception):
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     wiki = getattr(g, 'wiki', None)
-    if wiki and wiki.db.session is not None:
-        if app.config['SQL_COMMIT_ON_TEARDOWN'] and exception is None:
-            wiki.db.session.commit()
-        wiki.db.session.remove()
-        return exception
+    if wiki:
+        wiki.db.close(
+                commit=app.config['SQL_COMMIT_ON_TEARDOWN'],
+                exception=exception)
+    return exception
 
 
 # Login extension.

@@ -10,9 +10,6 @@ class Database(object):
     def initDb(self, wiki):
         raise NotImplementedError()
 
-    def open(self):
-        raise NotImplementedError()
-
     def close(self):
         raise NotImplementedError()
 

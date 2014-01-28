@@ -118,23 +118,15 @@ class SQLDatabase(Database):
 
     def __init__(self, config):
         Database.__init__(self)
-        self.engine = None
-        self.session = None
         self.engine_url = config.get('wiki', 'database_url')
         self.auto_update = config.getboolean('wiki', 'auto_update')
+        self._engine = None
+        self._session = None
 
     def initDb(self, wiki):
         self.wiki = wiki
 
-        logger.info("Using database from URL: %s" % self.engine_url)
-        self.engine = create_engine(self.engine_url, convert_unicode=True)
-        self.session = scoped_session(sessionmaker(
-                autocommit=False,
-                autoflush=False,
-                bind=self.engine))
-
-        Base.query = self.session.query_property()
-
+    def createDb(self):
         create_schema = False
         if self.engine_url != 'sqlite:///:memory:':
             # The existing schema is outdated, re-create it.
@@ -152,11 +144,27 @@ class SQLDatabase(Database):
         if create_schema:
             self._createSchema()
 
-    def open(self):
-        logger.debug("Opening connection")
+    @property
+    def engine(self):
+        if self._engine is None:
+            self._engine = create_engine(self.engine_url, convert_unicode=True)
+        return self._engine
 
-    def close(self):
-        logger.debug("Closing connection")
+    @property
+    def session(self):
+        if self._session is None:
+            logger.info("Opening database from URL: %s" % self.engine_url)
+            self._session = scoped_session(sessionmaker(
+                    autocommit=False,
+                    autoflush=False,
+                    bind=self.engine))
+        return self._session
+
+    def close(self, commit, exception):
+        if self._session is not None:
+            if commit and exception is None:
+                self._session.commit()
+            self._session.remove()
 
     def reset(self, pages):
         logger.debug("Re-creating SQL database.")

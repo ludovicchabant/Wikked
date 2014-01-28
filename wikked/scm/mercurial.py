@@ -174,11 +174,13 @@ class MercurialSourceControl(MercurialBaseSourceControl):
 
 
 class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
-    def __init__(self, root):
+    def __init__(self, root, client=None):
         MercurialBaseSourceControl.__init__(self, root)
 
-        import hglib
-        self.client = hglib.open(self.root)
+        if client is None:
+            import hglib
+            client = hglib.open(root)
+        self.client = client
 
     def getHistory(self, path=None, limit=10):
         if path is not None:
