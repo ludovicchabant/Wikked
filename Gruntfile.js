@@ -58,7 +58,8 @@ module.exports = function(grunt) {
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['img/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/js/*.js']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/js/*.js']},
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/fonts/**']}
         ]
       },
       dev_scripts: {
@@ -75,7 +76,7 @@ module.exports = function(grunt) {
         files: [
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/require.js']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/pagedown/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['font-awesome/font/**']}
+          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/fonts/**']}
         ]
       }
     },
