@@ -1,25 +1,35 @@
 
 // Main tags
 body {
-    background: url('../img/gray_jean.png');
-    //background-image: url(http://basehold.it/i/27);
+    //background: url('../img/gray_jean.png');
+    color: rgb(50, 50, 50);
 }
 
 // Global classes
 a {
     text-decoration: none;
-    color: @colorBlue;
-    &:link { color: @colorBlue; }
-    &:visited { color: @colorBlue; }
-    &:hover { color: @colorBlue; text-decoration: underline; }
-    &:active { color: @colorBlue; }
+    color: @color-blue;
+    &:link { color: @color-blue; }
+    &:visited { color: @color-blue; }
+    &:hover { color: @color-blue; text-decoration: underline; }
+    &:active { color: @color-blue; }
 }
 a.wiki-link.missing,
 a.wiki-meta-link.missing {
-    color: @colorOrange;
-    &:hover { color: @colorOrange; text-decoration: underline; }
+    color: @color-orange;
+    &:hover { color: @color-orange; text-decoration: underline; }
 }
 
 em.hlt1 , em.hlt2, em.hlt3, em.hlt4, em.hlt5, em.hlt6 {
-    background: @colorGreen;
+    background: @color-green;
 }
+
+h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    color: rgb(65, 65, 65);
+}
+
+p {
+  margin: 0 0 @line-height-computed;
+}
+

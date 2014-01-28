@@ -96,18 +96,19 @@ define([
         defaults: function() {
             return {
                 url_extras: [
-                    { name: 'Special Pages', url: '/#/special' }
+                    { name: 'Special Pages', url: '/#/special', icon: 'dashboard' }
                 ]
             };
         },
         clearExtraUrls: function() {
             this.get('url_extras').length = 0;
         },
-        addExtraUrl: function(name, url, index) {
-            if (index === undefined) {
-                this.get('url_extras').push({ name: name, url: url });
+        addExtraUrl: function(name, url, index, icon) {
+            extra = { name: name, url: url, icon: icon };
+            if (index === undefined || index < 0) {
+                this.get('url_extras').push(extra);
             } else {
-                this.get('url_extras').splice(index, 0, { name: name, url: url });
+                this.get('url_extras').splice(index, 0, extra);
             }
         }
     });
@@ -237,8 +238,16 @@ define([
 
             // Add extra links to the footer.
             var model = this;
-            this.footer.addExtraUrl('Pages Linking Here', function() { return '/#/inlinks/' + model.id; }, 1);
-            this.footer.addExtraUrl('JSON', function() { return '/api/read/' + model.id; });
+            this.footer.addExtraUrl(
+                'Pages Linking Here',
+                function() { return '/#/inlinks/' + model.id; },
+                1,
+                'link');
+            this.footer.addExtraUrl(
+                'JSON',
+                function() { return '/api/read/' + model.id; },
+                -1,
+                'cog');
         },
         checkStatePath: function() {
             return this.get('path');
@@ -301,7 +310,11 @@ define([
         initialize: function() {
             PageHistoryModel.__super__.initialize.apply(this, arguments);
             var model = this;
-            this.footer.addExtraUrl('JSON', function() { return '/api/history/' + model.id; });
+            this.footer.addExtraUrl(
+                'JSON',
+                function() { return '/api/history/' + model.id; },
+                -1,
+                'road');
         },
         doDiff: function(form) {
             var rev1 = $('input[name=rev1]:checked', form).val();

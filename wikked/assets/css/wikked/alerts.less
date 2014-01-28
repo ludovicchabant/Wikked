@@ -39,11 +39,11 @@ article .alert {
     text-shadow: 0 0 0.5em rgba(1, 1, 1, 0.2);
 }
 .ribbon {
-    .makeRibbon(lighten(@colorOrange, 10%));
+    .makeRibbon(lighten(@color-orange, 10%));
     float: right;
 
     .ribbon-inner {
-        .makeRibbonContent(@colorOrange, @colorPage);
+        .makeRibbonContent(@color-orange, #fff);
         a { color: #fff; text-decoration: none; }
     }
 }

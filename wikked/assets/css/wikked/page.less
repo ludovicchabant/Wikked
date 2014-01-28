@@ -1,9 +1,16 @@
 
+// Article
+article {
+    //background-image: url(http://basehold.it/i/30);
+    margin: 0 auto;
+    padding: 0 @line-height-computed;
+}
+
 // Navigation & footer
-.nav-wrapper>nav,
-.footer-wrapper>footer {
+.navbar {
     color: @gray-light;
     font-size: @font-size-small;
+    font-family: @font-family-sans-serif;
 
     a {
         text-decoration: none;
@@ -14,18 +21,76 @@
         &:active { color: @gray-light; }
     }
 }
+// Fix Boostrap stuff we don't want.
 .navbar {
-    // Fix margin introduced by Bootstrap.
-    margin-bottom: 0;
+    //margin-bottom: 0;
+}
+.navbar li a {
+    line-height: floor(@font-size-small * @line-height-base);
 }
 .navbar-brand {
     // Make the first navigation link ("brand") the same size
     // as the rest.
     font-size: @font-size-small;
+    line-height: floor(@font-size-small * @line-height-base);
+}
+
+.footer-wrapper {
+    margin: 0 auto;
+    padding: 0 @line-height-computed;
+}
+footer {
+    color: @color-footer-dark;
+    border-top: 1px solid @color-footer;
+    padding: @line-height-computed 0;
+    font-weight: 300;
+    font-size: @font-size-small;
+    font-family: @font-family-sans-serif;
+    letter-spacing: -0.03em;
+
+    a {
+        text-decoration: none;
+        color: @color-footer-dark;
+        &:link { color: @color-footer-dark; }
+        &:visited { color: @color-footer-dark; }
+        &:hover { color: @color-green-dark; text-decoration: none; }
+        &:active { color: @color-footer-dark; }
+    }
+    ul {
+        list-type: none;
+    }
+    li {
+        display: inline-block;
+        margin: 0;
+        padding: 0 0.5em;
+    }
+    /*li:before {
+        content: '•';
+        font-weight: 700;
+        margin: 0 0.5em;
+    }
+    li:first-child:before {
+        content: none;
+    }*/
+}
+
+// Page info
+section.info {
+    margin: @line-height-computed 0 0 0;
+    padding: @line-height-computed 0;
+    border-top: 1px solid @color-footer;
+
+    .info-categories {
+        color: @color-footer-dark;
+        font-weight: 300;
+        font-size: @font-size-small;
+        font-family: @font-family-sans-serif;
+        text-transform: uppercase;
+    }
 }
 
 // Main page classes
-.wrapper>article {
+/*.wrapper>article {
     .box-shadow(0 0 10px, rgb(210, 210, 210));
     background: @colorPage;
     overflow: hidden;
@@ -68,7 +133,7 @@
     .rev_id {
         font-family: @font-family-monospace;
     }
-}
+}*/
 
 // Search
 ul#search-preview {
@@ -98,7 +163,7 @@ b.match {
 }
 
 // Page editing
-#page-edit {
+/*#page-edit {
     textarea {
         height: 10em;
         font-size: @font-size-base;
@@ -122,20 +187,20 @@ b.match {
     width: 32px;
     height: 20px;
 }
-/*#wmd-preview-wrapper {
-    border: 1px dashed @colorBlueDark;
-
-    h3 {
-        margin: 0.5em 1em 0.5em 1em;
-    }
-    #wmd-preview {
-        margin: 1em;
-        background: none;
-    }
-}
-#wmd-button-bar li {
-    margin-left: 0;
-}*/
+//#wmd-preview-wrapper {
+//    border: 1px dashed @colorBlueDark;
+//
+//    h3 {
+//        margin: 0.5em 1em 0.5em 1em;
+//    }
+//    #wmd-preview {
+//        margin: 1em;
+//        background: none;
+//    }
+//}
+//#wmd-button-bar li {
+//    margin-left: 0;
+//}
 .preview-wiki-meta {
     .meta-name {
         background: @colorBlueDark;
@@ -155,5 +220,20 @@ b.match {
 .commit-meta {
     margin-top: 1em;
     margin-bottom: 1em;
+}*/
+
+/* Small devices (tablets, 768px and up) */
+@media (min-width: @screen-sm-min) {
+    article, .footer-wrapper {
+        width: 700px;
+    }
+}
+
+/* Medium devices (desktops, 992px and up) */
+@media (min-width: @screen-md-min) {
+}
+
+/* Large devices (large desktops, 1200px and up) */
+@media (min-width: @screen-lg-min) {
 }
 

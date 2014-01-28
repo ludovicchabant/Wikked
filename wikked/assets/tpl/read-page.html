@@ -10,15 +10,18 @@
         {{/if}}
     </header>
     {{/ifnot}}
-    <section>
+    <section class="content">
         {{content}}
     </section>
     {{#if meta.category}}
-    <footer>
+    <section class="info">
+        {{#if meta.category}}
+        <span class="info-categories">Categories: </span>
         {{#each meta.category}}
-        {{#ifeq @index to=0}}Categories: {{else}} | {{/ifeq}}
+        {{#ifeq @index to=0}} {{else}} | {{/ifeq}}
         <span><a href="{{get_cat_url url}}">{{name}}</a></span>
         {{/each}}
-    </footer>
+        {{/if}}
+    </section>
     {{/if}}
 </article>

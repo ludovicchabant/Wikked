@@ -1,7 +1,7 @@
-<footer class="navbar" role="navigation">
-    <ul class="nav navbar-nav">
+<footer role="navigation">
+    <ul>
         {{#each url_extras}}
-        <li><a href="{{url}}">{{name}}</a></li>
+        <li>{{#if icon}}<span class="glyphicon glyphicon-{{icon}}"></span> {{/if}}<a href="{{url}}">{{name}}</a></li>
         {{/each}}
         <!-- TODO: last modified, etc. -->
     </ul>
