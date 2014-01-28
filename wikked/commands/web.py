@@ -31,6 +31,9 @@ class RunServerCommand(WikkedCommand):
 
         use_dbg_and_rl = not ctx.args.production
 
+        if ctx.args.debug:
+            app.config['DEBUG'] = True
+
         app.wiki_params = ctx.params
         app.run(
                 host=ctx.args.host,
