@@ -1,6 +1,6 @@
 import logging
 from flask.ext.script import prompt_pass
-from flask.ext.bcrypt import generate_password_hash
+from wikked.bcryptfallback import generate_password_hash
 from wikked.commands.base import WikkedCommand, register_command
 
 

@@ -24,7 +24,13 @@ class RunServerCommand(WikkedCommand):
                 action='store_true')
 
     def run(self, ctx):
+        # Change working directory because the Flask app can currently
+        # only initialize itself relative to that...
+        # TODO: make the Flask initialization more clever.
+        os.chdir(ctx.params.root)
+
         from wikked.web import app
+        app.wiki_params = ctx.params
 
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.update()
@@ -34,7 +40,6 @@ class RunServerCommand(WikkedCommand):
         if ctx.args.debug:
             app.config['DEBUG'] = True
 
-        app.wiki_params = ctx.params
         app.run(
                 host=ctx.args.host,
                 port=ctx.args.port,
