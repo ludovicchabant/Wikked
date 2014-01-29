@@ -7,6 +7,7 @@ define([
         'backbone',
         'handlebars',
         'bootstrap_tooltip',
+        'bootstrap_alert',
         'bootstrap_collapse',
         'js/wikked/client',
         'js/wikked/models',
@@ -31,7 +32,7 @@ define([
         'text!tpl/special-changes.html',
         'text!tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars, BootstrapTooltip, BootstrapCollapse, Client, Models, Util,
+    function($, _, Backbone, Handlebars, BootstrapTooltip, BootstrapAlert, BootstrapCollapse, Client, Models, Util,
         tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
@@ -127,7 +128,7 @@ define([
             this.$el.html(tpl(this.model.toJSON()));
         },
         renderTitle: function(formatter) {
-            var title = _.result(this, 'title');
+            var title = _.result(this.model, 'title');
             if (formatter !== undefined) {
                 title = formatter.call(this, title);
             }
@@ -154,12 +155,18 @@ define([
         },
         events: {
             "submit #search": "_submitSearch",
+            "submit #newpage": "_submitNewPage",
             "input #search-query": "_previewSearch",
             "keyup #search-query": "_searchQueryChanged"
         },
         _submitSearch: function(e) {
             e.preventDefault();
             this.model.doSearch(e.currentTarget);
+            return false;
+        },
+        _submitNewPage: function(e) {
+            e.preventDefault();
+            this.model.doNewPage(e.currentTarget);
             return false;
         },
         _previewSearch: function(e) {

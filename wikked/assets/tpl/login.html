@@ -1,20 +1,22 @@
-<nav>
-    <section>
-        <a href="/">Home</a>
-    </section>
-</nav>
+<div class="nav-wrapper">
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="navbar-header">
+            <a class="navbar-brand" href="/">Home</a>
+        </div>
+    </nav>
+</div>
 <article>
     <header>
         <h1>Login</h1>
     </header>
     <section>
         {{#if has_error}}
-        <div class="alert alert-error">
+        <div class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
             <strong>Begone!</strong> Those credentials don't seem to work here.
         </div>
         {{/if}}
         <form id="login" class="form-signin" role="form">
-            <h2 class="form-signin-heading">Log in</h2>
             <input type="text" name="username" class="form-control" placeholder="Username" required="true" autofocus="true"></input>
             <input type="password" name="password" class="form-control" placeholder="Password" required="true"></input>
             <label class="checkbox">
@@ -24,5 +26,3 @@
         </form>
     </section>
 </article>
-<footer>
-</footer>

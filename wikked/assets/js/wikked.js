@@ -14,6 +14,7 @@ require.config({
         text: 'js/text',
         bootstrap_modal: 'bootstrap/js/modal',
         bootstrap_tooltip: 'bootstrap/js/tooltip',
+        bootstrap_alert: 'bootstrap/js/alert',
         bootstrap_collapse: 'bootstrap/js/collapse'
     },
     shim: {

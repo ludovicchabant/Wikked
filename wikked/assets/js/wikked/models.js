@@ -54,6 +54,9 @@ define([
         doSearch: function(form) {
             this.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
+        doNewPage: function(form) {
+            this.navigate('/edit/', { trigger: true });
+        },
         _onChangePath: function(path) {
             this.set({
                 url_home: '/',
@@ -114,6 +117,7 @@ define([
     });
 
     var LoginModel = exports.LoginModel = Backbone.Model.extend({
+        title: 'Login',
         setApp: function(app) {
             this.app = app;
         },
