@@ -20,9 +20,6 @@ class RunServerCommand(WikkedCommand):
         parser.add_argument('--port',
                 help="The port to use",
                 default=5000)
-        parser.add_argument('--production',
-                help="Don't enable the debugger or reloader",
-                action='store_true')
 
     def run(self, ctx):
         # Change working directory because the Flask app can currently
@@ -32,19 +29,14 @@ class RunServerCommand(WikkedCommand):
 
         from wikked.web import app
         app.wiki_params = ctx.params
-
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.update()
 
-        use_dbg_and_rl = not ctx.args.production
-
-        if ctx.args.debug:
-            app.config['DEBUG'] = True
-
+        debug_mode = ctx.args.debug or app.config.get('DEBUG', False)
         app.run(
                 host=ctx.args.host,
                 port=ctx.args.port,
-                debug=app.config.get('DEBUG', True),
-                use_debugger=use_dbg_and_rl,
-                use_reloader=use_dbg_and_rl)
+                debug=debug_mode,
+                use_debugger=debug_mode,
+                use_reloader=debug_mode)
 
