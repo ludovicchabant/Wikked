@@ -1,3 +1,4 @@
+import os
 import logging
 from wikked.commands.base import WikkedCommand, register_command
 
