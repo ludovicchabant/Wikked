@@ -1,3 +1,5 @@
+import re
+
 
 STATE_COMMITTED = 0
 STATE_MODIFIED = 1
@@ -37,6 +39,20 @@ class SourceControl(object):
 
     def revert(self, paths=None):
         raise NotImplementedError()
+
+
+class Author(object):
+    def __init__(self, name=None, email=None):
+        self.name = name
+        self.email = email
+        if name is not None and email is None:
+            m = re.match(r'(?P<name>.+)\s+\<(?P<email>.+@.+\.\w+)\>', name)
+            if m is not None:
+                self.name = str(m.group('name'))
+                self.email = str(m.group('email'))
+
+    def __str__(self):
+        return '%s <%s>' % (self.name, self.email)
 
 
 class Revision(object):

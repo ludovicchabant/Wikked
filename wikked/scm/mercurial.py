@@ -8,7 +8,7 @@ import subprocess
 from hglib.error import CommandError
 from hglib.util import cmdbuilder
 from base import (
-        SourceControl, Revision, SourceControlError,
+        SourceControl, Author, Revision, SourceControlError,
         ACTION_ADD, ACTION_EDIT, ACTION_DELETE,
         STATE_NEW, STATE_MODIFIED, STATE_COMMITTED)
 
@@ -141,7 +141,7 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         rev.rev_id = int(m.group(1))
         rev.rev_name = rev.rev_id[:12]
         rev.rev_hash = m.group(2)
-        rev.author = m.group(3)
+        rev.author = Author(m.group(3))
         rev.timestamp = float(m.group(4))
 
         i = 1
@@ -198,7 +198,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         for rev in repo_revs:
             r = Revision(rev.node)
             r.rev_name = rev.node[:12]
-            r.author = unicode(rev.author)
+            r.author = Author(rev.author)
             r.timestamp = time.mktime(rev.date.timetuple())
             r.description = unicode(rev.desc)
             if needs_files:

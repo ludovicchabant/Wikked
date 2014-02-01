@@ -19,7 +19,7 @@ def get_history_data(history, needs_files=False):
             'index': i + 1,
             'rev_id': rev.rev_id,
             'rev_name': rev.rev_name,
-            'author': rev.author,
+            'author': rev.author.name,
             'timestamp': rev.timestamp,
             'description': rev.description
             }
