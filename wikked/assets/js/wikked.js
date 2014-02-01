@@ -15,7 +15,10 @@ require.config({
         bootstrap_modal: 'bootstrap/js/modal',
         bootstrap_tooltip: 'bootstrap/js/tooltip',
         bootstrap_alert: 'bootstrap/js/alert',
-        bootstrap_collapse: 'bootstrap/js/collapse'
+        bootstrap_collapse: 'bootstrap/js/collapse',
+        pagedown_converter: 'js/pagedown/Markdown.Converter',
+        pagedown_editor: 'js/pagedown/Markdown.Editor',
+        pagedown_sanitizer: 'js/pagedown/Markdown.Sanitizer'
     },
     shim: {
         'jquery': {
@@ -39,6 +42,15 @@ require.config({
         },
         'bootstrap_collapse': {
             deps: ['jquery']
+        },
+        'pagedown_converter': {
+            exports: 'Markdown'
+        },
+        'pagedown_editor': {
+            deps: ['pagedown_converter']
+        },
+        'pagedown_sanitizer': {
+            deps: ['pagedown_editor']
         }
     }
 });
