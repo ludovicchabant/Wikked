@@ -120,10 +120,10 @@ class WikiParameters(object):
             if self.config.getboolean('wiki', 'async_updates'):
                 logger.debug("Setting up asynchronous updater.")
                 from tasks import update_wiki
-                self._page_updater = lambda url: update_wiki.delay(self.root)
+                self._page_updater = lambda wiki, url: update_wiki.delay(self.root)
             else:
                 logger.debug("Setting up simple updater.")
-                self._page_updater = lambda url: self.update(url, cache_ext_data=False)
+                self._page_updater = lambda wiki, url: wiki.update(url, cache_ext_data=False)
         return self._page_updater
 
     def tryAddFormatter(self, formatters, module_name, module_func, extensions):
@@ -266,7 +266,7 @@ class Wiki(object):
 
         # Update the DB and index with the new/modified page.
         if do_update:
-            self._updateSetPage(url)
+            self._updateSetPage(self, url)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
