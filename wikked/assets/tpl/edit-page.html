@@ -1,52 +1,57 @@
 <article>
-    <header>
-        <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
-    </header>
-    <form id="page-edit" class="row">
-        <div id="wmd-form-wrapper" class="span12">
-            <section id="wmd-button-bar-wrapper">
-                <div id="wmd-button-bar"></div>
-                <div id="wmd-extra-bar">
-                    <ul class="wmd-button-row">
-                        <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
-                    </ul>
-                </div>
-            </section>
-            {{#if error}}
-            <section class="alert alert-danger">
-                <p><strong>Error:</strong> {{error.message}}</p>
-            </section>
-            {{/if}}
-            <section id="wmd-input-wrapper">
-                <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
-                <div id="wmd-input-grip"></div>
-            </section>
-            <section id="wmd-meta-wrapper">
-                <div id="wmd-meta" class="controls commit-meta">
-                    <div class="control-group input-prepend">
-                        <label for="author" class="control-label add-on">Author: </label>
-                        <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
-                    </div>
-                    <div class="control-group input-prepend">
-                        <label for="message" class="control-label add-on">Change Description: </label>
-                        <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
-                    </div>
-                </div>
-            </section>
-            <section id="wmd-commit-wrapper" class="row">
-                <div id="wmd-commit">
-                    <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
-                    <a href="{{url_read}}" class="btn">Cancel</a>
-                </div>
-            </section>
+    <form id="page-edit">
+        <div class="header-wrapper">
+            <header>
+                {{#if is_new}}
+                <input type="text" name="title" class="input-xxlarge" placeholder="New Page"></input>
+                {{else}}
+                <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
+                {{/if}}
+            </header>
         </div>
-        <div id="wmd-preview-wrapper">
-            <h3>Preview</h3>
-            <button id="wmd-full-preview-button" class="btn">Full Preview</button>
-            <div id="wmd-preview"></div>
+        <div class="editing-wrapper">
+            <div class="editing">
+                <section id="wmd-button-bar-wrapper">
+                    <div id="wmd-button-bar"></div>
+                    <div id="wmd-extra-bar">
+                        <ul class="wmd-button-row">
+                            <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
+                        </ul>
+                    </div>
+                </section>
+                {{#if error}}
+                <section class="alert alert-danger">
+                    <p><strong>Error:</strong> {{error.message}}</p>
+                </section>
+                {{/if}}
+                <section id="wmd-input-wrapper">
+                    <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                    <div id="wmd-input-grip"></div>
+                </section>
+                <section id="wmd-meta-wrapper">
+                    <div id="wmd-meta" class="controls commit-meta">
+                        <div class="control-group input-prepend">
+                            <label for="author" class="control-label add-on">Author: </label>
+                            <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
+                        </div>
+                        <div class="control-group input-prepend">
+                            <label for="message" class="control-label add-on">Change Description: </label>
+                            <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
+                        </div>
+                    </div>
+                </section>
+                <section id="wmd-commit-wrapper" class="row">
+                    <div id="wmd-commit">
+                        <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
+                        <a href="{{url_read}}" class="btn">Cancel</a>
+                    </div>
+                </section>
+            </div>
+            <div class="preview">
+                <h3>Preview</h3>
+                <button id="wmd-full-preview-button" class="btn">Full Preview</button>
+                <div id="wmd-preview"></div>
+            </div>
         </div>
     </form>
 </article>
-<script type="text/javascript" src="/static/js/pagedown/Markdown.Converter.js"></script>
-<script type="text/javascript" src="/static/js/pagedown/Markdown.Sanitizer.js"></script>
-<script type="text/javascript" src="/static/js/pagedown/Markdown.Editor.js"></script>

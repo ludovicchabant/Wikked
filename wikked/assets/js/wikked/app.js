@@ -64,6 +64,7 @@ define([
         routes: {
             'read/*path':           "readPage",
             '':                     "readMainPage",
+            'create/*path':         "createPage",
             'edit/*path':           "editPage",
             'changes/*path':        "showPageHistory",
             'inlinks/*path':        "showIncomingLinks",
@@ -91,6 +92,13 @@ define([
         },
         readMainPage: function() {
             this.readPage('');
+        },
+        createPage: function(path) {
+            var view = new Views.PageEditView({
+                model: new Models.PageEditModel({ is_new: true, create_in: path })
+            });
+            this.viewManager.switchView(view);
+            this.navigate('/create/' + path);
         },
         editPage: function(path) {
             var view = new Views.PageEditView({

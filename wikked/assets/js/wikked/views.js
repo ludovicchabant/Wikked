@@ -9,6 +9,9 @@ define([
         'bootstrap_tooltip',
         'bootstrap_alert',
         'bootstrap_collapse',
+        'pagedown_converter',
+        'pagedown_editor',
+        'pagedown_sanitizer',
         'js/wikked/client',
         'js/wikked/models',
         'js/wikked/util',
@@ -32,7 +35,10 @@ define([
         'text!tpl/special-changes.html',
         'text!tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars, BootstrapTooltip, BootstrapAlert, BootstrapCollapse, Client, Models, Util,
+    function($, _, Backbone, Handlebars,
+        BootstrapTooltip, BootstrapAlert, BootstrapCollapse,
+        PageDownConverter, PageDownEditor, PageDownSanitizer,
+        Client, Models, Util,
         tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
@@ -336,17 +342,16 @@ define([
             // Cache some stuff.
             this._ctrlInput = $('#wmd-input');
             this._ctrlPreview = $('#wmd-preview');
-            this._originalInputHeight = this._ctrlInput.height();
 
             // Create the Markdown editor.
             var formatter = new Client.PageFormatter();
             formatter.baseUrl = this.model.get('path').match(/.*\//);
-            var converter = new Markdown.Converter();
+            var converter = PageDownConverter.getSanitizingConverter();
             converter.hooks.chain("preConversion", function(text) {
                 return formatter.formatText(text);
             });
             var $view = this;
-            var editor = new Markdown.Editor(converter); //TODO: pass options
+            var editor = new PageDownConverter.Editor(converter); //TODO: pass options
             editor.hooks.chain("onPreviewRefresh", function() {
                 $view._updateUI(true);
             });
@@ -354,7 +359,7 @@ define([
 
             // Setup UI.
             this._updateUI();
-            $('#wmd-preview-wrapper').hide();
+            $('.preview').hide();
         },
         events: {
             "mousedown #wmd-input-grip": "_inputGripMouseDown",
@@ -388,36 +393,23 @@ define([
             return false;
         },
         _addPreview: function() {
-            $('#app')
-                .removeClass('container')
-                .addClass('container-fluid');
-            $('#page-edit')
-                .removeClass('row')
-                .addClass('row-fluid');
-            $('#wmd-form-wrapper')
-                .removeClass('span12')
-                .addClass('span6');
-            $('#wmd-preview-wrapper')
-                .show()
-                .addClass('span6');
+            $('article').addClass('container-fluid').addClass('wide');
+            $('.header-wrapper').addClass('row');
+            $('.header-wrapper>header').addClass('col-md-12');
+            $('.editing-wrapper').addClass('row');
+            $('.editing-wrapper>.editing').addClass('col-md-6');
+            $('.editing-wrapper>.preview').addClass('col-md-6').show();
 
             this._updateUI(true);
         },
         _removePreview: function() {
-            $('#wmd-form-wrapper')
-                .removeClass('span6')
-                .addClass('span12');
-            $('#wmd-preview-wrapper')
-                .hide()
-                .removeClass('span6');
-            $('#page-edit')
-                .removeClass('row-fluid')
-                .addClass('row');
-            $('#app')
-                .removeClass('container-fluid')
-                .addClass('container');
-
-            this._ctrlInput.height(this._originalInputHeight);
+            $('article').removeClass('container-fluid').removeClass('wide');
+            $('.header-wrapper').removeClass('row');
+            $('.header-wrapper>header').removeClass('col-md-12');
+            $('.editing-wrapper').removeClass('row');
+            $('.editing-wrapper>.editing').removeClass('col-md-6');
+            $('.editing-wrapper>.preview').removeClass('col-md-6').hide();
+        
             this._updateUI();
         },
         _toggleFullPreview: function(e) {

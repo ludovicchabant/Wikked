@@ -55,7 +55,7 @@ define([
             this.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
         doNewPage: function(form) {
-            this.navigate('/edit/', { trigger: true });
+            this.navigate('/create/', { trigger: true });
         },
         _onChangePath: function(path) {
             this.set({
@@ -286,6 +286,10 @@ define([
         action: 'edit',
         urlRoot: '/api/edit/',
         doEdit: function(form) {
+            if (this.get('is_new')) {
+                this.set('path', $('input[name="title"]', form).val());
+            }
+
             var $model = this;
             $.post(this.url(), $(form).serialize(), null, 'json')
                 .done(function(data) {

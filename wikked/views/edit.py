@@ -17,7 +17,7 @@ class DummyPage(Page):
         self._text = text
 
     def _loadData(self):
-        extension = self.wiki.config.get('wiki', 'default_extension')
+        extension = self.wiki.fs.default_extension
         data = PageData()
         data.path = '__preview__.' + extension
         data.filename = '__preview__'
@@ -30,7 +30,8 @@ class DummyPage(Page):
         data.local_meta = ctx.meta
         data.local_links = ctx.out_links
 
-        data.title = make_page_title(self.url)
+        data.title = (data.local_meta.get('title') or
+                make_page_title(self.url))
 
         return data
 
