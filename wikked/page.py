@@ -129,13 +129,13 @@ class Page(object):
     def _ensureExtendedData(self):
         if self._data is not None and self._data.has_extended_data:
             return
-    
+
         self._ensureData()
 
         self._onExtendedDataLoading()
         if self._data.has_extended_data and not self._force_resolve:
             return
-        
+
         try:
             r = PageResolver(self)
             out = r.run()
@@ -202,9 +202,8 @@ class FileSystemPage(Page):
         data.local_links = ctx.out_links
 
         # Add some common meta.
-        data.title = re.sub(r'\-', ' ', filename_split[0])
-        if 'title' in data.local_meta:
-            data.title = data.local_meta['title']
+        data.title = (data.local_meta.get('title') or
+                re.sub(r'\-', ' ', filename_split[0]))
 
         return data
 
