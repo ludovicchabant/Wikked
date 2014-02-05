@@ -53,11 +53,13 @@ class UserManager(object):
         return self._isAllowedForMeta(page, 'writers', username)
 
     def _isAllowedForMeta(self, page, meta_name, username):
-        if (self._permissions[meta_name] is not None and
-                username not in self._permissions[meta_name]):
+        perm = self._permissions.get(meta_name)
+        if perm is not None and (
+                username is None or username not in perm):
             return False
-        if meta_name in page.meta:
-            allowed = [r.strip() for r in re.split(r'[ ,;]', page.meta[meta_name][0])]
+        perm = page.meta.get(meta_name)
+        if perm is not None:
+            allowed = [r.strip() for r in re.split(r'[ ,;]', perm[0])]
             if username is None:
                 return 'anonymous' in allowed
             else:
