@@ -154,8 +154,8 @@ def api_get_outgoing_links(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     links = []
     for link in page.links:
-        other = get_page_or_none(link)
-        if other is not None:
+        other = get_page_or_none(link, convert_url=False)
+        if other is not None and is_page_readable(other):
             links.append({
                 'url': other.url,
                 'title': other.title
@@ -177,7 +177,7 @@ def api_get_incoming_links(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     links = []
     for link in page.getIncomingLinks():
-        other = get_page_or_none(link)
+        other = get_page_or_none(link, convert_url=False)
         if other is not None and is_page_readable(other):
             links.append({
                 'url': link,
