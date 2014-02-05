@@ -3,6 +3,7 @@
  */
 define([
         'jquery',
+        'jquery_validate',
         'underscore',
         'backbone',
         'handlebars',
@@ -35,7 +36,7 @@ define([
         'text!tpl/special-changes.html',
         'text!tpl/special-orphans.html'
         ],
-    function($, _, Backbone, Handlebars,
+    function($, JQueryValidate, _, Backbone, Handlebars,
         BootstrapTooltip, BootstrapAlert, BootstrapCollapse,
         PageDownConverter, PageDownEditor, PageDownSanitizer,
         Client, Models, Util,
@@ -70,6 +71,30 @@ define([
             clearInterval($(this).data('watch_timer'));
         });
     };
+
+    // Override JQuery-validation plugin's way of highlighting errors
+    // with something that works with Bootstrap.
+    $.validator.setDefaults({
+        highlight: function(element) {
+            $(element).closest('.form-group')
+                .addClass('has-error')
+                .removeClass('has-success');
+        },
+        unhighlight: function(element) {
+            $(element).closest('.form-group')
+                .removeClass('has-error')
+                .addClass('has-success');
+        },
+        errorElement: 'span',
+        errorClass: 'help-block',
+        errorPlacement: function(error, element) {
+            if(element.parent('.input-group').length) {
+                error.insertAfter(element.parent());
+            } else {
+                error.insertAfter(element);
+            }
+        }
+    });
 
     // Utility function to make wiki links into usable links for
     // this UI frontend.
@@ -360,6 +385,19 @@ define([
             // Setup UI.
             this._updateUI();
             $('.preview').hide();
+
+            // Start validation on the form.
+            $('#page-edit').validate({
+                rules: {
+                    title: {
+                        required: true,
+                        remote: {
+                            url: '/api/validate/newpage',
+                            type: 'post'
+                        }
+                    }
+                }
+            });
         },
         events: {
             "mousedown #wmd-input-grip": "_inputGripMouseDown",

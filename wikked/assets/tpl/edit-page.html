@@ -3,7 +3,13 @@
         <div class="header-wrapper">
             <header>
                 {{#if is_new}}
-                <input type="text" name="title" class="input-xxlarge" placeholder="New Page"></input>
+                <div class="form-group">
+                    <div class="input-group">
+                        <span class="input-group-addon">Title</span>
+                        <input type="text" name="title" class="form-control input-xxlarge" placeholder="New Page" required="true"></input>
+                    </div>
+                    <span class="help-block small">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
+                </div>
                 {{else}}
                 <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
                 {{/if}}
@@ -11,12 +17,14 @@
         </div>
         <div class="editing-wrapper">
             <div class="editing">
-                <section id="wmd-button-bar-wrapper">
-                    <div id="wmd-button-bar"></div>
-                    <div id="wmd-extra-bar">
-                        <ul class="wmd-button-row">
-                            <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
-                        </ul>
+                <section id="wmd-button-bar-wrapper" class="container-fluid">
+                    <div class="row">
+                        <div id="wmd-button-bar" class="col-xs-10"></div>
+                        <div id="wmd-extra-bar" class="col-xs-2">
+                            <ul class="wmd-button-row">
+                                <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
+                            </ul>
+                        </div>
                     </div>
                 </section>
                 {{#if error}}
@@ -25,31 +33,36 @@
                 </section>
                 {{/if}}
                 <section id="wmd-input-wrapper">
-                    <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                    <textarea id="wmd-input" class="form-control" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
                     <div id="wmd-input-grip"></div>
                 </section>
                 <section id="wmd-meta-wrapper">
-                    <div id="wmd-meta" class="controls commit-meta">
-                        <div class="control-group input-prepend">
-                            <label for="author" class="control-label add-on">Author: </label>
-                            <input type="text" name="author" class="" placeholder="{{commit_meta.author}}"></input>
+                    <div class="form-group">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-addon">Author</span>
+                            <input type="text" name="author" class="form-control" placeholder="{{commit_meta.author}}"></input>
                         </div>
-                        <div class="control-group input-prepend">
-                            <label for="message" class="control-label add-on">Change Description: </label>
-                            <input type="text" name="message" class="input-xxlarge" placeholder="{{commit_meta.desc}}"></input>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-addon">Description</span>
+                            <input type="text" name="message" class="form-control" placeholder="{{commit_meta.desc}}" minlength="3"></input>
                         </div>
                     </div>
                 </section>
-                <section id="wmd-commit-wrapper" class="row">
-                    <div id="wmd-commit">
-                        <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
-                        <a href="{{url_read}}" class="btn">Cancel</a>
+                <section id="wmd-commit-wrapper">
+                    <div class="form-group">
+                        <div class="input-group" id="wmd-commit">
+                            <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
+                            <a href="{{url_read}}" class="btn">Cancel</a>
+                        </div>
                     </div>
                 </section>
             </div>
             <div class="preview">
-                <h3>Preview</h3>
-                <button id="wmd-full-preview-button" class="btn">Full Preview</button>
+                <h3>Preview
+                    <button id="wmd-full-preview-button" class="btn btn-xs">Full Preview</button>
+                </h3>
                 <div id="wmd-preview"></div>
             </div>
         </div>

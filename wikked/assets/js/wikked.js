@@ -7,6 +7,7 @@ require.config({
     urlArgs: "bust=" + (new Date()).getTime(),
     paths: {
         jquery: 'js/jquery-1.8.3.min',
+        jquery_validate: 'js/jquery/jquery.validate.min',
         underscore: 'js/underscore-min',
         backbone: 'js/backbone-min',
         handlebars: 'js/handlebars-1.0.rc.1',
@@ -23,6 +24,9 @@ require.config({
     shim: {
         'jquery': {
             exports: '$'
+        },
+        'jquery_validate': {
+            deps: ['jquery']
         },
         'underscore': {
             exports: '_'

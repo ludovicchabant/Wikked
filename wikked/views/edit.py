@@ -143,3 +143,14 @@ def api_rename_page(url):
 def api_delete_page(url):
     pass
 
+
+@app.route('/api/validate/newpage', methods=['GET', 'POST'])
+def api_validate_newpage():
+    path = request.form.get('title')
+    if path is None:
+        abort(400)
+    path = url_from_viewarg(path)
+    if g.wiki.pageExists(path):
+        return '"This page name is invalid or unavailable"'
+    return '"true"'
+
