@@ -137,7 +137,7 @@ define([
         idAttribute: 'path',
         defaults: function() {
             return {
-                path: "main-page"
+                path: ""
             };
         },
         initialize: function() {
@@ -345,7 +345,7 @@ define([
         action: 'revision',
         defaults: function() {
             return {
-                path: "main-page",
+                path: "",
                 rev: "tip"
             };
         },
@@ -384,7 +384,7 @@ define([
         action: 'diff',
         defaults: function() {
             return {
-                path: "main-page",
+                path: "",
                 rev1: "tip",
                 rev2: ""
             };

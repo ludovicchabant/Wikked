@@ -97,7 +97,7 @@ define([
             var view = new Views.PageEditView({
                 model: new Models.PageEditModel({ is_new: true, create_in: path })
             });
-            this.viewManager.switchView(view);
+            this.viewManager.switchView(view, false);
             this.navigate('/create/' + path);
         },
         editPage: function(path) {
