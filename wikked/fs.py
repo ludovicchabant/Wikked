@@ -6,13 +6,17 @@ import codecs
 import fnmatch
 import logging
 import itertools
-from utils import PageNotFoundError, NamespaceNotFoundError
+from utils import (PageNotFoundError, NamespaceNotFoundError,
+        split_page_url)
 
 
 META_ENDPOINT = '_meta'
 
 
 logger = logging.getLogger(__name__)
+
+
+valid_filename_pattern = re.compile('^[\w\.\-\(\)\[\]\\/]+$', re.UNICODE)
 
 
 class PageInfo(object):
@@ -127,12 +131,7 @@ class FileSystem(object):
         return PageInfo(url, path)
 
     def _getPhysicalPath(self, url, is_file=True, make_new=False):
-        endpoint = None
-        m = re.match(r'(\w[\w\d]+)\:(.*)', url)
-        if m:
-            endpoint = str(m.group(1))
-            url = str(m.group(2)).strip()
-
+        endpoint, url = split_page_url(url)
         if url[0] != '/':
             raise ValueError("Page URLs need to be absolute: " + url)
         if string.find(url, '..') >= 0:
@@ -146,15 +145,23 @@ class FileSystem(object):
 
         # Make the URL into a relative file-system path.
         url_path = url[1:].replace('/', os.sep)
+        if url_path[0] == os.sep:
+            raise ValueError("Page URLs can only have one slash at the "
+                    "beginning. Got: %s" % url)
 
         # If we want a non-existing file's path, just build that.
         if make_new:
+            if (url_path[-1] == os.sep or
+                    not valid_filename_pattern.match(url_path)):
+                raise ValueError("Invalid URL: %s" % url_path)
             return os.path.join(root, url_path + '.' + self.default_extension)
 
         # Find the right file-system entry for this URL.
         url_path = os.path.join(root, url_path)
         if is_file:
             dirname, basename = os.path.split(url_path)
+            if basename == '':
+                raise ValueError("Invalid URL: %s" % url_path)
             if not os.path.isdir(dirname):
                 self._throwNotFoundError(url, root, is_file)
 

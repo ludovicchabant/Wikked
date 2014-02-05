@@ -150,7 +150,13 @@ def api_validate_newpage():
     if path is None:
         abort(400)
     path = url_from_viewarg(path)
-    if g.wiki.pageExists(path):
+    try:
+        # Check that there's no page with that name already, and that
+        # the name can be correctly mapped to a filename.
+        if g.wiki.pageExists(path):
+            raise Exception("Page '%s' already exists" % path)
+        g.wiki.fs.getPhysicalPagePath(path, make_new=True)
+    except Exception:
         return '"This page name is invalid or unavailable"'
     return '"true"'
 
