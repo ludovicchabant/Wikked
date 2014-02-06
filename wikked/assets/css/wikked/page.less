@@ -40,8 +40,8 @@ article {
     padding: 0 @line-height-computed;
 }
 footer {
-    color: @color-footer-dark;
-    border-top: 1px solid @color-footer;
+    color: @color-gray-dark;
+    border-top: 1px solid @color-gray;
     padding: @line-height-computed 0;
     font-weight: 300;
     font-size: @font-size-small;
@@ -50,11 +50,11 @@ footer {
 
     a {
         text-decoration: none;
-        color: @color-footer-dark;
-        &:link { color: @color-footer-dark; }
-        &:visited { color: @color-footer-dark; }
+        color: @color-gray-dark;
+        &:link { color: @color-gray-dark; }
+        &:visited { color: @color-gray-dark; }
         &:hover { color: @color-green-dark; text-decoration: none; }
-        &:active { color: @color-footer-dark; }
+        &:active { color: @color-gray-dark; }
     }
     ul {
         list-type: none;
@@ -81,7 +81,7 @@ footer {
     font-weight: 200;
     font-size: 0.7em;
     letter-spacing: 0.1em;
-    color: @color-footer;
+    color: @color-gray;
     .rev_id {
         font-family: @font-family-monospace;
     }
@@ -94,10 +94,10 @@ footer {
 section.info {
     margin: @line-height-computed 0 0 0;
     padding: @line-height-computed 0;
-    border-top: 1px solid @color-footer;
+    border-top: 1px solid @color-gray;
 
     .info-categories {
-        color: @color-footer-dark;
+        color: @color-gray-dark;
         font-weight: 300;
         font-size: @font-size-small;
         font-family: @font-family-sans-serif;
@@ -170,8 +170,6 @@ b.match {
 }
 
 // Page editing
-#wmd-button-bar { float: left; }
-#wmd-extra-bar { width: 100px; }
 #wmd-preview-button span {
     background: url(../img/markdown-32x20.png);
     width: 32px;
@@ -199,20 +197,17 @@ b.match {
 #wmd-full-preview-button {
     display: inline-block;
 }
-//#wmd-preview-wrapper {
-//    border: 1px dashed @colorBlueDark;
-//
-//    h3 {
-//        margin: 0.5em 1em 0.5em 1em;
-//    }
-//    #wmd-preview {
-//        margin: 1em;
-//        background: none;
-//    }
-//}
-//#wmd-button-bar li {
-//    margin-left: 0;
-//}
+#wmd-preview-wrapper {
+    border: 1px solid @gray-light;
+
+    #wmd-preview {
+        margin: 1em;
+        background: none;
+    }
+}
+#wmd-preview {
+    overflow: scroll;
+}
 .preview>h3 {
     margin: 0;
     padding: 0;
@@ -223,11 +218,10 @@ b.match {
         color: #fff;
         padding: 0.2em 0.4em 0.2em 0.6em;
         border-radius: 0.5em 0 0 0.5em;
-        font-variant: small-caps;
-        letter-spacing: 0.18em;
+        letter-spacing: 0.03em;
     }
     .meta-value {
-        background: @color-footer;
+        background: @color-gray;
         color: black;
         padding: 0.2em 0.6em 0.2em 0.4em;
         border-radius:  0 0.5em 0.5em 0;

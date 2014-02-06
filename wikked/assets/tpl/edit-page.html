@@ -8,7 +8,7 @@
                         <span class="input-group-addon">Title</span>
                         <input type="text" name="title" class="form-control input-xxlarge" placeholder="New Page" required="true"></input>
                     </div>
-                    <span class="help-block small">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
+                    <span class="help-block small" for="title">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
                 </div>
                 {{else}}
                 <h1>{{meta.title}} <span class="decorator">Editing</span></h1>
@@ -60,10 +60,14 @@
                 </section>
             </div>
             <div class="preview">
-                <h3>Preview
-                    <button id="wmd-full-preview-button" class="btn btn-xs">Full Preview</button>
-                </h3>
-                <div id="wmd-preview"></div>
+                <section id="wmd-preview-button-bar-wrapper">
+                    <div class="form-group">
+                        <button id="wmd-full-preview-button" class="btn btn-xs" title="Run a full preview on the text, with queries and includes">Full Preview</button>
+                    </div>
+                </section>
+                <section id="wmd-preview-wrapper">
+                    <div id="wmd-preview"></div>
+                </section>
             </div>
         </div>
     </form>

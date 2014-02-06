@@ -366,25 +366,33 @@ define([
 
             // Cache some stuff.
             this._ctrlInput = $('#wmd-input');
+            this._ctrlInputWrapper = $('#wmd-input-wrapper');
             this._ctrlPreview = $('#wmd-preview');
+            this._ctrlPreviewWrapper = $('#wmd-preview-wrapper');
 
             // Create the Markdown editor.
-            var formatter = new Client.PageFormatter();
-            formatter.baseUrl = this.model.get('path').match(/.*\//);
-            var converter = PageDownConverter.getSanitizingConverter();
+            var m = this.model.get('path').match(/(.*)\/?/);
+            var baseUrl = m[1];
+            var lastSlash = baseUrl.lastIndexOf('/');
+            if (lastSlash >= 0)
+                baseUrl = baseUrl.substr(0, lastSlash);
+            else
+                baseUrl = '';
+            var formatter = new Client.PageFormatter(baseUrl);
+            var converter = new Markdown.Converter();
             converter.hooks.chain("preConversion", function(text) {
                 return formatter.formatText(text);
             });
             var $view = this;
             var editor = new PageDownConverter.Editor(converter); //TODO: pass options
             editor.hooks.chain("onPreviewRefresh", function() {
-                $view._updateUI(true);
+                $view._updateInputFromPreview();
             });
             editor.run();
 
             // Setup UI.
-            this._updateUI();
             $('.preview').hide();
+            this._isPreviewVisible = false;
 
             // Start validation on the form.
             $('#page-edit').validate({
@@ -407,12 +415,13 @@ define([
         },
         _inputGripMouseDown: function(e) {
             // Input area resizing with the grip.
-            var last_pageY;
-            last_pageY = e.pageY;
+            var $view = this;
+            var last_pageY = e.pageY;
             $('body')
                 .on('mousemove.wikked.editor_resize', function(e) {
-                    var editor_control = $('#wmd-input');
+                    var editor_control = $view._ctrlInput;
                     editor_control.height(editor_control.height() + e.pageY - last_pageY);
+                    $view._ctrlPreview.height(editor_control.height());
                     last_pageY = e.pageY;
                 })
                 .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) {
@@ -422,11 +431,12 @@ define([
         _togglePreview: function(e) {
             // Show/hide live preview.
             var w = $('body').width() - 40;
-            if (this._ctrlPreview.is(":visible")) {
+            if (this._isPreviewVisible) {
                 this._removePreview();
             } else {
                 this._addPreview();
             }
+            this._isPreviewVisible = !this._isPreviewVisible;
             e.preventDefault();
             return false;
         },
@@ -437,8 +447,6 @@ define([
             $('.editing-wrapper').addClass('row');
             $('.editing-wrapper>.editing').addClass('col-md-6');
             $('.editing-wrapper>.preview').addClass('col-md-6').show();
-
-            this._updateUI(true);
         },
         _removePreview: function() {
             $('article').removeClass('container-fluid').removeClass('wide');
@@ -447,8 +455,6 @@ define([
             $('.editing-wrapper').removeClass('row');
             $('.editing-wrapper>.editing').removeClass('col-md-6');
             $('.editing-wrapper>.preview').removeClass('col-md-6').hide();
-        
-            this._updateUI();
         },
         _toggleFullPreview: function(e) {
             var $view = this;
@@ -461,7 +467,7 @@ define([
                     var previewEl = $('#wmd-preview');
                     previewEl.html(data.text);
                     processWikiLinks(previewEl);
-                    $view._updateUI(true);
+                    $view._updateInputFromPreview();
                 })
                 .error(function() {
                     $('#wmd-preview').html("Error running preview.");
@@ -469,16 +475,13 @@ define([
             e.preventDefault();
             return false;
         },
-        _updateUI: function(setHeight) {
-            var inputWidth = $('#wmd-input-wrapper').innerWidth();
-            this._ctrlInput.outerWidth(inputWidth);
-
-            if (setHeight === true) {
-                var maxHeight = Math.max(
-                    this._ctrlPreview.height(),
-                    this._ctrlInput.height());
-                this._ctrlInput.height(maxHeight);
-            }
+        _updateInputFromPreview: function() {
+            if (this._isPreviewVisible)
+                this._ctrlInput.height(this._ctrlPreview.height());
+        },
+        _updatePreviewFromInput: function() {
+            if (this._isPreviewVisible)
+                this._ctrlPreview.height(this._ctrlInput.height());
         },
         _submitEditedPage: function(e) {
             // Make the model submit the form.
