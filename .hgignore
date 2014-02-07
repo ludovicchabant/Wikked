@@ -2,6 +2,7 @@ syntax:glob
 venv
 node_modules
 wikked/static
+wikked/__version__.py
 dist
 build
 *.pyc
