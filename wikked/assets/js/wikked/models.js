@@ -13,12 +13,11 @@ define([
     var exports = {};
 
     var NavigationModel = exports.NavigationModel = Backbone.Model.extend({
-        idAttribute: 'path',
         defaults: function() {
             return {
                 path: "",
                 action: "read",
-                user: false
+                username: false
             };
         },
         initialize: function() {
@@ -26,11 +25,14 @@ define([
                 model._onChangePath(path);
             });
             this._onChangePath(this.get('path'));
-            this.on('change:auth', function(model, auth) {
-                model._onChangeAuth(auth);
+            this.on('change:user', function(model, auth) {
+                model._onChangeUser(auth);
             });
-            this._onChangeAuth(this.get('auth'));
+            this._onChangeUser(this.get('user'));
             return this;
+        },
+        url: function() {
+            return '/api/user/info';
         },
         doPreviewSearch: function(query, callback) {
             if (this._isSearching) {
@@ -78,18 +80,16 @@ define([
                 this.doPreviewSearch(q, c);
             }
         },
-        _onChangeAuth: function(auth) {
-            if (auth) {
+        _onChangeUser: function(user) {
+            if (user) {
                 this.set({
                     url_login: false,
-                    url_logout: '/#/logout',
-                    username: auth.username
+                    url_logout: '/#/logout'
                 });
             } else {
                 this.set({
                     url_login: '/#/login',
-                    url_logout: false,
-                    username: false
+                    url_logout: false
                 });
             }
         }
@@ -189,7 +189,7 @@ define([
 
     var MasterPageModel = exports.MasterPageModel = PageModel.extend({
         initialize: function() {
-            this.nav = new NavigationModel({ id: this.id });
+            this.nav = new NavigationModel({ path: this.id });
             this.footer = new FooterModel();
             MasterPageModel.__super__.initialize.apply(this, arguments);
             this.on('change:auth', function(model, auth) {
@@ -253,10 +253,21 @@ define([
                 -1,
                 'cog');
         },
+        url: function() {
+            var url = PageReadModel.__super__.url.apply(this, arguments);
+            if (!this.nav.get('user')) {
+                url += '?user';
+            }
+            return url;
+        },
         checkStatePath: function() {
             return this.get('path');
         },
         _onChange: function() {
+            if (this.get('user')) {
+                // Forward user info to the navigation model.
+                this.nav.set('user', this.get('user'));
+            }
             if (this.getMeta('redirect')) {
                 // Handle redirects.
                 var newPath = this.getMeta('redirect').replace(/^\//, "");

@@ -24,8 +24,8 @@
             <button type="submit" class="btn btn-sm btn-default">Search</button>
         </form>
         <ul class="nav navbar-nav navbar-right">
-            {{#if username}}
-            <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{username}}</a></li>
+            {{#if user}}
+            <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
             <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
             {{else}}
             <li><a href="{{url_login}}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>

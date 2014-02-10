@@ -1,8 +1,9 @@
 import time
 import urllib
-from flask import render_template, request, g
+from flask import render_template, request, g, jsonify
+from flask.ext.login import current_user
 from wikked.views import (get_page_meta, get_page_or_404, get_page_or_none,
-        is_page_readable, make_auth_response,
+        is_page_readable,
         url_from_viewarg, split_url_from_viewarg,
         CHECK_FOR_READ)
 from wikked.web import app
@@ -43,7 +44,7 @@ def api_list_pages(url):
     pages = filter(is_page_readable, g.wiki.getPages(url_from_viewarg(url)))
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/read/')
@@ -53,7 +54,17 @@ def api_read_main_page():
 
 @app.route('/api/read/<path:url>')
 def api_read_page(url):
-    #TODO: remove redundant quoting/spliting/unquoting around here.
+    additional_info = {}
+    if 'user' in request.args:
+        user = current_user
+        if user.is_authenticated():
+            additional_info['user'] = {
+                    'username': user.username,
+                    'groups': user.groups
+                    }
+        else:
+            additional_info['user'] = False
+
     endpoint, value, path = split_url_from_viewarg(url)
     if endpoint is None:
         # Normal page.
@@ -64,7 +75,8 @@ def api_read_page(url):
                 force_resolve=('force_resolve' in request.args))
 
         result = {'meta': get_page_meta(page), 'text': page.text}
-        return make_auth_response(result)
+        result.update(additional_info)
+        return jsonify(result)
 
     # Meta listing page.
     meta_page_url = '%s:%s' % (endpoint, path)
@@ -103,7 +115,8 @@ def api_read_page(url):
     if info_page:
         result['meta'] = get_page_meta(info_page)
 
-    return make_auth_response(result)
+    result.update(additional_info)
+    return jsonify(result)
 
 
 @app.route('/api/raw/')
@@ -115,7 +128,7 @@ def api_read_main_page_raw():
 def api_read_page_raw(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     result = {'meta': get_page_meta(page), 'text': page.raw_text}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/query')
@@ -126,7 +139,7 @@ def api_query():
             'query': query,
             'pages': [get_page_meta(p) for p in pages]
         }
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/state/')
@@ -138,7 +151,7 @@ def api_get_main_page_state():
 def api_get_state(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
     state = page.getState()
-    return make_auth_response({
+    return jsonify({
         'meta': get_page_meta(page, True),
         'state': STATE_NAMES[state]
         })
@@ -164,7 +177,7 @@ def api_get_outgoing_links(url):
             links.append({'url': link, 'missing': True})
 
     result = {'meta': get_page_meta(page), 'out_links': links}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/inlinks/')
@@ -187,5 +200,5 @@ def api_get_incoming_links(url):
             links.append({'url': link, 'missing': True})
 
     result = {'meta': get_page_meta(page), 'in_links': links}
-    return make_auth_response(result)
+    return jsonify(result)
 

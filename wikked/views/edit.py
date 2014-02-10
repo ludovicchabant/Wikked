@@ -3,7 +3,7 @@ from flask import g, abort, request, jsonify
 from flask.ext.login import current_user
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
-from wikked.views import (make_page_title, make_auth_response, get_page_or_none,
+from wikked.views import (make_page_title, get_page_or_none,
         is_page_writable, get_page_meta, url_from_viewarg,
         split_url_from_viewarg)
 from wikked.web import app
@@ -59,7 +59,7 @@ def get_edit_page(url, default_title=None, custom_data=None):
             }
     if custom_data:
         result.update(custom_data)
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 def do_edit_page(url, default_message):
@@ -86,7 +86,7 @@ def do_edit_page(url, default_message):
     g.wiki.setPage(url, page_fields)
 
     result = {'saved': 1}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/edit/', methods=['GET', 'POST'])

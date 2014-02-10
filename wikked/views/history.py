@@ -1,5 +1,5 @@
 import os.path
-from flask import g, request, abort
+from flask import g, jsonify, request, abort
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name
 from pygments.formatters import get_formatter_by_name
@@ -7,7 +7,7 @@ from wikked.page import PageLoadingError
 from wikked.scm.base import ACTION_NAMES
 from wikked.utils import PageNotFoundError
 from wikked.views import (is_page_readable, get_page_meta, get_page_or_404,
-        make_auth_response, url_from_viewarg,
+        url_from_viewarg,
         CHECK_FOR_READ)
 from wikked.web import app
 
@@ -64,7 +64,7 @@ def api_site_history():
     history = g.wiki.getHistory(limit=limit)
     hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/history/<path:url>')
@@ -73,7 +73,7 @@ def api_page_history(url):
     history = page.getHistory()
     hist_data = get_history_data(history)
     result = {'url': url, 'meta': get_page_meta(page), 'history': hist_data}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/revision/<path:url>')
@@ -85,7 +85,7 @@ def api_read_page_rev(url):
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/diff/<path:url>')
@@ -105,7 +105,7 @@ def api_diff_page(url):
     else:
         meta = dict(get_page_meta(page, True), rev1=rev1, rev2=rev2)
     result = {'meta': meta, 'diff': diff}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/revert/<path:url>', methods=['POST'])
@@ -128,5 +128,5 @@ def api_revert_page(url):
             }
     g.wiki.revertPage(url, page_fields)
     result = {'reverted': 1}
-    return make_auth_response(result)
+    return jsonify(result)
 

@@ -1,6 +1,5 @@
-from flask import g, request, abort
-from wikked.views import (is_page_readable, get_page_meta, get_page_or_none,
-        make_auth_response)
+from flask import g, jsonify, request, abort
+from wikked.views import is_page_readable, get_page_meta, get_page_or_none
 from wikked.web import app
 
 
@@ -22,7 +21,7 @@ def api_special_orphans():
             app.logger.error("   %s" % e)
 
     result = {'orphans': orphans}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 
@@ -40,7 +39,7 @@ def api_search():
             readable_hits.append({'url': h.url, 'title': h.title, 'text': h.hl_text})
 
     result = {'query': query, 'hit_count': len(readable_hits), 'hits': readable_hits}
-    return make_auth_response(result)
+    return jsonify(result)
 
 
 @app.route('/api/searchpreview')
@@ -57,5 +56,5 @@ def api_searchpreview():
             readable_hits.append({'url': h.url, 'title': h.title})
 
     result = {'query': query, 'hit_count': len(readable_hits), 'hits': readable_hits}
-    return make_auth_response(result)
+    return jsonify(result)
 
