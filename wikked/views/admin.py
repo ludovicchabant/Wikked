@@ -48,8 +48,8 @@ def api_current_user_info():
     if user.is_authenticated():
         result = {
                 'user': {
-                    'username': current_user.username,
-                    'groups': current_user.groups
+                    'username': user.username,
+                    'groups': user.groups
                     }
                 }
         return jsonify(result)
