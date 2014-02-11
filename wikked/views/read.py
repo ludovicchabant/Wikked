@@ -65,6 +65,8 @@ def api_read_page(url):
         else:
             additional_info['user'] = False
 
+    force_resolve = ('force_resolve' in request.args)
+
     endpoint, value, path = split_url_from_viewarg(url)
     if endpoint is None:
         # Normal page.
@@ -72,19 +74,37 @@ def api_read_page(url):
                 path,
                 convert_url=False,
                 check_perms=CHECK_FOR_READ,
-                force_resolve=('force_resolve' in request.args))
+                force_resolve=force_resolve)
 
         result = {'meta': get_page_meta(page), 'text': page.text}
         result.update(additional_info)
         return jsonify(result)
 
-    # Meta listing page.
+    # Meta listing page or special endpoint.
     meta_page_url = '%s:%s' % (endpoint, path)
     info_page = get_page_or_none(
             meta_page_url,
             convert_url=False,
             check_perms=CHECK_FOR_READ,
-            force_resolve=('force_resolve' in request.args))
+            force_resolve=force_resolve)
+
+    endpoint_info = g.wiki.endpoints.get(endpoint)
+    if endpoint_info is not None:
+        # We have some information about this endpoint...
+        if endpoint_info.default and info_page is None:
+            # Default page text.
+            info_page = get_page_or_404(
+                    endpoint_info.default,
+                    convert_url=False,
+                    check_perms=CHECK_FOR_READ,
+                    force_resolve=force_resolve)
+
+        if not endpoint_info.query:
+            # Not a query-based endpoint (like categories). Let's just
+            # return the text.
+            result = {'meta': get_page_meta(info_page), 'text': info_page.text}
+            result.update(additional_info)
+            return jsonify(result)
 
     # Get the list of pages to show here.
     query = {endpoint: [value]}

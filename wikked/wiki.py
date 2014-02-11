@@ -149,6 +149,13 @@ class WikiParameters(object):
         self._config = config
 
 
+class EndpointInfo(object):
+    def __init__(self, name):
+        self.name = name
+        self.query = True
+        self.default = None
+
+
 class Wiki(object):
     """ The wiki class! This is where the magic happens.
     """
@@ -166,6 +173,7 @@ class Wiki(object):
 
         self.main_page_url = '/' + parameters.config.get('wiki', 'main_page').strip('/')
         self.templates_url = '/' + parameters.config.get('wiki', 'templates_dir').strip('/') + '/'
+        self.endpoints = self._createEndpointInfos(parameters.config)
 
         self.fs = parameters.fs_factory()
         self.index = parameters.index_factory()
@@ -322,6 +330,18 @@ class Wiki(object):
             for page in self.db.getUncachedPages():
                 page._ensureExtendedData()
 
+    def _createEndpointInfos(self, config):
+        endpoints = {}
+        sections = [s for s in config.sections() if s.startswith('endpoint:')]
+        for s in sections:
+            ep = EndpointInfo(s[9:])   # 9 = len('endpoint:')
+            if config.has_option(s, 'query'):
+                ep.query = config.getboolean(s, 'query')
+            if config.has_option(s, 'default'):
+                ep.default = config.get(s, 'default')
+            endpoints[ep.name] = ep
+        return endpoints
+
 
 def reloader_stat_loop(wiki, interval=1):
     mtimes = {}
@@ -340,3 +360,4 @@ def reloader_stat_loop(wiki, interval=1):
             elif mtime > old_time:
                 print "Change detected in '%s'." % path
         time.sleep(interval)
+
