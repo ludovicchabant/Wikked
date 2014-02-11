@@ -16,7 +16,7 @@ META_ENDPOINT = '_meta'
 logger = logging.getLogger(__name__)
 
 
-valid_filename_pattern = re.compile('^[\w\.\-\(\)\[\]\\/]+$', re.UNICODE)
+valid_filename_pattern = re.compile('^[\w \.\-\(\)\[\]\\/]+$', re.UNICODE)
 
 
 class PageInfo(object):
@@ -93,6 +93,9 @@ class FileSystem(object):
     def setPage(self, url, content):
         path = self.getPhysicalPagePath(url, make_new=True)
         logger.debug("Saving page '%s' to: %s" % (url, path))
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname, 0775)
         with codecs.open(path, 'w', encoding='utf-8') as f:
             f.write(content)
         return PageInfo(url, path)
