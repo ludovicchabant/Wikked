@@ -2,6 +2,9 @@
     {{#ifnot meta.notitle}}
     <header>
         <h1>{{meta.title}}</h1>
+        {{#if meta_query}}
+        <div class="decorator">{{meta_query}}</div>
+        {{/if}}
         {{#if redirected_from}}
         <small>Redirected from <a href="{{get_read_url redirected_from}}?no_redirect">{{redirected_from}}</a></small>
         {{/if}}
