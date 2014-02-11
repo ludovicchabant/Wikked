@@ -84,12 +84,14 @@ define([
             if (user) {
                 this.set({
                     url_login: false,
-                    url_logout: '/#/logout'
+                    url_logout: '/#/logout',
+                    url_profile: '/#/read/user:' + user.username
                 });
             } else {
                 this.set({
                     url_login: '/#/login',
-                    url_logout: false
+                    url_logout: false,
+                    url_profile: false
                 });
             }
         }
