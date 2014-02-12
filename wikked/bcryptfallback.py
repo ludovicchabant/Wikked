@@ -13,7 +13,7 @@ except ImportError:
     def generate_password_hash(password):
         return hashlib.sha512(password).hexdigest()
 
-    def check_password_hash(self, reference, check):
+    def check_password_hash(reference, check):
         check_hash = hashlib.sha512(check).hexdigest()
         return check_hash == reference
 
