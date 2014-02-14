@@ -54,6 +54,10 @@ def get_absolute_url(base_url, url, quote=False):
     if url.startswith('/'):
         # Absolute page URL.
         abs_url = url
+    elif url.startswith('./'):
+        # URL wants to be relative to the base url's name, instead
+        # of its directory.
+        abs_url = base_url + url[1:]
     else:
         # Relative page URL. Let's normalize all `..` in it,
         # which could also replace forward slashes by backslashes
