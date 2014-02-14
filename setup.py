@@ -94,6 +94,7 @@ setup(
             'wikked': [
                 'resources/*',
                 'templates/*.html',
+                'static/bootstrap/fonts/*',
                 'static/css/wikked.min.css',
                 'static/img/*.png',
                 'static/js/require.js',
