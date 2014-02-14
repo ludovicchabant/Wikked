@@ -97,8 +97,7 @@ setup(
                 'static/css/wikked.min.css',
                 'static/img/*.png',
                 'static/js/require.js',
-                'static/js/wikked.min.js',
-                'static/js/pagedown/*.js'
+                'static/js/wikked.min.js'
                 ]
             },
         zip_safe=False,
