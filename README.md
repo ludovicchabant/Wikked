@@ -1,6 +1,11 @@
 
-W I K K E D
-===========
+                        .__ __    __              .___
+                __  _  _|__|  | _|  | __ ____   __| _/
+                \ \/ \/ /  |  |/ /  |/ // __ \ / __ | 
+                 \     /|  |    <|    <\  ___// /_/ | 
+                  \/\_/ |__|__|_ \__|_ \\___  >____ | 
+                                \/    \/    \/     \/ 
+
 
 Wikked is a wiki engine entirely managed with text files stored in a revision
 control system like Mercurial or Git.
