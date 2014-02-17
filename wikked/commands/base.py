@@ -28,12 +28,3 @@ class WikkedCommand(object):
             result = 0
         return result
 
-
-# Import the commands.
-# (this creates a PyLint warning but it's OK)
-# pylint: disable=unused-import
-import wikked.commands.manage
-import wikked.commands.query
-import wikked.commands.users
-import wikked.commands.web
-

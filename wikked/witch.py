@@ -1,11 +1,33 @@
+import sys
 import logging
 import argparse
+import colorama
 from wikked.commands.base import command_classes
 from wikked.utils import find_wiki_root
 from wikked.wiki import Wiki, WikiParameters
 
 
 logger = logging.getLogger(__name__)
+
+
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+            'DEBUG': colorama.Fore.BLACK + colorama.Style.BRIGHT,
+            'INFO': '',
+            'WARNING': colorama.Fore.YELLOW,
+            'ERROR': colorama.Fore.RED,
+            'CRITICAL': colorama.Back.RED + colorama.Fore.WHITE
+            }
+
+    def __init__(self, fmt=None, datefmt=None):
+        logging.Formatter.__init__(self, fmt, datefmt)
+
+    def format(self, record):
+        color = self.COLORS.get(record.levelname)
+        res = logging.Formatter.format(self, record)
+        if color:
+            res = color + res + colorama.Style.RESET_ALL
+        return res
 
 
 class WitchContext(object):
@@ -16,6 +38,31 @@ class WitchContext(object):
 
 
 def main():
+    # Setup logging first, even before arg parsing, so we really get
+    # all the messages.
+    arg_log = False
+    arg_debug = False
+    arg_quiet = False
+    for i, arg in enumerate(sys.argv[1:]):
+        if not arg.startswith('--'):
+            break
+        elif arg == '--debug':
+            arg_debug = True
+        elif arg == '--quet':
+            arg_quiet = True
+        elif arg == '--log':
+            arg_log = sys.argv[i+1]
+    if arg_debug and arg_quiet:
+        raise Exception("You can't specify both --debug and --quiet.")
+    root_logger = logging.getLogger()
+    if arg_quiet:
+        root_logger.setLevel(logging.WARNING)
+    elif arg_debug:
+        root_logger.setLevel(logging.DEBUG)
+    if arg_log:
+        from logging.handlers import FileHandler
+        root_logger.addHandler(FileHandler(arg_log))
+
     # Setup the parser.
     parser = argparse.ArgumentParser(
             description="Wikked command line utility")
@@ -30,6 +77,14 @@ def main():
     parser.add_argument('--log',
             help="Send log messages to the specified file.")
 
+    # Import the commands.
+    # (this creates a PyLint warning but it's OK)
+    # pylint: disable=unused-import
+    import wikked.commands.manage
+    import wikked.commands.query
+    import wikked.commands.users
+    import wikked.commands.web
+
     # Setup the command parsers.
     subparsers = parser.add_subparsers()
     commands = map(lambda cls: cls(), command_classes)
@@ -41,18 +96,6 @@ def main():
 
     # Parse!
     result = parser.parse_args()
-
-    # Setup logging.
-    root_logger = logging.getLogger()
-    if result.debug and result.quiet:
-        raise Exception("You can't specify both --debug and --quiet.")
-    if result.quiet:
-        root_logger.setLevel(logging.WARNING)
-    elif result.debug:
-        root_logger.setLevel(logging.DEBUG)
-    if result.log:
-        from logging.handlers import FileHandler
-        root_logger.addHandler(FileHandler(result.log))
 
     # Create the wiki.
     root = find_wiki_root(result.root)

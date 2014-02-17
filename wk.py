@@ -1,11 +1,15 @@
 #!/usr/local/bin/python
 import logging
-from wikked.witch import main
+import colorama
+from wikked.witch import ColoredFormatter, main
 
 
 # Configure logging.
-logging.basicConfig(level=logging.DEBUG,
-        format="[%(levelname)s]: %(message)s")
+colorama.init()
+root_logger = logging.getLogger()
+handler = logging.StreamHandler()
+handler.setFormatter(ColoredFormatter('%(message)s'))
+root_logger.addHandler(handler)
 
 
 if __name__ == "__main__":
