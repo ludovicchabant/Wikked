@@ -57,8 +57,10 @@ class CacheCommand(WikkedCommand):
                 "whole wiki.")
 
     def setupParser(self, parser):
-        pass
+        parser.add_argument('-f', '--force',
+                help="Force cache all pages",
+                action='store_true')
 
     def run(self, ctx):
-        ctx.wiki._cachePages()
+        ctx.wiki._cachePages(force_resolve=ctx.args.force)
 

@@ -111,6 +111,7 @@ class WikiParameters(object):
     def getSpecialFilenames(self):
         yield '.wikirc'
         yield '.wiki'
+        yield '_files'
         if self.config.has_section('ignore'):
             for name, val in self.config.items('ignore'):
                 yield val
@@ -320,12 +321,15 @@ class Wiki(object):
     def getSpecialFilenames(self):
         return self.special_filenames
 
-    def _cachePages(self, only_urls=None):
+    def _cachePages(self, only_urls=None, force_resolve=False):
         logger.debug("Caching extended page data...")
         if only_urls:
             for url in only_urls:
                 page = self.getPage(url)
-                page._ensureExtendedData()
+                page._ensureExtendedData(force=force_resolve)
+        elif force_resolve:
+            for page in self.db.getPages():
+                page._ensureExtendedData(force=True)
         else:
             for page in self.db.getUncachedPages():
                 page._ensureExtendedData()

@@ -126,14 +126,18 @@ class Page(object):
     def _onExtendedDataLoaded(self):
         pass
 
-    def _ensureExtendedData(self):
-        if self._data is not None and self._data.has_extended_data:
+    def _ensureExtendedData(self, force=False):
+        if (not force and 
+                self._data is not None and 
+                self._data.has_extended_data):
             return
 
         self._ensureData()
 
         self._onExtendedDataLoading()
-        if self._data.has_extended_data and not self._force_resolve:
+        if (self._data.has_extended_data and
+                not force and
+                not self._force_resolve):
             return
 
         try:
