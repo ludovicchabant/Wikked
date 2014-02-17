@@ -20,6 +20,9 @@ class RunServerCommand(WikkedCommand):
         parser.add_argument('--port',
                 help="The port to use",
                 default=5000)
+        parser.add_argument('-d', '--dev',
+                help="Use development assets",
+                action='store_true')
 
     def run(self, ctx):
         # Change working directory because the Flask app can currently
@@ -28,10 +31,16 @@ class RunServerCommand(WikkedCommand):
         os.chdir(ctx.params.root)
 
         from wikked.web import app
+
+        # Setup the app.
+        if ctx.args.dev:
+            app.config['DEV_ASSETS'] = True
+
         app.wiki_params = ctx.params
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.update()
 
+        # Run!
         debug_mode = ctx.args.debug or app.config.get('DEBUG', False)
         app.run(
                 host=ctx.args.host,

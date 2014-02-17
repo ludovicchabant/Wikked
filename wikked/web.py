@@ -16,6 +16,7 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
 # Setup some config defaults.
+app.config.setdefault('DEV_ASSETS', False)
 app.config.setdefault('SQL_DEBUG', False)
 app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
 app.config.setdefault('WIKI_ROOT', None)

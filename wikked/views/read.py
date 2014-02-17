@@ -13,7 +13,7 @@ from wikked.scm.base import STATE_NAMES
 @app.route('/')
 def home():
     tpl_name = 'index.html'
-    if app.config['DEBUG']:
+    if app.config['DEV_ASSETS']:
         tpl_name = 'index-dev.html'
     return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
@@ -21,7 +21,7 @@ def home():
 @app.route('/read/<path:url>')
 def read():
     tpl_name = 'index.html'
-    if app.config['DEBUG']:
+    if app.config['DEV_ASSETS']:
         tpl_name = 'index-dev.html'
     return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
@@ -29,7 +29,7 @@ def read():
 @app.route('/search')
 def search():
     tpl_name = 'index.html'
-    if app.config['DEBUG']:
+    if app.config['DEV_ASSETS']:
         tpl_name = 'index-dev.html'
     return render_template(tpl_name, cache_bust=('?%d' % time.time()));
 
