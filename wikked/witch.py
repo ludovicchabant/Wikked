@@ -1,6 +1,7 @@
 import sys
 import logging
 import argparse
+import datetime
 import colorama
 from wikked.commands.base import command_classes
 from wikked.utils import find_wiki_root
@@ -104,7 +105,19 @@ def main():
     wiki.start()
 
     # Run the command!
-    ctx = WitchContext(params, wiki, result)
-    exit_code = result.func(ctx)
-    return exit_code
+    now = datetime.datetime.now()
+    try:
+        ctx = WitchContext(params, wiki, result)
+        exit_code = result.func(ctx)
+        if exit_code is not None:
+            return exit_code
+        return 0
+    except Exception as e:
+        logger.critical("Critical error while running witch command:")
+        logger.exception(e)
+        return -1
+    finally:
+        after = datetime.datetime.now()
+        delta = after - now
+        logger.debug("Ran command in %fs" % delta.total_seconds())
 
