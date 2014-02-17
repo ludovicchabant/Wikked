@@ -25,6 +25,9 @@ class Database(object):
     def getPages(self, subdir=None, meta_query=None):
         raise NotImplementedError()
 
+    def getUncachedPages(self):
+        raise NotImplementedError()
+
     def getPage(self, url=None, path=None, raise_if_none=True):
         if not url and not path:
             raise ValueError("Either URL or path need to be specified.")
