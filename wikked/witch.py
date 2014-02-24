@@ -44,6 +44,7 @@ def main():
     arg_log = False
     arg_debug = False
     arg_quiet = False
+    arg_debug_sql = False
     for i, arg in enumerate(sys.argv[1:]):
         if not arg.startswith('--'):
             break
@@ -53,6 +54,9 @@ def main():
             arg_quiet = True
         elif arg == '--log':
             arg_log = sys.argv[i+1]
+            i += 1
+        elif arg == '--debugsql':
+            arg_debug_sql = True
     if arg_debug and arg_quiet:
         raise Exception("You can't specify both --debug and --quiet.")
     root_logger = logging.getLogger()
@@ -63,6 +67,8 @@ def main():
     if arg_log:
         from logging.handlers import FileHandler
         root_logger.addHandler(FileHandler(arg_log))
+    if arg_debug_sql:
+        logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 
     # Setup the parser.
     parser = argparse.ArgumentParser(
@@ -71,6 +77,9 @@ def main():
             help="Use the specified root directory instead of the current one")
     parser.add_argument('--debug',
             help="Show debug information",
+            action='store_true')
+    parser.add_argument('--debugsql',
+            help="Show debug information for SQLAlchemy (advanced)",
             action='store_true')
     parser.add_argument('--quiet',
             help="Print only important information.",
@@ -105,7 +114,7 @@ def main():
     wiki.start()
 
     # Run the command!
-    now = datetime.datetime.now()
+    before = datetime.datetime.now()
     try:
         ctx = WitchContext(params, wiki, result)
         exit_code = result.func(ctx)
@@ -118,6 +127,6 @@ def main():
         return -1
     finally:
         after = datetime.datetime.now()
-        delta = after - now
+        delta = after - before
         logger.debug("Ran command in %fs" % delta.total_seconds())
 
