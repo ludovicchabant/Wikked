@@ -15,7 +15,7 @@ class ElasticWikiIndex(WikiIndex):
     def __init__(self):
         WikiIndex.__init__(self)
 
-    def initIndex(self, wiki):
+    def start(self, wiki):
         self.es = Elasticsearch()
         if not self.es.indices.exists('pages'):
             logger.debug("Creating the `pages` index.")

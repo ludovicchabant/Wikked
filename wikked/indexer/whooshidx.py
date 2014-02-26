@@ -17,7 +17,7 @@ class WhooshWikiIndex(WikiIndex):
     def __init__(self):
         WikiIndex.__init__(self)
 
-    def initIndex(self, wiki):
+    def start(self, wiki):
         self.store_dir = os.path.join(wiki.root, '.wiki', 'index')
         if not os.path.isdir(self.store_dir):
             logger.debug("Creating new index in: " + self.store_dir)
@@ -27,7 +27,7 @@ class WhooshWikiIndex(WikiIndex):
             self.ix = open_dir(self.store_dir)
 
     def reset(self, pages):
-        logger.debug("Re-creating new index in: " + self.store_dir)
+        logger.info("Re-creating new index in: " + self.store_dir)
         self.ix = create_in(self.store_dir, schema=self._getSchema())
         writer = self.ix.writer()
         for page in pages:
@@ -35,7 +35,7 @@ class WhooshWikiIndex(WikiIndex):
         writer.commit()
 
     def update(self, pages):
-        logger.debug("Updating index...")
+        logger.info("Updating index...")
         to_reindex = set()
         already_indexed = set()
 

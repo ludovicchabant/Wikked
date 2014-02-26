@@ -26,7 +26,7 @@ class MercurialBaseSourceControl(SourceControl):
                 'M': ACTION_EDIT
                 }
 
-    def initRepo(self, wiki):
+    def start(self, wiki):
         pass
 
     def createRepo(self):

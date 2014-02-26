@@ -11,7 +11,7 @@ class WikiIndex(object):
     def __init__(self):
         pass
 
-    def initIndex(self, wiki):
+    def start(self, wiki):
         raise NotImplementedError()
 
     def reset(self, pages):

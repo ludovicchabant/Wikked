@@ -21,7 +21,7 @@ class GitBaseSourceControl(SourceControl):
         SourceControl.__init__(self)
         self.root = root
 
-    def initRepo(self, wiki):
+    def start(self, wiki):
         # Make a Git repo if there's none.
         if not os.path.isdir(os.path.join(self.root, '.git')):
             logger.info("Creating Git repository at: " + self.root)

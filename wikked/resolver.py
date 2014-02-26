@@ -107,10 +107,13 @@ class PageResolver(object):
         '__empty': "<p>No page matches the query.</p>\n"
         }
 
-    def __init__(self, page, ctx=None, parameters=None):
+    def __init__(self, page, ctx=None, parameters=None, page_getter=None,
+                 pages_meta_getter=None):
         self.page = page
         self.ctx = ctx or ResolveContext(page)
         self.parameters = parameters
+        self.page_getter = page_getter or self._getPage
+        self.pages_meta_getter = pages_meta_getter or self._getPagesMeta
         self.output = None
         self.env = None
 
@@ -136,6 +139,15 @@ class PageResolver(object):
             self.output = ResolveOutput(self.page)
             self.output.text = u'<div class="error">%s</div>' % e
             return self.output
+
+    def _getPage(self, url):
+        fields = ['url', 'title', 'path', 'formatted_text', 'local_meta',
+                  'local_links']
+        return self.wiki.db.getPage(url, fields=fields)
+
+    def _getPagesMeta(self):
+        fields = ['url', 'title', 'local_meta']
+        return self.wiki.db.getPages(fields=fields)
 
     def _unsafeRun(self):
         # Create default parameters.
@@ -258,12 +270,13 @@ class PageResolver(object):
         # Re-run the resolver on the included page to get its final
         # formatted text.
         try:
-            page = self.wiki.getPage(include_url)
+            page = self.page_getter(include_url)
         except PageNotFoundError:
             raise IncludeError(include_url, self.page.url, "Page not found")
         current_url_trail = list(self.ctx.url_trail)
         self.ctx.url_trail.append(page.url)
-        child = PageResolver(page, self.ctx, parameters)
+        child = PageResolver(page, self.ctx, parameters, self.page_getter,
+                             self.pages_meta_getter)
         child_output = child.run()
         self.output.add(child_output)
         self.ctx.url_trail = current_url_trail
@@ -295,7 +308,7 @@ class PageResolver(object):
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
         matched_pages = []
-        for p in self.wiki.getPages():
+        for p in self.pages_meta_getter():
             if p.url in self.ctx.url_trail:
                 continue
             for key, value in meta_query.iteritems():
@@ -315,8 +328,7 @@ class PageResolver(object):
         for p in matched_pages:
             tokens = {
                     'url': p.url,
-                    'title': p.title
-                    }
+                    'title': p.title}
             tokens.update(p.getLocalMeta())
             item_url, item_text = self._valueOrPageText(parameters['__item'], with_url=True)
             text += self._renderTemplate(item_text, tokens, error_url=item_url or self.page.url)
@@ -328,7 +340,7 @@ class PageResolver(object):
         if re.match(r'^\[\[.*\]\]$', value):
             include_url = value[2:-2]
             try:
-                page = self.wiki.getPage(include_url)
+                page = self.page_getter(include_url)
             except PageNotFoundError:
                 raise IncludeError(include_url, self.page.url, "Page not found")
             if with_url:
@@ -388,7 +400,7 @@ class PageResolver(object):
         # Recurse into included pages.
         for url in included_urls:
             try:
-                p = self.wiki.getPage(url)
+                p = self.page_getter(url)
             except PageNotFoundError:
                 raise IncludeError(url, page.url, "Page not found")
             if self._isPageMatch(p, name, value, level + 1):

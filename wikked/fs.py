@@ -45,7 +45,7 @@ class FileSystem(object):
         self.page_extensions = None
         self.default_extension = config.get('wiki', 'default_extension')
 
-    def initFs(self, wiki):
+    def start(self, wiki):
         self.page_extensions = list(set(
             itertools.chain(*wiki.formatters.itervalues())))
 

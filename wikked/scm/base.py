@@ -16,7 +16,7 @@ class SourceControl(object):
     def __init__(self):
         pass
 
-    def initRepo(self, wiki):
+    def start(self, wiki):
         raise NotImplementedError()
 
     def getSpecialFilenames(self):

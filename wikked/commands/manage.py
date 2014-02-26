@@ -14,9 +14,6 @@ class ResetCommand(WikkedCommand):
                 "search index.")
 
     def setupParser(self, parser):
-        parser.add_argument('--cache',
-                help="Re-cache all pages",
-                action='store_true')
         parser.add_argument('--indexonly',
                 help="Only update the full-text search index",
                 action='store_true')
@@ -25,7 +22,7 @@ class ResetCommand(WikkedCommand):
         if ctx.args.indexonly:
             ctx.wiki.index.reset(ctx.wiki.getPages())
         else:
-            ctx.wiki.reset(cache_ext_data=ctx.args.cache)
+            ctx.wiki.reset()
 
 
 @register_command
@@ -60,7 +57,11 @@ class CacheCommand(WikkedCommand):
         parser.add_argument('-f', '--force',
                 help="Force cache all pages",
                 action='store_true')
+        parser.add_argument('--parallel',
+                help="Run the operation with multiple workers in parallel",
+                action='store_true')
 
     def run(self, ctx):
-        ctx.wiki._cachePages(force_resolve=ctx.args.force)
-
+        ctx.wiki._cachePages(
+            force_resolve=ctx.args.force,
+            parallel=ctx.args.parallel)

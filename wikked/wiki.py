@@ -7,6 +7,7 @@ from ConfigParser import SafeConfigParser, NoOptionError
 from wikked.page import FileSystemPage
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
+from wikked.scheduler import ResolveScheduler
 
 
 logger = logging.getLogger(__name__)
@@ -85,9 +86,12 @@ class WikiParameters(object):
                 # Only create the command server once.
                 import hglib
                 client = hglib.open(self.root)
+
                 def impl():
-                    from wikked.scm.mercurial import MercurialCommandServerSourceControl
-                    return MercurialCommandServerSourceControl(self.root, client)
+                    from wikked.scm.mercurial import (
+                        MercurialCommandServerSourceControl)
+                    return MercurialCommandServerSourceControl(
+                        self.root, client)
                 self._scm_factory = impl
             elif scm_type == 'git':
                 def impl():
@@ -95,7 +99,8 @@ class WikiParameters(object):
                     return GitLibSourceControl(self.root)
                 self._scm_factory = impl
             else:
-                raise InitializationError("No such source control: " + scm_type)
+                raise InitializationError(
+                    "No such source control: " + scm_type)
         return self._scm_factory()
 
     def auth_factory(self):
@@ -103,9 +108,12 @@ class WikiParameters(object):
 
     def getFormatters(self):
         formatters = {passthrough_formatter: ['txt', 'html']}
-        self.tryAddFormatter(formatters, 'markdown', 'markdown', ['md', 'mdown', 'markdown'])
-        self.tryAddFormatter(formatters, 'textile', 'textile', ['tl', 'text', 'textile'])
-        self.tryAddFormatter(formatters, 'creole', 'creole2html', ['cr', 'creole'])
+        self.tryAddFormatter(formatters, 'markdown', 'markdown',
+                             ['md', 'mdown', 'markdown'])
+        self.tryAddFormatter(formatters, 'textile', 'textile',
+                             ['tl', 'text', 'textile'])
+        self.tryAddFormatter(formatters, 'creole', 'creole2html',
+                             ['cr', 'creole'])
         return formatters
 
     def getSpecialFilenames(self):
@@ -121,13 +129,16 @@ class WikiParameters(object):
             if self.config.getboolean('wiki', 'async_updates'):
                 logger.debug("Setting up asynchronous updater.")
                 from tasks import update_wiki
-                self._page_updater = lambda wiki, url: update_wiki.delay(self.root)
+                self._page_updater = lambda wiki, url: update_wiki.delay(
+                    self.root)
             else:
                 logger.debug("Setting up simple updater.")
-                self._page_updater = lambda wiki, url: wiki.update(url, cache_ext_data=False)
+                self._page_updater = lambda wiki, url: wiki.update(
+                    url, cache_ext_data=False)
         return self._page_updater
 
-    def tryAddFormatter(self, formatters, module_name, module_func, extensions):
+    def tryAddFormatter(self, formatters, module_name, module_func,
+                        extensions):
         try:
             module = importlib.import_module(module_name)
             func = getattr(module, module_func)
@@ -172,8 +183,12 @@ class Wiki(object):
         self.formatters = parameters.formatters
         self.special_filenames = parameters.getSpecialFilenames()
 
-        self.main_page_url = '/' + parameters.config.get('wiki', 'main_page').strip('/')
-        self.templates_url = '/' + parameters.config.get('wiki', 'templates_dir').strip('/') + '/'
+        self.main_page_url = (
+            '/' +
+            parameters.config.get('wiki', 'main_page').strip('/'))
+        self.templates_url = (
+            '/' +
+            parameters.config.get('wiki', 'templates_dir').strip('/') + '/')
         self.endpoints = self._createEndpointInfos(parameters.config)
 
         self.fs = parameters.fs_factory()
@@ -191,10 +206,10 @@ class Wiki(object):
     def start(self, update=False):
         """ Properly initializes the wiki and all its sub-systems.
         """
-        self.fs.initFs(self)
-        self.scm.initRepo(self)
-        self.index.initIndex(self)
-        self.db.initDb(self)
+        self.fs.start(self)
+        self.scm.start(self)
+        self.index.start(self)
+        self.db.start(self)
 
         if update:
             self.update()
@@ -202,22 +217,20 @@ class Wiki(object):
     def stop(self):
         self.db.close()
 
-    def reset(self, cache_ext_data=True):
-        logger.debug("Resetting wiki data...")
+    def reset(self):
+        logger.info("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
         fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
         self.db.reset(fs_pages)
+        self._cachePages(force_resolve=True)
         self.index.reset(self.getPages())
-
-        if cache_ext_data:
-            self._cachePages()
 
     def update(self, url=None, cache_ext_data=True):
         updated_urls = []
-        logger.debug("Updating pages...")
+        logger.info("Updating pages...")
         if url:
             page_info = self.fs.getPage(url)
-            fs_page = FileSystemPage(self, page_info=page_info)
+            fs_page = FileSystemPage(self, page_info)
             self.db.update([fs_page], force=True)
             updated_urls.append(url)
             self.index.update([self.getPage(url)])
@@ -255,22 +268,21 @@ class Wiki(object):
         # Validate the parameters.
         if 'text' not in page_fields:
             raise ValueError(
-                    "No text specified for editing page '%s'." % url)
+                "No text specified for editing page '%s'." % url)
         if 'author' not in page_fields:
             raise ValueError(
-                    "No author specified for editing page '%s'." % url)
+                "No author specified for editing page '%s'." % url)
         if 'message' not in page_fields:
             raise ValueError(
-                    "No commit message specified for editing page '%s'." % url)
+                "No commit message specified for editing page '%s'." % url)
 
         # Save the new/modified text.
         page_info = self.fs.setPage(url, page_fields['text'])
 
         # Commit the file to the source-control.
         commit_meta = {
-                'author': page_fields['author'],
-                'message': page_fields['message']
-                }
+            'author': page_fields['author'],
+            'message': page_fields['message']}
         self.scm.commit([page_info.path], commit_meta)
 
         # Update the DB and index with the new/modified page.
@@ -283,13 +295,13 @@ class Wiki(object):
         # Validate the parameters.
         if 'rev' not in page_fields:
             raise ValueError(
-                    "No revision specified for reverting page '%s'." % url)
+                "No revision specified for reverting page '%s'." % url)
         if 'author' not in page_fields:
             raise ValueError(
-                    "No author specified for reverting page '%s'." % url)
+                "No author specified for reverting page '%s'." % url)
         if 'message' not in page_fields:
             raise ValueError(
-                    "No commit message specified for reverting page '%s'." % url)
+                "No commit message specified for reverting page '%s'." % url)
 
         # Get the revision.
         path = self.fs.getPhysicalPagePath(url)
@@ -300,9 +312,8 @@ class Wiki(object):
 
         # Commit to source-control.
         commit_meta = {
-                'author': page_fields['author'],
-                'message': page_fields['message']
-                }
+            'author': page_fields['author'],
+            'message': page_fields['message']}
         self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the modified page.
@@ -321,18 +332,17 @@ class Wiki(object):
     def getSpecialFilenames(self):
         return self.special_filenames
 
-    def _cachePages(self, only_urls=None, force_resolve=False):
+    def _cachePages(self, only_urls=None, force_resolve=False,
+                    parallel=False):
         logger.debug("Caching extended page data...")
         if only_urls:
-            for url in only_urls:
-                page = self.getPage(url)
-                page._ensureExtendedData(force=force_resolve)
-        elif force_resolve:
-            for page in self.db.getPages():
-                page._ensureExtendedData(force=True)
+            page_urls = only_urls
         else:
-            for page in self.db.getUncachedPages():
-                page._ensureExtendedData()
+            page_urls = self.db.getPageUrls(uncached_only=(not force_resolve))
+
+        num_workers = 4 if parallel else 1
+        s = ResolveScheduler(self, page_urls)
+        s.run(num_workers)
 
     def _createEndpointInfos(self, config):
         endpoints = {}
@@ -364,4 +374,3 @@ def reloader_stat_loop(wiki, interval=1):
             elif mtime > old_time:
                 print "Change detected in '%s'." % path
         time.sleep(interval)
-

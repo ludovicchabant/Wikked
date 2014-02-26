@@ -64,6 +64,8 @@ def main():
         root_logger.setLevel(logging.WARNING)
     elif arg_debug:
         root_logger.setLevel(logging.DEBUG)
+    else:
+        root_logger.setLevel(logging.INFO)
     if arg_log:
         from logging.handlers import FileHandler
         root_logger.addHandler(FileHandler(arg_log))
