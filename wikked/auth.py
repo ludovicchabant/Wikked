@@ -36,6 +36,15 @@ class UserManager(object):
         self._updatePermissions(config)
         self._updateUserInfos(config)
 
+    def start(self, wiki):
+        pass
+
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        pass
+
     def getUsers(self):
         for user in self._users:
             yield self._createUser(user)

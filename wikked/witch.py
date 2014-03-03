@@ -111,9 +111,13 @@ def main():
 
     # Create the wiki.
     root = find_wiki_root(result.root)
-    params = WikiParameters(root)
-    wiki = Wiki(params)
-    wiki.start()
+    if root:
+        params = WikiParameters(root)
+        wiki = Wiki(params)
+        wiki.start()
+    else:
+        params = None
+        wiki = None
 
     # Run the command!
     before = datetime.datetime.now()

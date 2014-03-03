@@ -68,7 +68,7 @@ class WikiParameters(object):
         from wikked.db.sql import SQLDatabase
         return SQLDatabase(self.config)
 
-    def scm_factory(self):
+    def scm_factory(self, for_init=False):
         if self._scm_factory is None:
             try:
                 scm_type = self.config.get('wiki', 'sourcecontrol')
@@ -83,9 +83,11 @@ class WikiParameters(object):
                     scm_type = 'hg'
 
             if scm_type == 'hg':
-                # Only create the command server once.
-                import hglib
-                client = hglib.open(self.root)
+                client = None
+                if not for_init:
+                    # Only create the command server once.
+                    import hglib
+                    client = hglib.open(self.root)
 
                 def impl():
                     from wikked.scm.mercurial import (
@@ -171,7 +173,7 @@ class EndpointInfo(object):
 class Wiki(object):
     """ The wiki class! This is where the magic happens.
     """
-    def __init__(self, parameters):
+    def __init__(self, parameters, for_init=False):
         """ Creates a new wiki instance. It won't be fully functional
             until you call `start`, which does the actual initialization.
             This gives you a chance to customize a few more things before
@@ -194,7 +196,7 @@ class Wiki(object):
         self.fs = parameters.fs_factory()
         self.index = parameters.index_factory()
         self.db = parameters.db_factory()
-        self.scm = parameters.scm_factory()
+        self.scm = parameters.scm_factory(for_init)
         self.auth = parameters.auth_factory()
 
         self._updateSetPage = parameters.getPageUpdater()
@@ -210,9 +212,27 @@ class Wiki(object):
         self.scm.start(self)
         self.index.start(self)
         self.db.start(self)
+        self.auth.start(self)
 
         if update:
             self.update()
+
+    def init(self):
+        """ Creates a new wiki at the specified root directory.
+        """
+        self.fs.init(self)
+        self.scm.init(self)
+        self.index.init(self)
+        self.db.init(self)
+        self.auth.init(self)
+
+        self.start()
+
+        self.fs.postInit()
+        self.scm.postInit()
+        self.index.postInit()
+        self.db.postInit()
+        self.auth.postInit()
 
     def stop(self):
         self.db.close()
@@ -233,16 +253,15 @@ class Wiki(object):
             fs_page = FileSystemPage(self, page_info)
             self.db.update([fs_page], force=True)
             updated_urls.append(url)
+            self._cachePages([url])
             self.index.update([self.getPage(url)])
         else:
             page_infos = self.fs.getPageInfos()
             fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
             self.db.update(fs_pages)
+            self._cachePages()
             updated_urls += [p.url for p in fs_pages]
             self.index.update(self.getPages())
-
-        if cache_ext_data:
-            self._cachePages([url] if url else None)
 
     def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given

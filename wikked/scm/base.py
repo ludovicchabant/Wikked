@@ -17,7 +17,13 @@ class SourceControl(object):
         pass
 
     def start(self, wiki):
-        raise NotImplementedError()
+        pass
+
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        pass
 
     def getSpecialFilenames(self):
         raise NotImplementedError()

@@ -54,6 +54,12 @@ class FileSystem(object):
         excluded += wiki.scm.getSpecialFilenames()
         self.excluded = [os.path.join(self.root, e) for e in excluded]
 
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        pass
+
     def getPageInfos(self, subdir=None):
         basepath = self.root
         if subdir is not None:

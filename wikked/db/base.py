@@ -8,7 +8,13 @@ class Database(object):
         pass
 
     def start(self, wiki):
-        raise NotImplementedError()
+        pass
+
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        pass
 
     def close(self):
         raise NotImplementedError()

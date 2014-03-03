@@ -12,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     scoped_session, sessionmaker,
-    relationship, backref, noload, load_only, subqueryload)
+    relationship, backref, load_only, subqueryload)
 from sqlalchemy.orm.exc import NoResultFound
 from wikked.db.base import Database
 from wikked.page import Page, PageData
@@ -135,31 +135,10 @@ class SQLDatabase(Database):
         self._engine = None
         self._session = None
 
-    def start(self, wiki):
-        self.wiki = wiki
-
-    def createDb(self):
-        create_schema = False
-        if self.engine_url != 'sqlite:///:memory:':
-            # The existing schema is outdated, re-create it.
-            schema_version = self._getSchemaVersion()
-            if schema_version < self.schema_version:
-                logger.debug(
-                    "SQL database is outdated (got version %s), "
-                    "will re-create.",
-                    schema_version)
-                create_schema = True
-            else:
-                logger.debug(
-                    "SQL database has up-to-date schema.")
-        else:
-            create_schema = True
-        if create_schema:
-            self._createSchema()
-
     @property
     def engine(self):
         if self._engine is None:
+            logger.debug("Creating SQL engine from URL: %s" % self.engine_url)
             self._engine = create_engine(self.engine_url, convert_unicode=True)
         return self._engine
 
@@ -172,6 +151,56 @@ class SQLDatabase(Database):
                 autoflush=False,
                 bind=self.engine))
         return self._session
+
+    def _needsSchemaUpdate(self):
+        if self.engine_url == 'sqlite:///:memory:':
+            # Always create the schema for a memory database.
+            return True
+
+        # The existing schema is outdated, re-create it.
+        schema_version = self._getSchemaVersion()
+        if schema_version < self.schema_version:
+            logger.debug(
+                "SQL database is outdated (got version %s), "
+                "will re-create.",
+                schema_version)
+            return True
+        else:
+            logger.debug(
+                "SQL database has up-to-date schema.")
+            return False
+
+    def _createSchema(self):
+        logger.debug("Creating new SQL schema.")
+        Base.metadata.drop_all(self.engine)
+        Base.metadata.create_all(self.engine)
+
+        ver = SQLInfo()
+        ver.name = 'schema_version'
+        ver.int_value = self.schema_version
+        self.session.add(ver)
+        self.session.commit()
+
+    def _getSchemaVersion(self):
+        try:
+            q = self.session.query(SQLInfo).\
+                    filter(SQLInfo.name == 'schema_version').\
+                    first()
+            if q is None:
+                return 0
+        except:
+            return -1
+        return q.int_value
+
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        logger.info("Initializing SQL database.")
+        self._createSchema()
+
+    def start(self, wiki):
+        self.wiki = wiki
 
     def close(self, commit, exception):
         if self._session is not None:
@@ -187,6 +216,10 @@ class SQLDatabase(Database):
         self.session.commit()
 
     def update(self, pages, force=False):
+        if self._needsSchemaUpdate():
+            raise Exception("This wiki needs a database upgrade. "
+                            "Please run `wk reset`.")
+
         to_update = set()
         already_added = set()
         to_remove = []
@@ -364,27 +397,6 @@ class SQLDatabase(Database):
             if sqf:
                 query = query.options(subqueryload(sqf))
         return query
-
-    def _createSchema(self):
-        Base.metadata.drop_all(self.engine)
-        Base.metadata.create_all(self.engine)
-
-        ver = SQLInfo()
-        ver.name = 'schema_version'
-        ver.int_value = self.schema_version
-        self.session.add(ver)
-        self.session.commit()
-
-    def _getSchemaVersion(self):
-        try:
-            q = self.session.query(SQLInfo).\
-                    filter(SQLInfo.name == 'schema_version').\
-                    first()
-            if q is None:
-                return 0
-        except:
-            return -1
-        return q.int_value
 
     def _addPage(self, page):
         logger.debug("Adding page '%s' to SQL database." % page.url)

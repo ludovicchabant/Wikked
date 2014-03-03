@@ -1,8 +1,55 @@
+import os
+import os.path
+import shutil
 import logging
 from wikked.commands.base import WikkedCommand, register_command
 
 
 logger = logging.getLogger(__name__)
+
+
+@register_command
+class InitCommand(WikkedCommand):
+    def __init__(self):
+        super(InitCommand, self).__init__()
+        self.name = 'init'
+        self.description = "Creates a new wiki"
+        self.requires_wiki = False
+
+    def setupParser(self, parser):
+        parser.add_argument('destination',
+                help="The destination directory to create the wiki")
+        parser.add_argument('--hg',
+                help="Use Mercurial as a revision system (default)",
+                action='store_true')
+        parser.add_argument('--git',
+                help="Use Git as a revision system",
+                action='store_true')
+        parser.add_argument('--bare',
+                help="Don't create the default pages",
+                action='store_true')
+
+    def run(self, ctx):
+        if ctx.args.git:
+            raise Exception("Git is not yet fully supported.")
+
+        path = ctx.args.destination or os.getcwd()
+        path = os.path.abspath(path)
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+        logger.info("Initializing new wiki at: %s" % path)
+        from wikked.wiki import WikiParameters, Wiki
+        parameters = WikiParameters(path)
+        wiki = Wiki(parameters, for_init=True)
+        wiki.init()
+
+        if not ctx.args.bare:
+            src_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                   'resources', 'init')
+
+            shutil.copy(os.path.join(src_dir, 'Main page.md'), path)
+            shutil.copy(os.path.join(src_dir, 'Sandbox.md'), path)
 
 
 @register_command

@@ -27,13 +27,15 @@ class MercurialBaseSourceControl(SourceControl):
                 }
 
     def start(self, wiki):
-        pass
+        self._doStart()
 
-    def createRepo(self):
+    def init(self, wiki):
         # Make a Mercurial repo if there's none.
         if not os.path.isdir(os.path.join(self.root, '.hg')):
             logger.info("Creating Mercurial repository at: " + self.root)
             self._initRepo(self.root)
+
+        self._doStart()
 
         # Create a `.hgignore` file is there's none.
         ignore_path = os.path.join(self.root, '.hgignore')
@@ -42,6 +44,9 @@ class MercurialBaseSourceControl(SourceControl):
             with open(ignore_path, 'w') as f:
                 f.write('.wiki')
             self.commit([ignore_path], {'message': "Created `.hgignore`."})
+
+    def _doStart(self):
+        pass
 
     def getSpecialFilenames(self):
         return ['.hg*']
@@ -176,11 +181,17 @@ class MercurialSourceControl(MercurialBaseSourceControl):
 class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
     def __init__(self, root, client=None):
         MercurialBaseSourceControl.__init__(self, root)
-
-        if client is None:
-            import hglib
-            client = hglib.open(root)
         self.client = client
+
+    def _initRepo(self, root):
+        exe = ['hg', 'init', root]
+        logger.debug("Running Mercurial: " + str(exe))
+        return subprocess.check_output(exe)
+
+    def _doStart(self):
+        if self.client is None:
+            import hglib
+            self.client = hglib.open(self.root)
 
     def getHistory(self, path=None, limit=10):
         if path is not None:

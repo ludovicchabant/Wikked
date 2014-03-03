@@ -14,6 +14,12 @@ class WikiIndex(object):
     def start(self, wiki):
         raise NotImplementedError()
 
+    def init(self, wiki):
+        pass
+
+    def postInit(self):
+        pass
+
     def reset(self, pages):
         raise NotImplementedError()
 
