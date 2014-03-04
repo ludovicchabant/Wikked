@@ -68,7 +68,7 @@ class ResolveScheduler(object):
 
             for thread in self._pool:
                 thread.join()
-                logging.debug("Worker [%d] ended." % thread.wid)
+                logger.debug("Worker [%d] ended." % thread.wid)
         else:
             # Single-threaded resolving.
             for url in self.page_urls:
@@ -158,8 +158,8 @@ class JobWorker(threading.Thread):
         try:
             self._unsafeRun()
         except Exception as ex:
-            logging.exception(ex)
-            logging.critical("Aborting resolver worker.")
+            logger.exception(ex)
+            logger.critical("Aborting resolver worker.")
         finally:
             self.ctx.finishWorker()
 
@@ -182,8 +182,8 @@ class JobWorker(threading.Thread):
                 runner.run(raise_on_failure=self.ctx.abort_on_failure)
                 self.ctx.cachePage(page)
             except Exception as ex:
-                logging.exception(ex)
-                logging.error("Error resolving page: %s" % job.url)
+                logger.exception(ex)
+                logger.error("Error resolving page: %s" % job.url)
                 self.ctx.finishJob(exception=ex)
                 return
 
