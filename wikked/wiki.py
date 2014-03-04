@@ -240,27 +240,23 @@ class Wiki(object):
     def reset(self):
         logger.info("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
-        fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
-        self.db.reset(fs_pages)
+        factory = lambda pi: FileSystemPage(self, pi)
+        self.db.reset(page_infos, factory)
         self._cachePages(force_resolve=True)
         self.index.reset(self.getPages())
 
     def update(self, url=None, cache_ext_data=True):
-        updated_urls = []
         logger.info("Updating pages...")
+        factory = lambda pi: FileSystemPage(self, pi)
         if url:
-            page_info = self.fs.getPage(url)
-            fs_page = FileSystemPage(self, page_info)
-            self.db.update([fs_page], force=True)
-            updated_urls.append(url)
+            page_info = self.fs.findPage(url)
+            self.db.update([page_info], factory, force=True)
             self._cachePages([url])
             self.index.update([self.getPage(url)])
         else:
             page_infos = self.fs.getPageInfos()
-            fs_pages = FileSystemPage.fromPageInfos(self, page_infos)
-            self.db.update(fs_pages)
+            self.db.update(page_infos, factory)
             self._cachePages()
-            updated_urls += [p.url for p in fs_pages]
             self.index.update(self.getPages())
 
     def getPageUrls(self, subdir=None):

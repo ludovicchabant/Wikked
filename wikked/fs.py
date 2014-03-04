@@ -91,7 +91,7 @@ class FileSystem(object):
                 return None
         return self._getPageInfo(path)
 
-    def getPage(self, url):
+    def findPageInfo(self, url):
         logger.debug("Searching for page: %s" % url)
         path = self.getPhysicalPagePath(url)
         return PageInfo(url, path)

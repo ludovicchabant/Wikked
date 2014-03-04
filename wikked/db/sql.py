@@ -208,25 +208,26 @@ class SQLDatabase(Database):
                 self._session.commit()
             self._session.remove()
 
-    def reset(self, pages):
+    def reset(self, page_infos, page_factory):
         logger.debug("Re-creating SQL database.")
         self._createSchema()
-        for page in pages:
+        for pi in page_infos:
+            page = page_factory(pi)
             self._addPage(page)
         self.session.commit()
 
-    def update(self, pages, force=False):
+    def update(self, page_infos, page_factory, force=False):
         if self._needsSchemaUpdate():
             raise Exception("This wiki needs a database upgrade. "
                             "Please run `wk reset`.")
 
+        logger.debug("Updating SQL database...")
+
         to_update = set()
         already_added = set()
         to_remove = []
-        pages = list(pages)
-
-        logger.debug("Updating SQL database...")
-        page_urls = [p.url for p in pages]
+        page_infos = list(page_infos)
+        page_urls = set([p.url for p in page_infos])
         db_pages = self.session.query(SQLPage).\
             options(load_only('id', 'url', 'path', 'time')).\
             all()
@@ -250,10 +251,11 @@ class SQLDatabase(Database):
         self.session.commit()
 
         added_db_objs = []
-        for p in pages:
-            if (p.path in to_update or
-                    p.path not in already_added):
-                added_db_objs.append(self._addPage(p))
+        for pi in page_infos:
+            if (pi.path in to_update or
+                    pi.path not in already_added):
+                page = page_factory(pi)
+                added_db_objs.append(self._addPage(page))
 
         self.session.commit()
 
@@ -276,12 +278,12 @@ class SQLDatabase(Database):
         return [o.id for o in added_db_objs]
 
     def getPageUrls(self, subdir=None, uncached_only=False):
-        q = self.session.query(SQLPage.url)
+        q = self.session.query(SQLPage.url, SQLPage.is_ready)
         if subdir:
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
         if uncached_only:
-            q = q.filter(SQLPage.is_ready is False)
+            q = q.filter(SQLPage.is_ready == False)
         for p in q.all():
             yield p.url
 

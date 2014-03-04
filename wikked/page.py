@@ -135,8 +135,3 @@ class FileSystemPage(Page):
             data.title = re.sub(r'\-', ' ', filename_split[0])
 
         return data
-
-    @staticmethod
-    def fromPageInfos(wiki, page_infos):
-        for p in page_infos:
-            yield FileSystemPage(wiki, p)

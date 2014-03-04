@@ -19,10 +19,10 @@ class Database(object):
     def close(self):
         raise NotImplementedError()
 
-    def reset(self, pages):
+    def reset(self, page_infos, page_factory):
         raise NotImplementedError()
 
-    def update(self, pages, force=False):
+    def update(self, page_infos, page_factory, force=False):
         raise NotImplementedError()
 
     def getPageUrls(self, subdir=None, uncached_only=False):
