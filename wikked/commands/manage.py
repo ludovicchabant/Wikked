@@ -50,6 +50,10 @@ class InitCommand(WikkedCommand):
 
             shutil.copy(os.path.join(src_dir, 'Main page.md'), path)
             shutil.copy(os.path.join(src_dir, 'Sandbox.md'), path)
+            wiki.scm.commit(
+                [os.path.join(path, 'Main page.md'),
+                 os.path.join(path, 'Sandbox.md')],
+                {'message': "Initial commit"})
 
 
 @register_command
