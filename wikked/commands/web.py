@@ -21,7 +21,10 @@ class RunServerCommand(WikkedCommand):
                 help="The port to use",
                 default=5000)
         parser.add_argument('-d', '--dev',
-                help="Use development assets",
+                help="Use development mode. "
+                     "This makes Wikked use development assets (separate and "
+                     "uncompressed scripts and stylesheets), along with using "
+                     "code reloading and debugging.",
                 action='store_true')
 
     def run(self, ctx):
@@ -35,13 +38,14 @@ class RunServerCommand(WikkedCommand):
         # Setup the app.
         if ctx.args.dev:
             app.config['DEV_ASSETS'] = True
+        app.config['WIKI_AUTO_RELOAD'] = True
 
         app.wiki_params = ctx.params
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.update()
 
         # Run!
-        debug_mode = ctx.args.debug or app.config.get('DEBUG', False)
+        debug_mode = ctx.args.dev or app.config.get('DEBUG', False)
         app.run(
                 host=ctx.args.host,
                 port=ctx.args.port,
