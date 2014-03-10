@@ -50,6 +50,9 @@ class Database(object):
     def cachePage(self, page):
         raise NotImplementedError()
 
+    def isCacheValid(self, page):
+        raise NotImplementedError()
+
     def pageExists(self, url=None, path=None):
         raise NotImplementedError()
 

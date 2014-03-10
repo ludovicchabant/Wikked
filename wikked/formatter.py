@@ -7,8 +7,6 @@ from StringIO import StringIO
 from utils import get_meta_name_and_modifiers, html_escape
 
 
-SINGLE_METAS = ['redirect', 'title']
-
 FILE_FORMAT_REGEX = re.compile(r'\r\n?', re.MULTILINE)
 
 
@@ -71,6 +69,12 @@ class PageFormatter(object):
                 ctx.meta[meta_name] = True
                 return ''
 
+            # If this is a multi-line meta, strip the trailing new line,
+            # since it's there because you must put the ending '}}' on
+            # its own line.
+            if meta_value[-1] == "\n":
+                meta_value = meta_value[:-1]
+
             # If we actually have a value, coerce it, if applicable,
             # and get the name without the modifier prefix.
             clean_meta_name, meta_modifier = get_meta_name_and_modifiers(meta_name)
@@ -80,15 +84,10 @@ class PageFormatter(object):
 
             # Then, set the value on the meta dictionary, or add it to
             # other existing meta values with the same key.
-            # TODO: right now we have a hard-coded list of meta names we know
-            #       shouldn't be made into an array... make it configurable.
-            if meta_name in SINGLE_METAS:
-                ctx.meta[meta_name] = coerced_meta_value
+            if meta_name not in ctx.meta:
+                ctx.meta[meta_name] = [coerced_meta_value]
             else:
-                if meta_name not in ctx.meta:
-                    ctx.meta[meta_name] = [coerced_meta_value]
-                else:
-                    ctx.meta[meta_name].append(coerced_meta_value)
+                ctx.meta[meta_name].append(coerced_meta_value)
 
             # Process it, or remove it from the output text.
             if clean_meta_name in self.processors:
@@ -103,7 +102,7 @@ class PageFormatter(object):
                 flags=re.MULTILINE)
         # Multi-line meta.
         text = re.sub(
-                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*?)^\s*\}\}\s*$',
+                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*?)^[ \t]*\}\}\s*$',
                 repl,
                 text,
                 flags=re.MULTILINE | re.DOTALL)
@@ -179,18 +178,19 @@ class PageFormatter(object):
         # Queries are run on the fly.
         # But we pre-process arguments that reference other pages,
         # so that we get the absolute URLs right away.
-        processed_args = ''
-        arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
+        processed_args = []
+        arg_pattern = r"(\A|\|)\s*(?P<name>(__)?[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
             r"(?P<value>[^\|]+)"
-        for m in re.finditer(arg_pattern, query):
+        for m in re.finditer(arg_pattern, query, re.MULTILINE):
             name = unicode(m.group('name')).strip()
             value = unicode(m.group('value')).strip()
-            processed_args += '%s=%s' % (name, value)
+            processed_args.append('%s=%s' % (name, value))
 
         mod_attr = ''
         if modifier:
             mod_attr = ' data-wiki-mod="%s"' % modifier
-        return '<div class="wiki-query"%s>%s</div>\n' % (mod_attr, processed_args)
+        return '<div class="wiki-query"%s>%s</div>\n' % (
+                mod_attr, '|'.join(processed_args))
 
     def _formatUrlLink(self, ctx, endpoint, value, display):
         if value.startswith('/'):

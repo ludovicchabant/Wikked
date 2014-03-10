@@ -3,10 +3,11 @@ import urllib
 import os.path
 import logging
 import jinja2
-from utils import (
+from wikked.formatter import PageFormatter, FormattingContext
+from wikked.utils import (
         PageNotFoundError,
         get_meta_name_and_modifiers, get_absolute_url,
-        html_unescape)
+        flatten_single_metas, html_unescape)
 
 
 logger = logging.getLogger(__name__)
@@ -100,11 +101,10 @@ class PageResolver(object):
         `include` or `query`.
     """
     default_parameters = {
-        '__header': "<ul>\n",
-        '__footer': "</ul>\n",
-        '__item': "<li><a class=\"wiki-link\" data-wiki-url=\"{{url}}\">" +
-            "{{title}}</a></li>\n",
-        '__empty': "<p>No page matches the query.</p>\n"
+        '__header': "\n",
+        '__footer': "\n",
+        '__item': "* [[{{title}}|{{url}}]]\n",
+        '__empty': "No page matches the query.\n"
         }
 
     def __init__(self, page, ctx=None, parameters=None, page_getter=None,
@@ -160,7 +160,8 @@ class PageResolver(object):
                     'title': self.page.title,
                     'full_title': full_title
                     },
-                '__args': []
+                '__args': [],
+                '__xargs': []
                 }
 
         # Create the output object, so it can be referenced and merged
@@ -201,6 +202,7 @@ class PageResolver(object):
         if self.is_root:
             # Resolve any `{{foo}}` variable references.
             parameters = dict(self.parameters)
+            parameters.update(flatten_single_metas(dict(self.page.getLocalMeta())))
             final_text = self._renderTemplate(final_text, parameters, error_url=self.page.url)
 
             # Resolve link states.
@@ -260,12 +262,14 @@ class PageResolver(object):
             for i, m in enumerate(re.finditer(arg_pattern, args)):
                 value = unicode(m.group('value')).strip()
                 value = html_unescape(value)
-                value = self._renderTemplate(value, parameters, error_url=self.page.url)
+                value = self._renderTemplate(value, self.parameters,
+                                             error_url=self.page.url)
                 if m.group('name'):
                     key = unicode(m.group('name')).lower()
                     parameters[key] = value
                 else:
-                    parameters['__args'].append(value)
+                    parameters['__xargs'].append(value)
+                parameters['__args'].append(value)
 
         # Re-run the resolver on the included page to get its final
         # formatted text.
@@ -296,7 +300,7 @@ class PageResolver(object):
         # Parse the query.
         parameters = dict(self.default_parameters)
         meta_query = {}
-        arg_pattern = r"(^|\|)\s*(?P<name>[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
+        arg_pattern = r"(^|\|)\s*(?P<name>(__)?[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
             r"(?P<value>[^\|]+)"
         for m in re.finditer(arg_pattern, query):
             key = m.group('name').lower()
@@ -308,6 +312,7 @@ class PageResolver(object):
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
         matched_pages = []
+        logger.debug("Running page query: %s" % meta_query)
         for p in self.pages_meta_getter():
             if p.url in self.ctx.url_trail:
                 continue
@@ -319,26 +324,46 @@ class PageResolver(object):
                     logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
                     logger.exception(unicode(e.message))
 
+        # We'll have to format things...
+        fmt_ctx = FormattingContext(self.page.url)
+        fmt = PageFormatter(self.wiki)
+
         # No match: return the 'empty' template.
         if len(matched_pages) == 0:
-            return self._valueOrPageText(parameters['__empty'])
+            logger.debug("No pages matched query.")
+            tpl_empty = fmt.formatText(
+                    fmt_ctx, self._valueOrPageText(parameters['__empty']))
+            return tpl_empty
 
         # Combine normal templates to build the output.
-        text = self._valueOrPageText(parameters['__header'])
+        tpl_header = fmt.formatText(
+                fmt_ctx, self._valueOrPageText(parameters['__header']))
+        tpl_footer = fmt.formatText(
+                fmt_ctx, self._valueOrPageText(parameters['__footer']))
+        item_url, tpl_item = self._valueOrPageText(parameters['__item'], with_url=True)
+        tpl_item = fmt.formatText(fmt_ctx, tpl_item)
+
+        text = tpl_header
+        add_trailing_line = tpl_item[-1] == "\n"
         for p in matched_pages:
             tokens = {
                     'url': p.url,
                     'title': p.title}
-            tokens.update(p.getLocalMeta())
-            item_url, item_text = self._valueOrPageText(parameters['__item'], with_url=True)
-            text += self._renderTemplate(item_text, tokens, error_url=item_url or self.page.url)
-        text += self._valueOrPageText(parameters['__footer'])
+            page_local_meta = flatten_single_metas(dict(p.getLocalMeta()))
+            tokens.update(page_local_meta)
+            text += self._renderTemplate(
+                    tpl_item, tokens, error_url=item_url or self.page.url)
+            if add_trailing_line:
+                # Jinja2 eats trailing new lines... :(
+                text += "\n"
+        text += tpl_footer
 
         return text
 
     def _valueOrPageText(self, value, with_url=False):
-        if re.match(r'^\[\[.*\]\]$', value):
-            include_url = value[2:-2]
+        stripped_value = value.strip()
+        if re.match(r'^\[\[.*\]\]$', stripped_value):
+            include_url = stripped_value[2:-2]
             try:
                 page = self.page_getter(include_url)
             except PageNotFoundError:
@@ -346,6 +371,12 @@ class PageResolver(object):
             if with_url:
                 return (page.url, page.text)
             return page.text
+
+        if re.match(r'^__[a-zA-Z][a-zA-Z0-9_\-]+$', stripped_value):
+            meta = self.page.getLocalMeta(stripped_value)
+            if with_url:
+                return (None, meta)
+            return meta
 
         if with_url:
             return (None, value)

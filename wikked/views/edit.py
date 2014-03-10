@@ -32,6 +32,8 @@ class DummyPage(Page):
 
         data.title = (data.local_meta.get('title') or
                 make_page_title(self.url))
+        if isinstance(data.title, list):
+            data.title = data.title[0]
 
         return data
 

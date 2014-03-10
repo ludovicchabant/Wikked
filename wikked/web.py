@@ -21,6 +21,7 @@ app.config.setdefault('SQL_DEBUG', False)
 app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
 app.config.setdefault('WIKI_ROOT', None)
 app.config.setdefault('UPDATE_WIKI_ON_START', True)
+app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('SYNCHRONOUS_UPDATE', True)
 
 

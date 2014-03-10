@@ -208,11 +208,9 @@ class Wiki(object):
     def start(self, update=False):
         """ Properly initializes the wiki and all its sub-systems.
         """
-        self.fs.start(self)
-        self.scm.start(self)
-        self.index.start(self)
-        self.db.start(self)
-        self.auth.start(self)
+        order = [self.fs, self.scm, self.index, self.db, self.auth]
+        for o in order:
+            o.start(self)
 
         if update:
             self.update()
@@ -220,19 +218,12 @@ class Wiki(object):
     def init(self):
         """ Creates a new wiki at the specified root directory.
         """
-        self.fs.init(self)
-        self.scm.init(self)
-        self.index.init(self)
-        self.db.init(self)
-        self.auth.init(self)
-
+        order = [self.fs, self.scm, self.index, self.db, self.auth]
+        for o in order:
+            o.init(self)
         self.start()
-
-        self.fs.postInit()
-        self.scm.postInit()
-        self.index.postInit()
-        self.db.postInit()
-        self.auth.postInit()
+        for o in order:
+            o.postInit()
 
     def stop(self):
         self.db.close()
@@ -242,21 +233,37 @@ class Wiki(object):
         page_infos = self.fs.getPageInfos()
         factory = lambda pi: FileSystemPage(self, pi)
         self.db.reset(page_infos, factory)
-        self._cachePages(force_resolve=True)
+        self.resolve(force=True)
         self.index.reset(self.getPages())
 
-    def update(self, url=None, cache_ext_data=True):
+    def resolve(self, only_urls=None, force=False, parallel=False):
+        logger.debug("Resolving pages...")
+        if only_urls:
+            page_urls = only_urls
+        else:
+            page_urls = self.db.getPageUrls(uncached_only=(not force))
+
+        num_workers = 4 if parallel else 1
+        s = ResolveScheduler(self, page_urls)
+        s.run(num_workers)
+
+    def update(self, url=None, path=None, cache_ext_data=True):
         logger.info("Updating pages...")
         factory = lambda pi: FileSystemPage(self, pi)
-        if url:
-            page_info = self.fs.findPage(url)
+        if url or path:
+            if url and path:
+                raise Exception("Can't specify both an URL and a path.")
+            if path:
+                page_info = self.fs.getPageInfo(path)
+            else:
+                page_info = self.fs.findPageInfo(url)
             self.db.update([page_info], factory, force=True)
-            self._cachePages([url])
-            self.index.update([self.getPage(url)])
+            self.resolve(only_urls=[page_info.url])
+            self.index.update([self.getPage(page_info.url)])
         else:
             page_infos = self.fs.getPageInfos()
             self.db.update(page_infos, factory)
-            self._cachePages()
+            self.resolve()
             self.index.update(self.getPages())
 
     def getPageUrls(self, subdir=None):
@@ -346,18 +353,6 @@ class Wiki(object):
 
     def getSpecialFilenames(self):
         return self.special_filenames
-
-    def _cachePages(self, only_urls=None, force_resolve=False,
-                    parallel=False):
-        logger.debug("Caching extended page data...")
-        if only_urls:
-            page_urls = only_urls
-        else:
-            page_urls = self.db.getPageUrls(uncached_only=(not force_resolve))
-
-        num_workers = 4 if parallel else 1
-        s = ResolveScheduler(self, page_urls)
-        s.run(num_workers)
 
     def _createEndpointInfos(self, config):
         endpoints = {}

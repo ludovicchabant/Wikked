@@ -3,7 +3,7 @@ import string
 from flask import g, abort, jsonify
 from flask.ext.login import current_user
 from wikked.fs import PageNotFoundError
-from wikked.utils import split_page_url
+from wikked.utils import split_page_url, flatten_single_metas
 from wikked.web import app
 
 
@@ -39,8 +39,16 @@ def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolv
     except PageNotFoundError:
         return None
 
-    if force_resolve:
-        page._force_resolve = True
+    if app.config.get('WIKI_AUTO_RELOAD'):
+        if not g.wiki.db.isCacheValid(page):
+            app.logger.info("Page '%s' has changed, reloading." % url)
+            g.wiki.update(url)
+        else:
+            app.logger.debug("Page '%s' is up to date." % url)
+    elif force_resolve:
+        g.wiki._cachePages([url], force_resolve=True)
+        page = g.wiki.getPage(url)
+
     if check_perms == CHECK_FOR_READ and not is_page_readable(page):
         abort(401)
     elif check_perms == CHECK_FOR_WRITE and not is_page_writable(page):
@@ -69,7 +77,8 @@ def get_page_meta(page, local_only=False):
     if local_only:
         meta = dict(page.getLocalMeta())
     else:
-        meta = dict(page.meta)
+        meta = dict(page.getMeta())
+    flatten_single_metas(meta)
     meta['title'] = page.title
     meta['url'] = urllib.quote(page.url.encode('utf-8'))
     for name in COERCE_META:

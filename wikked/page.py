@@ -8,6 +8,18 @@ from formatter import PageFormatter, FormattingContext
 logger = logging.getLogger(__name__)
 
 
+def get_meta_value(meta, key, first=False):
+    value = meta.get(key)
+    if value is not None and isinstance(value, list):
+        l = len(value)
+        if l == 0:
+            return None
+        if l == 1 or first:
+            return value[0]
+        return value
+    return value
+
+
 class PageLoadingError(Exception):
     """ An exception that can get raised if a page can't be loaded.
     """
@@ -70,10 +82,6 @@ class Page(object):
         return self._data.text
 
     @property
-    def meta(self):
-        return self._data.ext_meta
-
-    @property
     def links(self):
         return self._data.ext_links
 
@@ -95,8 +103,15 @@ class Page(object):
     def getFormattedText(self):
         return self._data.formatted_text
 
-    def getLocalMeta(self):
-        return self._data.local_meta
+    def getMeta(self, name=None, first=False):
+        if name is None:
+            return self._data.ext_meta
+        return get_meta_value(self._data.ext_meta, name, first)
+
+    def getLocalMeta(self, name=None, first=False):
+        if name is None:
+            return self._data.local_meta
+        return get_meta_value(self._data.local_meta, name, first)
 
     def getLocalLinks(self):
         return self._data.local_links
@@ -133,5 +148,7 @@ class FileSystemPage(Page):
             filename = os.path.basename(data.path)
             filename_split = os.path.splitext(filename)
             data.title = re.sub(r'\-', ' ', filename_split[0])
+        elif isinstance(data.title, list):
+            data.title = data.title[0]
 
         return data

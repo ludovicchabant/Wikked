@@ -16,7 +16,6 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.exc import NoResultFound
 from wikked.db.base import Database
 from wikked.page import Page, PageData
-from wikked.formatter import SINGLE_METAS
 
 
 logger = logging.getLogger(__name__)
@@ -305,6 +304,15 @@ class SQLDatabase(Database):
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
 
+    def isCacheValid(self, page):
+        db_obj = self.session.query(SQLPage).\
+            options(load_only('id', 'path', 'time')).\
+            filter(SQLPage.id == page._id).\
+            one()
+        path_time = datetime.datetime.fromtimestamp(
+            os.path.getmtime(db_obj.path))
+        return path_time < db_obj.time
+
     def cachePage(self, page):
         if not hasattr(page, '_id') or not page._id:
             raise Exception("Given page '%s' has no `_id` attribute set." % page.url)
@@ -458,14 +466,14 @@ class SQLDatabasePage(Page):
         if fields is None or 'local_meta' in fields:
             data.local_meta = {}
             for m in db_obj.meta:
-                value = data.local_meta.get(m.name)
-                if m.name in SINGLE_METAS:
-                    data.local_meta[m.name] = m.value
+                existing = data.local_meta.get(m.name)
+                value = m.value
+                if value == '':
+                    value = True
+                if existing is None:
+                    data.local_meta[m.name] = [value]
                 else:
-                    if value is None:
-                        data.local_meta[m.name] = [m.value]
-                    else:
-                        data.local_meta[m.name].append(m.value)
+                    existing.append(value)
 
         if fields is None or 'local_links' in fields:
             data.local_links = [l.target_url for l in db_obj.links]
@@ -475,7 +483,8 @@ class SQLDatabasePage(Page):
             if not db_obj.is_ready:
                 raise Exception(
                     "Requested extended data for page '%s' "
-                    "but data is not cached." % (data.url or data._db_id))
+                    "but data is not cached in the SQL database." % (
+                        data.url or data._db_id))
 
             if fields is None or 'text' in fields:
                 data.text = db_obj.ready_text
@@ -483,11 +492,14 @@ class SQLDatabasePage(Page):
             if fields is None or 'meta' in fields:
                 data.ext_meta = {}
                 for m in db_obj.ready_meta:
-                    value = data.ext_meta.get(m.name)
-                    if value is None:
-                        data.ext_meta[m.name] = [m.value]
+                    existing = data.ext_meta.get(m.name)
+                    value = m.value
+                    if value == '':
+                        value = True
+                    if existing is None:
+                        data.ext_meta[m.name] = [value]
                     else:
-                        data.ext_meta[m.name].append(m.value)
+                        existing.append(value)
 
             if fields is None or 'links' in fields:
                 data.ext_links = [l.target_url for l in db_obj.ready_links]

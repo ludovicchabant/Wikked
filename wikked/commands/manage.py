@@ -66,7 +66,7 @@ class ResetCommand(WikkedCommand):
 
     def setupParser(self, parser):
         parser.add_argument('--indexonly',
-                help="Only update the full-text search index",
+                help="Only reset the full-text search index",
                 action='store_true')
 
     def run(self, ctx):
@@ -85,34 +85,47 @@ class UpdateCommand(WikkedCommand):
                 "index with any changed/new files.")
 
     def setupParser(self, parser):
-        parser.add_argument('url',
-                help="The URL of a page to update specifically",
+        parser.add_argument('path',
+                help="The path to a page to update specifically",
                 nargs='?')
         parser.add_argument('--cache',
                 help="Re-cache all pages",
                 action='store_true')
 
     def run(self, ctx):
-        ctx.wiki.update(ctx.args.url, cache_ext_data=ctx.args.cache)
+        ctx.wiki.update(path=ctx.args.path, cache_ext_data=ctx.args.cache)
+
+        if ctx.args.debug and ctx.args.path:
+            page_info = ctx.wiki.fs.getPageInfo(ctx.args.path)
+            if page_info is None:
+                logger.debug("No page for path: %s" % ctx.args.path)
+                logger.debug("Path doesn't exist, or is ignored.")
+                return
+            page = ctx.wiki.getPage(page_info.url)
+            logger.debug("Page [%s]:" % page.url)
+            logger.debug("--- formatted text ---")
+            logger.debug(page.getFormattedText())
+            logger.debug("--- resolved text ---")
+            logger.debug(page.text)
 
 
 @register_command
-class CacheCommand(WikkedCommand):
+class ResolveCommand(WikkedCommand):
     def __init__(self):
-        super(CacheCommand, self).__init__()
-        self.name = 'cache'
-        self.description = ("Makes sure the extended cache is valid for the "
-                "whole wiki.")
+        super(ResolveCommand, self).__init__()
+        self.name = 'resolve'
+        self.description = ("Makes sure that the final page text is resolved "
+                "for all pages.")
 
     def setupParser(self, parser):
         parser.add_argument('-f', '--force',
-                help="Force cache all pages",
+                help="Force resolve all pages",
                 action='store_true')
         parser.add_argument('--parallel',
                 help="Run the operation with multiple workers in parallel",
                 action='store_true')
 
     def run(self, ctx):
-        ctx.wiki._cachePages(
-            force_resolve=ctx.args.force,
+        ctx.wiki.resolve(
+            force=ctx.args.force,
             parallel=ctx.args.parallel)

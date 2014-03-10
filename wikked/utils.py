@@ -95,6 +95,18 @@ def get_meta_name_and_modifiers(name):
     return (clean_name, modifiers)
 
 
+def flatten_single_metas(meta):
+    items = list(meta.iteritems())
+    for k, v in items:
+        if isinstance(v, list):
+            l = len(v)
+            if l == 0:
+                del meta[k]
+            elif l == 1:
+                meta[k] = v[0]
+    return meta
+
+
 html_escape_table = {'"': "&quot;", "'": "&apos;"}
 html_unescape_table = {v: k for k, v in html_escape_table.items()}
 
