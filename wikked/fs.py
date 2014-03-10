@@ -122,6 +122,7 @@ class FileSystem(object):
 
     def _getPageInfo(self, path):
         meta = None
+        abs_path = os.path.abspath(path)
         rel_path = os.path.relpath(path, self.root)
         if rel_path.startswith(META_ENDPOINT + os.sep):
             rel_path = rel_path[len(META_ENDPOINT) + 1:]
@@ -137,7 +138,7 @@ class FileSystem(object):
         url = '/' + name
         if meta:
             url = u"%s:/%s" % (meta.lower(), name)
-        return PageInfo(url, path)
+        return PageInfo(url, abs_path)
 
     def _getPhysicalPath(self, url, is_file=True, make_new=False):
         endpoint, url = split_page_url(url)
