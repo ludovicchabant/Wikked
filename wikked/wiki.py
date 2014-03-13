@@ -41,7 +41,7 @@ class WikiParameters(object):
     @property
     def config(self):
         if self._config is None:
-            self._loadConfig()
+            self._config = self._loadConfig()
         return self._config
 
     def fs_factory(self):
@@ -136,7 +136,7 @@ class WikiParameters(object):
             else:
                 logger.debug("Setting up simple updater.")
                 self._page_updater = lambda wiki, url: wiki.update(
-                    url, cache_ext_data=False)
+                    url, cache_ext_data=True)
         return self._page_updater
 
     def tryAddFormatter(self, formatters, module_name, module_func,
@@ -160,7 +160,7 @@ class WikiParameters(object):
         config.readfp(open(default_config_path))
         config.set('wiki', 'root', self.root)
         config.read([config_path, local_config_path])
-        self._config = config
+        return config
 
 
 class EndpointInfo(object):

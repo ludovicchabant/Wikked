@@ -152,7 +152,8 @@ class SQLDatabase(Database):
         return self._session
 
     def _needsSchemaUpdate(self):
-        if self.engine_url == 'sqlite:///:memory:':
+        if (self.engine_url == 'sqlite://' or
+                self.engine_url == 'sqlite:///:memory:'):
             # Always create the schema for a memory database.
             return True
 

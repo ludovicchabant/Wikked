@@ -12,7 +12,7 @@ class WikiIndex(object):
         pass
 
     def start(self, wiki):
-        raise NotImplementedError()
+        pass
 
     def init(self, wiki):
         pass
@@ -21,10 +21,10 @@ class WikiIndex(object):
         pass
 
     def reset(self, pages):
-        raise NotImplementedError()
+        pass
 
     def update(self, pages):
-        raise NotImplementedError()
+        pass
 
     def search(self, query):
         raise NotImplementedError()

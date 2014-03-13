@@ -66,7 +66,7 @@ class Page(object):
     def filename(self):
         if self._data.path is None:
             raise Exception("The 'path' field was not loaded.")
-        basename = os.path.basename(self._data.filename)
+        basename = os.path.basename(self._data.path)
         return os.path.splitext(basename)[0]
 
     @property

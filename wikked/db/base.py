@@ -16,14 +16,14 @@ class Database(object):
     def postInit(self):
         pass
 
-    def close(self):
-        raise NotImplementedError()
+    def close(self, commit, exception):
+        pass
 
     def reset(self, page_infos, page_factory):
-        raise NotImplementedError()
+        pass
 
     def update(self, page_infos, page_factory, force=False):
-        raise NotImplementedError()
+        pass
 
     def getPageUrls(self, subdir=None, uncached_only=False):
         raise NotImplementedError()
@@ -48,7 +48,7 @@ class Database(object):
         return page
 
     def cachePage(self, page):
-        raise NotImplementedError()
+        pass
 
     def isCacheValid(self, page):
         raise NotImplementedError()

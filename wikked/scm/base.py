@@ -41,10 +41,10 @@ class SourceControl(object):
         raise NotImplementedError()
 
     def commit(self, paths, op_meta):
-        raise NotImplementedError()
+        pass
 
     def revert(self, paths=None):
-        raise NotImplementedError()
+        pass
 
 
 class Author(object):
