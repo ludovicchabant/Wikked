@@ -54,8 +54,8 @@ class PageFormatter(object):
         return text
 
     def _processWikiSyntax(self, ctx, text):
-        text = self._processWikiMeta(ctx, text)
         text = self._processWikiLinks(ctx, text)
+        text = self._processWikiMeta(ctx, text)
         return text
 
     def _processWikiMeta(self, ctx, text):
