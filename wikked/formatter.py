@@ -36,8 +36,7 @@ class PageFormatter(object):
         "stable" content (everything except queries run on the fly,
         like `include` or `query`).
     """
-    def __init__(self, wiki):
-        self.wiki = wiki
+    def __init__(self):
         self.coercers = {
                 'include': self._coerceInclude
                 }

@@ -137,7 +137,7 @@ class FileSystemPage(Page):
 
         # Format the page and get the meta properties.
         ctx = FormattingContext(page_info.url)
-        f = PageFormatter(wiki)
+        f = PageFormatter()
         data.formatted_text = f.formatText(ctx, data.raw_text)
         data.local_meta = ctx.meta
         data.local_links = ctx.out_links
