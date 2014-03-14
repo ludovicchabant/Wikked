@@ -135,8 +135,7 @@ class WikiParameters(object):
                     self.root)
             else:
                 logger.debug("Setting up simple updater.")
-                self._page_updater = lambda wiki, url: wiki.update(
-                    url, cache_ext_data=True)
+                self._page_updater = lambda wiki, url: wiki.update(url)
         return self._page_updater
 
     def tryAddFormatter(self, formatters, module_name, module_func,
@@ -247,7 +246,7 @@ class Wiki(object):
         s = ResolveScheduler(self, page_urls)
         s.run(num_workers)
 
-    def update(self, url=None, path=None, cache_ext_data=True):
+    def update(self, url=None, path=None):
         logger.info("Updating pages...")
         factory = lambda pi: FileSystemPage(self, pi)
         if url or path:
@@ -339,7 +338,7 @@ class Wiki(object):
         self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the modified page.
-        self.update(url, cache_ext_data=False)
+        self.update(url)
 
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.

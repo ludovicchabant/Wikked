@@ -88,12 +88,9 @@ class UpdateCommand(WikkedCommand):
         parser.add_argument('path',
                 help="The path to a page to update specifically",
                 nargs='?')
-        parser.add_argument('--cache',
-                help="Re-cache all pages",
-                action='store_true')
 
     def run(self, ctx):
-        ctx.wiki.update(path=ctx.args.path, cache_ext_data=ctx.args.cache)
+        ctx.wiki.update(path=ctx.args.path)
 
         if ctx.args.debug and ctx.args.path:
             page_info = ctx.wiki.fs.getPageInfo(ctx.args.path)
@@ -105,6 +102,10 @@ class UpdateCommand(WikkedCommand):
             logger.debug("Page [%s]:" % page.url)
             logger.debug("--- formatted text ---")
             logger.debug(page.getFormattedText())
+            logger.debug("--- meta --")
+            logger.debug(page.getLocalMeta())
+            logger.debug("--- links ---")
+            logger.debug(page.getLocalLinks())
             logger.debug("--- resolved text ---")
             logger.debug(page.text)
 

@@ -326,7 +326,7 @@ class PageResolver(object):
 
         # We'll have to format things...
         fmt_ctx = FormattingContext(self.page.url)
-        fmt = PageFormatter(self.wiki)
+        fmt = PageFormatter()
 
         # No match: return the 'empty' template.
         if len(matched_pages) == 0:
