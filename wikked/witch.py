@@ -1,4 +1,5 @@
 import sys
+import os.path
 import logging
 import argparse
 import datetime
@@ -45,6 +46,7 @@ def main():
     arg_debug = False
     arg_quiet = False
     arg_debug_sql = False
+    arg_version = False
     for i, arg in enumerate(sys.argv[1:]):
         if not arg.startswith('--'):
             break
@@ -57,6 +59,11 @@ def main():
             i += 1
         elif arg == '--debugsql':
             arg_debug_sql = True
+        elif arg == '--version':
+            arg_version = True
+
+    if arg_version:
+        return print_version()
     if arg_debug and arg_quiet:
         raise Exception("You can't specify both --debug and --quiet.")
     root_logger = logging.getLogger()
@@ -84,10 +91,13 @@ def main():
             help="Show debug information for SQLAlchemy (advanced)",
             action='store_true')
     parser.add_argument('--quiet',
-            help="Print only important information.",
+            help="Print only important information",
             action='store_true')
     parser.add_argument('--log',
-            help="Send log messages to the specified file.")
+            help="Send log messages to the specified file")
+    parser.add_argument('--version',
+            help="Print version and exit",
+            action='store_true')
 
     # Import the commands.
     # (this creates a PyLint warning but it's OK)
@@ -136,3 +146,14 @@ def main():
         delta = after - before
         logger.debug("Ran command in %fs" % delta.total_seconds())
 
+def print_version():
+    if os.path.isdir(os.path.join(os.path.dirname(__file__), '..', '.hg')):
+        print "Wikked (development version)"
+        return 0
+    try:
+        from wikked.__version__ import version
+    except ImportError:
+        print "Can't find version information."
+        return 1
+    print "Wikked %s" % version
+    return 0
