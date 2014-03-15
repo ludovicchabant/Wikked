@@ -19,6 +19,7 @@ def runcmd(cmd):
 
 # Figure out the version.
 # (this is loosely based on what Mercurial does)
+version = None
 try:
     if os.path.isdir('.hg'):
         cmd = ['hg', 'log', '-r', '.', '--template', '{tags}\n']
