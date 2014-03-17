@@ -21,7 +21,7 @@ def runcmd(cmd):
 # (this is loosely based on what Mercurial does)
 version = None
 try:
-    if os.path.isdir('.hg'):
+    if os.path.isdir(os.path.join(os.path.dirname(__file__), '.hg')):
         cmd = ['hg', 'log', '-r', '.', '--template', '{tags}\n']
         tags, err = runcmd(cmd)
         versions = [t for t in tags.split() if t[0].isdigit()]
@@ -72,28 +72,27 @@ setup(
         keywords="wiki mercurial hg git",
         packages=find_packages(exclude=["tests"]),
         install_requires=[
-            'Flask>=0.10',
-            'Flask-Login>=0.1.3',
-            'Flask-SQLAlchemy>=1.0',
-            'Flask-Script>=0.5.1',
-            'Jinja2>=2.6',
-            'Markdown>=2.2.1',
-            'PyYAML>=3.10',
-            'Pygments>=1.5',
-            'SQLAlchemy>=0.8.3',
-            'Werkzeug>=0.8.3',
-            'Whoosh>=2.4.1',
-            'argparse>=1.2.1',
-            'pybars>=0.0.4',
-            'python-hglib',
-            'twill>=0.9',
-            'wsgiref>=0.1.2'
-            ],
-        scripts=['wk.py'],
+            'Flask==0.10.1',
+            'Flask-Bcrypt==0.5.2',
+            'Flask-Login==0.2.10',
+            'Flask-Script==0.5.1',
+            'Jinja2==2.7.2',
+            'Markdown==2.2.1',
+            'Pygments==1.6',
+            'SQLAlchemy==0.9.3',
+            'Whoosh==2.5.5',
+            'colorama==0.2.7',
+            'py-bcrypt==0.2',
+            'pysqlite==2.6.3',
+            'pytest==2.5.2',
+            'repoze.lru==0.6',
+            'python-hglib'],
         include_package_data=True,
         package_data={
             'wikked': [
-                'resources/*',
+                'resources/defaults.cfg',
+                'resources/hg_log.style',
+                'resources/init/*',
                 'templates/*.html',
                 'static/bootstrap/fonts/*',
                 'static/css/wikked.min.css',
@@ -115,7 +114,7 @@ setup(
             ],
         entry_points={
                 'console_scripts': [
-                    'wk = wikked.witch:main'
+                    'wk = wikked.witch:real_main'
                 ]
             },
         )

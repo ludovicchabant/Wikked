@@ -146,6 +146,7 @@ def main():
         delta = after - before
         logger.debug("Ran command in %fs" % delta.total_seconds())
 
+
 def print_version():
     if os.path.isdir(os.path.join(os.path.dirname(__file__), '..', '.hg')):
         print "Wikked (development version)"
@@ -157,3 +158,13 @@ def print_version():
         return 1
     print "Wikked %s" % version
     return 0
+
+
+def real_main():
+    colorama.init()
+    root_logger = logging.getLogger()
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(ColoredFormatter('%(message)s'))
+    root_logger.addHandler(handler)
+
+    main()
