@@ -45,7 +45,7 @@ class ElasticWikiIndex(WikiIndex):
                             'filter': {
                                 'pageTitlePreviewFilter': {
                                     'type': 'edgeNGram',
-                                    'min_gram': 2,
+                                    'min_gram': 1,
                                     'max_gram': 10,
                                     'token_chars': ['letter', 'digit']
                                     }

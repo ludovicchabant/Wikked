@@ -202,7 +202,7 @@ define([
         },
         _previewSearch: function(e) {
             var query = $(e.currentTarget).val();
-            if (query && query.length >= 3) {
+            if (query && query.length >= 1) {
                 var $view = this;
                 this.model.doPreviewSearch(query, function(data) {
                     var resultStr = '';

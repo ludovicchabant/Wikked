@@ -2,7 +2,8 @@ import os
 import os.path
 import logging
 from base import WikiIndex, HitResult
-from whoosh.analysis import StemmingAnalyzer, CharsetFilter, NgramFilter
+from whoosh.analysis import (StandardAnalyzer, StemmingAnalyzer,
+        CharsetFilter, NgramFilter)
 from whoosh.fields import Schema, ID, TEXT, STORED
 from whoosh.highlight import WholeFragmenter
 from whoosh.index import create_in, open_dir
@@ -95,8 +96,8 @@ class WhooshWikiIndex(WikiIndex):
             return hits
 
     def _getSchema(self):
-        preview_analyzer = (StemmingAnalyzer() | CharsetFilter(accent_map) |
-                NgramFilter(minsize=3))
+        preview_analyzer = (StandardAnalyzer() | CharsetFilter(accent_map) |
+                NgramFilter(minsize=1))
         text_analyzer = StemmingAnalyzer() | CharsetFilter(accent_map)
         schema = Schema(
                 url=ID(stored=True),
