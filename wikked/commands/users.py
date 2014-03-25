@@ -39,6 +39,4 @@ class NewUserCommand(WikkedCommand):
         username = ctx.args.username
         password = ctx.args.password or prompt_pass('Password: ')
         password = generate_password_hash(password)
-        logger.info("[users]")
-        logger.info("%s = %s" % (username, password))
-
+        logger.info("%s = %s" % (username[0], password))
