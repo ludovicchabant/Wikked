@@ -42,7 +42,7 @@ class RunServerCommand(WikkedCommand):
 
         app.wiki_params = ctx.params
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
-            ctx.wiki.update()
+            ctx.wiki.updateAll()
 
         # Run!
         debug_mode = ctx.args.dev or app.config.get('DEBUG', False)

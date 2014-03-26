@@ -22,7 +22,10 @@ class Database(object):
     def reset(self, page_infos, page_factory):
         pass
 
-    def update(self, page_infos, page_factory, force=False):
+    def updatePage(self, page_info):
+        pass
+
+    def updateAll(self, page_infos, force=False):
         pass
 
     def getPageUrls(self, subdir=None, uncached_only=False):
@@ -47,11 +50,11 @@ class Database(object):
             raise PageNotFoundError(url or path)
         return page
 
+    def isPageValid(self, url):
+        return True
+
     def cachePage(self, page):
         pass
-
-    def isCacheValid(self, page):
-        raise NotImplementedError()
 
     def pageExists(self, url=None, path=None):
         raise NotImplementedError()

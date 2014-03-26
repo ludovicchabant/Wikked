@@ -23,7 +23,10 @@ class WikiIndex(object):
     def reset(self, pages):
         pass
 
-    def update(self, pages):
+    def updatePage(self, page):
+        pass
+
+    def updateAll(self, pages):
         pass
 
     def search(self, query):

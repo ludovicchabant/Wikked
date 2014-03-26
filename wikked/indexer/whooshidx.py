@@ -35,7 +35,14 @@ class WhooshWikiIndex(WikiIndex):
             self._indexPage(writer, page)
         writer.commit()
 
-    def update(self, pages):
+    def updatePage(self, page):
+        logger.info("Updating index for page: %s" % page.url)
+        writer = self.ix.writer()
+        self._unindexPage(writer, page.url)
+        self._indexPage(writer, page)
+        writer.commit()
+
+    def updateAll(self, pages):
         logger.info("Updating index...")
         to_reindex = set()
         already_indexed = set()

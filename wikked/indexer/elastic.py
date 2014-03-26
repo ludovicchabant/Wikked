@@ -95,7 +95,17 @@ class ElasticWikiIndex(WikiIndex):
         actions = action_maker()
         bulk_index(self.es, actions)
 
-    def update(self, pages):
+    def updatePage(self, page):
+        body = {
+                'fields': ['url'],
+                'query': {'term': {'url': page.url}}}
+        docs = self.es.search(index='pages', doc_type='page', body=body)
+        docs = list(docs)
+        if len(docs) > 0:
+            self.es.delete(index='pages', doc_type='page', id=docs[0]['_id'])
+        self.es.index(index='page', doc_type='page', body=self._get_body(page))
+
+    def updateAll(self, pages):
         to_reindex = set()
         already_indexed = set()
 

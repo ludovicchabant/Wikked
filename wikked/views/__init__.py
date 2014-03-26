@@ -3,7 +3,7 @@ import string
 from flask import g, abort, jsonify
 from flask.ext.login import current_user
 from wikked.fs import PageNotFoundError
-from wikked.utils import split_page_url, flatten_single_metas
+from wikked.utils import split_page_url
 from wikked.web import app
 
 
@@ -34,20 +34,20 @@ def make_page_title(url):
 def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolve=False):
     if convert_url:
         url = url_from_viewarg(url)
+
     try:
+        if app.config.get('WIKI_AUTO_RELOAD'):
+            if not g.wiki.db.isPageValid(url):
+                app.logger.info("Page '%s' has changed, reloading." % url)
+                g.wiki.updatePage(url=url)
+            else:
+                app.logger.debug("Page '%s' is up to date." % url)
+        elif force_resolve:
+            g.wiki.resolve(only_urls=[url], force=True)
+
         page = g.wiki.getPage(url)
     except PageNotFoundError:
         return None
-
-    if app.config.get('WIKI_AUTO_RELOAD'):
-        if not g.wiki.db.isCacheValid(page):
-            app.logger.info("Page '%s' has changed, reloading." % url)
-            g.wiki.update(url)
-        else:
-            app.logger.debug("Page '%s' is up to date." % url)
-    elif force_resolve:
-        g.wiki._cachePages([url], force_resolve=True)
-        page = g.wiki.getPage(url)
 
     if check_perms == CHECK_FOR_READ and not is_page_readable(page):
         abort(401)
@@ -78,7 +78,6 @@ def get_page_meta(page, local_only=False):
         meta = dict(page.getLocalMeta())
     else:
         meta = dict(page.getMeta())
-    flatten_single_metas(meta)
     meta['title'] = page.title
     meta['url'] = urllib.quote(page.url.encode('utf-8'))
     for name in COERCE_META:

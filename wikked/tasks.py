@@ -34,5 +34,5 @@ class wiki_session(object):
 @app.task
 def update_wiki(wiki_root):
     with wiki_session(wiki_root) as wiki:
-        wiki.update()
+        wiki._postSetPageUpdate()
 

@@ -90,7 +90,7 @@ class UpdateCommand(WikkedCommand):
                 nargs='?')
 
     def run(self, ctx):
-        ctx.wiki.update(path=ctx.args.path)
+        ctx.wiki.updatePage(path=ctx.args.path)
 
         if ctx.args.debug and ctx.args.path:
             page_info = ctx.wiki.fs.getPageInfo(ctx.args.path)

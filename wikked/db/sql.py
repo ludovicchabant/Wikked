@@ -6,7 +6,7 @@ import logging
 import datetime
 from sqlalchemy import (
     create_engine,
-    and_, or_,
+    and_,
     Column, Boolean, Integer, DateTime, ForeignKey,
     String, Text, UnicodeText)
 from sqlalchemy.ext.declarative import declarative_base
@@ -15,7 +15,7 @@ from sqlalchemy.orm import (
     relationship, backref, load_only, subqueryload)
 from sqlalchemy.orm.exc import NoResultFound
 from wikked.db.base import Database
-from wikked.page import Page, PageData
+from wikked.page import Page, PageData, FileSystemPage
 
 
 logger = logging.getLogger(__name__)
@@ -216,7 +216,28 @@ class SQLDatabase(Database):
             self._addPage(page)
         self.session.commit()
 
-    def update(self, page_infos, page_factory, force=False):
+    def updatePage(self, page_info):
+        if self._needsSchemaUpdate():
+            raise Exception("This wiki needs a database update. "
+                            "Please run `wk reset`.")
+
+        logger.debug("Updating SQL database for page: %s" % page_info.url)
+
+        db_page = self.session.query(SQLPage).\
+                options(load_only('id', 'url')).\
+                filter(SQLPage.url == page_info.url).\
+                first()
+        if db_page:
+            logger.debug("Removing page '%s' [%d] from SQL database." %
+                    (db_page.url, db_page.id))
+            self.session.delete(db_page)
+            self.session.commit()
+
+        page = FileSystemPage(self.wiki, page_info)
+        self._addPage(page)
+        self.session.commit()
+
+    def updateAll(self, page_infos, force=False):
         if self._needsSchemaUpdate():
             raise Exception("This wiki needs a database upgrade. "
                             "Please run `wk reset`.")
@@ -254,25 +275,10 @@ class SQLDatabase(Database):
         for pi in page_infos:
             if (pi.path in to_update or
                     pi.path not in already_added):
-                page = page_factory(pi)
+                page = FileSystemPage(self.wiki, pi)
                 added_db_objs.append(self._addPage(page))
 
         self.session.commit()
-
-        if to_remove or added_db_objs:
-            # If pages have been added/removed/updated, invalidate everything
-            # in the wiki that has includes or queries.
-            db_pages = self.session.query(SQLPage.id, SQLPage.is_ready,
-                                          SQLPage.ready_meta).\
-                join(SQLReadyMeta).\
-                filter(or_(
-                    SQLReadyMeta.name == 'include',
-                    SQLReadyMeta.name == 'query')).\
-                all()
-            for p in db_pages:
-                p.is_ready = False
-
-            self.session.commit()
 
         logger.debug("...done updating SQL database.")
         return [o.id for o in added_db_objs]
@@ -305,14 +311,29 @@ class SQLDatabase(Database):
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
 
-    def isCacheValid(self, page):
+    def isPageValid(self, url):
         db_obj = self.session.query(SQLPage).\
-            options(load_only('id', 'path', 'time')).\
-            filter(SQLPage.id == page._id).\
-            one()
+            options(load_only('id', 'url', 'path', 'time')).\
+            filter(SQLPage.url == url).\
+            first()
+        if not db_obj:
+            return False
         path_time = datetime.datetime.fromtimestamp(
             os.path.getmtime(db_obj.path))
         return path_time < db_obj.time
+
+    def invalidateCache(self, ids):
+        if not isinstance(ids, list):
+            ids = list(ids)
+        logger.debug("Invalidating %d page caches in SQL database." % len(ids))
+
+        db_pages = self.session.query(SQLPage).\
+            options(load_only('id', 'url', 'is_ready')).\
+            filter(SQLPage.id.in_(ids)).\
+            all()
+        for p in db_pages:
+            p.is_ready = False
+        self.session.commit()
 
     def cachePage(self, page):
         if not hasattr(page, '_id') or not page._id:
@@ -392,7 +413,8 @@ class SQLDatabase(Database):
                 'local_meta': 'meta',
                 'local_links': 'links',
                 'meta': 'ready_meta',
-                'links': 'ready_links'}
+                'links': 'ready_links',
+                'text': 'ready_text'}
         subqueryfields = {
                 'local_meta': SQLPage.meta,
                 'local_links': SQLPage.links,

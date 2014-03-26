@@ -126,18 +126,6 @@ class WikiParameters(object):
             for name, val in self.config.items('ignore'):
                 yield val
 
-    def getPageUpdater(self):
-        if self._page_updater is None:
-            if self.config.getboolean('wiki', 'async_updates'):
-                logger.debug("Setting up asynchronous updater.")
-                from tasks import update_wiki
-                self._page_updater = lambda wiki, url: update_wiki.delay(
-                    self.root)
-            else:
-                logger.debug("Setting up simple updater.")
-                self._page_updater = lambda wiki, url: wiki.update(url)
-        return self._page_updater
-
     def tryAddFormatter(self, formatters, module_name, module_func,
                         extensions):
         try:
@@ -198,7 +186,8 @@ class Wiki(object):
         self.scm = parameters.scm_factory(for_init)
         self.auth = parameters.auth_factory()
 
-        self._updateSetPage = parameters.getPageUpdater()
+        async_updates = parameters.config.getboolean('wiki', 'async_updates')
+        self._postSetPageUpdate = self._getPostSetPageUpdater(async_updates)
 
     @property
     def root(self):
@@ -212,7 +201,7 @@ class Wiki(object):
             o.start(self)
 
         if update:
-            self.update()
+            self.updateAll()
 
     def init(self):
         """ Creates a new wiki at the specified root directory.
@@ -225,9 +214,13 @@ class Wiki(object):
             o.postInit()
 
     def stop(self):
+        """ De-initializes the wiki and its sub-systems.
+        """
         self.db.close()
 
     def reset(self):
+        """ Clears all the cached data and rebuilds it from scratch.
+        """
         logger.info("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
         factory = lambda pi: FileSystemPage(self, pi)
@@ -236,6 +229,9 @@ class Wiki(object):
         self.index.reset(self.getPages())
 
     def resolve(self, only_urls=None, force=False, parallel=False):
+        """ Compute the final info (text, meta, links) of all or a subset of
+            the pages, and caches it in the DB.
+        """
         logger.debug("Resolving pages...")
         if only_urls:
             page_urls = only_urls
@@ -246,24 +242,47 @@ class Wiki(object):
         s = ResolveScheduler(self, page_urls)
         s.run(num_workers)
 
-    def update(self, url=None, path=None):
-        logger.info("Updating pages...")
-        factory = lambda pi: FileSystemPage(self, pi)
-        if url or path:
-            if url and path:
-                raise Exception("Can't specify both an URL and a path.")
-            if path:
-                page_info = self.fs.getPageInfo(path)
-            else:
-                page_info = self.fs.findPageInfo(url)
-            self.db.update([page_info], factory, force=True)
-            self.resolve(only_urls=[page_info.url])
-            self.index.update([self.getPage(page_info.url)])
+    def updatePage(self, url=None, path=None):
+        """ Completely updates a single page, i.e. read it from the file-system
+            and have it fully resolved and cached in the DB.
+        """
+        if url and path:
+            raise Exception("Can't specify both an URL and a path.")
+        logger.info("Updating page: %s" % (url or path))
+        if path:
+            page_info = self.fs.getPageInfo(path)
         else:
-            page_infos = self.fs.getPageInfos()
-            self.db.update(page_infos, factory)
-            self.resolve()
-            self.index.update(self.getPages())
+            page_info = self.fs.findPageInfo(url)
+        self.db.updatePage(page_info)
+        self.resolve(only_urls=[page_info.url])
+        self.index.updatePage(self.db.getPage(
+            page_info.url,
+            fields=['url', 'path', 'title', 'text']))
+
+        # Invalidate all the appropriate pages.
+        logger.info("Handling dependencies...")
+        invalidate_ids = []
+        db_pages = self.db.getPages(fields=['local_meta'])
+        for p in db_pages:
+            if p.getLocalMeta('include') or p.getLocalMeta('query'):
+                invalidate_ids.append(p._id)
+        self.db.invalidateCache(invalidate_ids)
+
+        # Update all the other pages.
+        self._postSetPageUpdate(self)
+
+    def updateAll(self):
+        """ Completely updates all pages, i.e. read them from the file-system
+            and have them fully resolved and cached in the DB.
+            This function will check for timestamps to only update pages that
+            need it.
+        """
+        logger.info("Updating all pages...")
+        page_infos = self.fs.getPageInfos()
+        self.db.updateAll(page_infos)
+        self.resolve()
+        self.index.updateAll(self.db.getPages(
+            fields=['url', 'path', 'title', 'text']))
 
     def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given
@@ -283,7 +302,7 @@ class Wiki(object):
         """
         return self.db.getPage(url)
 
-    def setPage(self, url, page_fields, do_update=True):
+    def setPage(self, url, page_fields):
         """ Updates or creates a page for a given URL.
         """
         # Validate the parameters.
@@ -307,8 +326,7 @@ class Wiki(object):
         self.scm.commit([page_info.path], commit_meta)
 
         # Update the DB and index with the new/modified page.
-        if do_update:
-            self._updateSetPage(self, url)
+        self.updatePage(path=page_info.path)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
@@ -338,7 +356,7 @@ class Wiki(object):
         self.scm.commit([path], commit_meta)
 
         # Update the DB and index with the modified page.
-        self.update(url)
+        self.updatePage(url)
 
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.
@@ -364,6 +382,23 @@ class Wiki(object):
                 ep.default = config.get(s, 'default')
             endpoints[ep.name] = ep
         return endpoints
+
+    def _getPostSetPageUpdater(self, async):
+        if async:
+            logger.debug("Setting up asynchronous updater.")
+            from tasks import update_wiki
+            return lambda wiki: update_wiki.delay(self.root)
+        else:
+            logger.debug("Setting up simple updater.")
+            return lambda wiki: wiki._simplePostSetPageUpdate()
+
+    def _simplePostSetPageUpdate(self):
+        page_urls = self.db.getPageUrls(uncached_only=True)
+        self.resolve(only_urls=page_urls)
+        pages = [self.db.getPage(url=pu,
+                                 fields=['url', 'path', 'title', 'text'])
+                 for pu in page_urls]
+        self.index.updateAll(pages)
 
 
 def reloader_stat_loop(wiki, interval=1):
