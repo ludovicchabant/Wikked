@@ -1,17 +1,13 @@
 import logging
 from celery import Celery
-from wiki import Wiki, WikiParameters
+from wikked.wiki import Wiki, WikiParameters
 
 
 logger = logging.getLogger(__name__)
 
 
-#TODO: Make those settings configurable!
-app = Celery(
-        'wikked',
-        broker='amqp://',
-        backend='amqp://',
-        include=['wikked.tasks'])
+logger.debug("Creating Celery application...")
+celery_app = Celery('wikked', include=['wikked.tasks'])
 
 
 class wiki_session(object):
@@ -31,8 +27,8 @@ class wiki_session(object):
         return False
 
 
-@app.task
+@celery_app.task
 def update_wiki(wiki_root):
     with wiki_session(wiki_root) as wiki:
-        wiki._postSetPageUpdate()
+        wiki.updateAll()
 

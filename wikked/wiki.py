@@ -33,10 +33,10 @@ class WikiParameters(object):
             root = os.getcwd()
         self.root = root
         self.formatters = self.getFormatters()
+        self.wiki_updater = self.getWikiUpdater()
         self._config = None
         self._index_factory = None
         self._scm_factory = None
-        self._page_updater = None
 
     @property
     def config(self):
@@ -135,6 +135,9 @@ class WikiParameters(object):
         except ImportError:
             pass
 
+    def getWikiUpdater(self):
+        return lambda wiki: wiki.updateAll()
+
     def _loadConfig(self):
         # Merge the default settings with any settings provided by
         # the local config file(s).
@@ -186,8 +189,7 @@ class Wiki(object):
         self.scm = parameters.scm_factory(for_init)
         self.auth = parameters.auth_factory()
 
-        async_updates = parameters.config.getboolean('wiki', 'async_updates')
-        self._postSetPageUpdate = self._getPostSetPageUpdater(async_updates)
+        self._wiki_updater = parameters.wiki_updater
 
     @property
     def root(self):
@@ -268,9 +270,6 @@ class Wiki(object):
                 invalidate_ids.append(p._id)
         self.db.invalidateCache(invalidate_ids)
 
-        # Update all the other pages.
-        self._postSetPageUpdate(self)
-
     def updateAll(self):
         """ Completely updates all pages, i.e. read them from the file-system
             and have them fully resolved and cached in the DB.
@@ -328,6 +327,9 @@ class Wiki(object):
         # Update the DB and index with the new/modified page.
         self.updatePage(path=page_info.path)
 
+        # Update all the other pages.
+        self._wiki_updater(self)
+
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
         """
@@ -358,6 +360,9 @@ class Wiki(object):
         # Update the DB and index with the modified page.
         self.updatePage(url)
 
+        # Update all the other pages.
+        self._wiki_updater(self)
+
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.
         """
@@ -383,16 +388,16 @@ class Wiki(object):
             endpoints[ep.name] = ep
         return endpoints
 
-    def _getPostSetPageUpdater(self, async):
+    def _setupPostSetPageUpdater(self, async):
         if async:
             logger.debug("Setting up asynchronous updater.")
             from tasks import update_wiki
-            return lambda wiki: update_wiki.delay(self.root)
+            self._postSetPageUpdate = lambda wiki: update_wiki.delay(self.root)
         else:
             logger.debug("Setting up simple updater.")
-            return lambda wiki: wiki._simplePostSetPageUpdate()
+            self._postSetPageUpdate = lambda wiki: wiki._simplePostSetPageUpdate()
 
-    def _simplePostSetPageUpdate(self):
+    def _simpleWikiUpdater(self):
         page_urls = self.db.getPageUrls(uncached_only=True)
         self.resolve(only_urls=page_urls)
         pages = [self.db.getPage(url=pu,

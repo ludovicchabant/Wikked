@@ -22,7 +22,8 @@ app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
 app.config.setdefault('WIKI_ROOT', None)
 app.config.setdefault('UPDATE_WIKI_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
-app.config.setdefault('SYNCHRONOUS_UPDATE', True)
+app.config.setdefault('WIKI_ASYNC_UPDATE', False)
+app.config.setdefault('BROKER_URL', 'amqp://')
 
 
 # Find the wiki root, and further configure the app if there's a
@@ -55,6 +56,17 @@ if app.config['DEBUG']:
 if app.config['SQL_DEBUG']:
     l = logging.getLogger('sqlalchemy')
     l.setLevel(logging.DEBUG)
+
+app.logger.debug("Creating Flask application...")
+
+
+def set_app_wiki_params(params):
+    app.wiki_params = params
+    if app.wiki_updater is not None:
+        app.wiki_params.wiki_updater = app.wiki_updater
+
+app.set_wiki_params = set_app_wiki_params
+app.wiki_updater = None
 
 
 # Set the wiki as a request global, and open/close the database.
@@ -112,4 +124,18 @@ import wikked.views.edit
 import wikked.views.history
 import wikked.views.special
 import wikked.views.admin
+
+
+# Async wiki update.
+if app.config['WIKI_ASYNC_UPDATE']:
+    app.logger.debug("Will use Celery tasks to update the wiki...")
+    from wikked.tasks import celery_app, update_wiki
+
+    # Configure Celery.
+    celery_app.conf.update(app.config)
+
+    # Make the wiki use the background update task.
+    def async_updater(wiki):
+        update_wiki.delay(wiki.root)
+    app.wiki_updater = async_updater
 

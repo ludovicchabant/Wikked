@@ -40,7 +40,7 @@ class RunServerCommand(WikkedCommand):
             app.config['DEV_ASSETS'] = True
         app.config['WIKI_AUTO_RELOAD'] = True
 
-        app.wiki_params = ctx.params
+        app.set_wiki_params(ctx.params)
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.updateAll()
 

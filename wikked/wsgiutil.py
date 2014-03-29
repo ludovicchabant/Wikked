@@ -10,7 +10,7 @@ def get_wsgi_app(wiki_root, log_file=None):
     logging.basicConfig(stream=sys.stderr)
 
     from wikked.web import app
-    app.wiki_params = WikiParameters(wiki_root)
+    app.set_wiki_params(WikiParameters(wiki_root))
 
     if log_file is not None:
         h = logging.handlers.RotatingFileHandler(log_file, maxBytes=4096)
