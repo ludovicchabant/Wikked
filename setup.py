@@ -82,7 +82,7 @@ setup(
             'SQLAlchemy==0.9.3',
             'Whoosh==2.5.5',
             'colorama==0.2.7',
-            'py-bcrypt==0.2',
+            'py-bcrypt==0.4',
             'pysqlite==2.6.3',
             'pytest==2.5.2',
             'repoze.lru==0.6',
