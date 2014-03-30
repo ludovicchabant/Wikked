@@ -41,8 +41,8 @@ class RunServerCommand(WikkedCommand):
         os.chdir(ctx.params.root)
 
         # Setup some settings that need to be set before the app is created.
-        import wikked.settings
         if ctx.args.usetasks:
+            import wikked.settings
             wikked.settings.WIKI_ASYNC_UPDATE = True
 
         # Create/import the app.
