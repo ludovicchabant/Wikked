@@ -88,19 +88,6 @@ setup(
             'repoze.lru==0.6',
             'python-hglib'],
         include_package_data=True,
-        package_data={
-            'wikked': [
-                'resources/defaults.cfg',
-                'resources/hg_log.style',
-                'resources/init/*',
-                'templates/*.html',
-                'static/bootstrap/fonts/*',
-                'static/css/wikked.min.css',
-                'static/img/*.png',
-                'static/js/require.js',
-                'static/js/wikked.min.js'
-                ]
-            },
         zip_safe=False,
         classifiers=[
                 'Development Status :: 3 - Alpha',
