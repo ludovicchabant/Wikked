@@ -23,7 +23,7 @@ app.config.setdefault('WIKI_ROOT', None)
 app.config.setdefault('UPDATE_WIKI_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('WIKI_ASYNC_UPDATE', False)
-app.config.setdefault('BROKER_URL', 'amqp://')
+app.config.setdefault('BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.db')
 
 
 # Find the wiki root, and further configure the app if there's a
@@ -132,10 +132,14 @@ if app.config['WIKI_ASYNC_UPDATE']:
     from wikked.tasks import celery_app, update_wiki
 
     # Configure Celery.
+    app.config['BROKER_URL'] = app.config['BROKER_URL'] % (
+        { 'root': wiki_root })
     celery_app.conf.update(app.config)
+    app.logger.debug("Using Celery broker: %s" % app.config['BROKER_URL'])
 
     # Make the wiki use the background update task.
     def async_updater(wiki):
+        app.logger.debug("Running update task on Celery.")
         update_wiki.delay(wiki.root)
     app.wiki_updater = async_updater
 
