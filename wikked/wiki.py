@@ -48,20 +48,7 @@ class WikiParameters(object):
         return FileSystem(self.root, self.config)
 
     def index_factory(self):
-        if self._index_factory is None:
-            index_type = self.config.get('wiki', 'indexer')
-            if index_type == 'whoosh':
-                def impl():
-                    from wikked.indexer.whooshidx import WhooshWikiIndex
-                    return WhooshWikiIndex()
-                self._index_factory = impl
-            elif index_type == 'elastic':
-                def impl():
-                    from wikked.indexer.elastic import ElasticWikiIndex
-                    return ElasticWikiIndex()
-                self._index_factory = impl
-            else:
-                raise InitializationError("No such indexer: " + index_type)
+        self._ensureIndexFactory()
         return self._index_factory()
 
     def db_factory(self):
@@ -69,40 +56,7 @@ class WikiParameters(object):
         return SQLDatabase(self.config)
 
     def scm_factory(self, for_init=False):
-        if self._scm_factory is None:
-            try:
-                scm_type = self.config.get('wiki', 'sourcecontrol')
-            except NoOptionError:
-                # Auto-detect
-                if os.path.isdir(os.path.join(self.root, '.hg')):
-                    scm_type = 'hg'
-                elif os.path.isdir(os.path.join(self.root, '.git')):
-                    scm_type = 'git'
-                else:
-                    # Default to Mercurial. Yes. I just decided that myself.
-                    scm_type = 'hg'
-
-            if scm_type == 'hg':
-                client = None
-                if not for_init:
-                    # Only create the command server once.
-                    import hglib
-                    client = hglib.open(self.root)
-
-                def impl():
-                    from wikked.scm.mercurial import (
-                        MercurialCommandServerSourceControl)
-                    return MercurialCommandServerSourceControl(
-                        self.root, client)
-                self._scm_factory = impl
-            elif scm_type == 'git':
-                def impl():
-                    from wikked.scm.git import GitLibSourceControl
-                    return GitLibSourceControl(self.root)
-                self._scm_factory = impl
-            else:
-                raise InitializationError(
-                    "No such source control: " + scm_type)
+        self._ensureScmFactory()
         return self._scm_factory()
 
     def auth_factory(self):
@@ -151,6 +105,50 @@ class WikiParameters(object):
         config.set('wiki', 'root', self.root)
         config.read([config_path, local_config_path])
         return config
+
+    def _ensureIndexFactory(self):
+        if self._index_factory is None:
+            index_type = self.config.get('wiki', 'indexer')
+            if index_type == 'whoosh':
+                def impl():
+                    from wikked.indexer.whooshidx import WhooshWikiIndex
+                    return WhooshWikiIndex()
+                self._index_factory = impl
+            elif index_type == 'elastic':
+                def impl():
+                    from wikked.indexer.elastic import ElasticWikiIndex
+                    return ElasticWikiIndex()
+                self._index_factory = impl
+            else:
+                raise InitializationError("No such indexer: " + index_type)
+
+    def _ensureScmFactory(self):
+        if self._scm_factory is None:
+            try:
+                scm_type = self.config.get('wiki', 'sourcecontrol')
+            except NoOptionError:
+                # Auto-detect
+                if os.path.isdir(os.path.join(self.root, '.hg')):
+                    scm_type = 'hg'
+                elif os.path.isdir(os.path.join(self.root, '.git')):
+                    scm_type = 'git'
+                else:
+                    # Default to Mercurial. Yes. I just decided that myself.
+                    scm_type = 'hg'
+
+            if scm_type == 'hg':
+                def impl():
+                    from wikked.scm.mercurial import MercurialSourceControl
+                    return MercurialSourceControl(self.root)
+                self._scm_factory = impl
+            elif scm_type == 'git':
+                def impl():
+                    from wikked.scm.git import GitLibSourceControl
+                    return GitLibSourceControl(self.root)
+                self._scm_factory = impl
+            else:
+                raise InitializationError(
+                    "No such source control: " + scm_type)
 
 
 class EndpointInfo(object):
