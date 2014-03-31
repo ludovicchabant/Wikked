@@ -332,8 +332,11 @@ define([
                 });
             }
         },
+        _enableStateCheck: false,
         _isCheckingPageState: false,
         _checkPageState: function() {
+            if (!this._enableStateCheck)
+                return;
             this._isCheckingPageState = true;
             var $view = this;
             var statePath = this.model.checkStatePath();
