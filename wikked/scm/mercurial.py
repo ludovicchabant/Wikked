@@ -4,6 +4,7 @@ import os.path
 import time
 import logging
 import tempfile
+import threading
 import subprocess
 from hglib.error import CommandError
 from hglib.util import cmdbuilder
@@ -182,6 +183,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
     def __init__(self, root, client=None):
         MercurialBaseSourceControl.__init__(self, root)
         self.client = client
+        self.cl_lock = threading.Lock()
 
     def _initRepo(self, root):
         exe = ['hg', 'init', root]
@@ -195,16 +197,19 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def getHistory(self, path=None, limit=10):
         if path is not None:
-            status = self.client.status(include=[path])
+            with self.cl_lock:
+                status = self.client.status(include=[path])
             if len(status) > 0 and status[0] == '?':
                 return []
 
         needs_files = False
         if path is not None:
-            repo_revs = self.client.log(files=[path], follow=True, limit=limit)
+            with self.cl_lock:
+                repo_revs = self.client.log(files=[path], follow=True, limit=limit)
         else:
             needs_files = True
-            repo_revs = self.client.log(follow=True, limit=limit)
+            with self.cl_lock:
+                repo_revs = self.client.log(follow=True, limit=limit)
         revisions = []
         for rev in repo_revs:
             r = Revision(rev.node)
@@ -213,7 +218,8 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             r.timestamp = time.mktime(rev.date.timetuple())
             r.description = unicode(rev.desc)
             if needs_files:
-                rev_statuses = self.client.status(change=rev.node)
+                with self.cl_lock:
+                    rev_statuses = self.client.status(change=rev.node)
                 for rev_status in rev_statuses:
                     r.files.append({
                         'path': rev_status[1].decode('utf-8', 'replace'),
@@ -223,7 +229,8 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         return revisions
 
     def getState(self, path):
-        statuses = self.client.status(include=[path])
+        with self.cl_lock:
+            statuses = self.client.status(include=[path])
         if len(statuses) == 0:
             return STATE_COMMITTED
         status = statuses[0]
@@ -234,12 +241,14 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         raise Exception("Unsupported status: %s" % status)
 
     def getRevision(self, path, rev):
-        return self.client.cat([path], rev=rev)
+        with self.cl_lock:
+            return self.client.cat([path], rev=rev)
 
     def diff(self, path, rev1, rev2):
-        if rev2 is None:
-            return self.client.diff(files=[path], change=rev1, git=True)
-        return self.client.diff(files=[path], revs=[rev1, rev2], git=True)
+        with self.cl_lock:
+            if rev2 is None:
+                return self.client.diff(files=[path], change=rev1, git=True)
+            return self.client.diff(files=[path], revs=[rev1, rev2], git=True)
 
     def commit(self, paths, op_meta):
         if 'message' not in op_meta or not op_meta['message']:
@@ -255,13 +264,15 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             args = cmdbuilder('commit', *paths,
                     debug=True, m=op_meta['message'], A=True,
                     **kwargs)
-            self.client.rawcommand(args)
+            with self.cl_lock:
+                self.client.rawcommand(args)
         except CommandError as e:
             raise SourceControlError('commit', e.out, e.args, e.out)
 
     def revert(self, paths=None):
-        if paths is not None:
-            self.client.revert(files=paths, nobackup=True)
-        else:
-            self.client.revert(all=True, nobackup=True)
+        with self.cl_lock:
+            if paths is not None:
+                self.client.revert(files=paths, nobackup=True)
+            else:
+                self.client.revert(all=True, nobackup=True)
 

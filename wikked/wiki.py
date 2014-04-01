@@ -137,10 +137,29 @@ class WikiParameters(object):
                     scm_type = 'hg'
 
             if scm_type == 'hg':
+                logger.debug("Creating Mercurial command server.")
+                import hglib
+                client = hglib.open()
+
+                def shutdown_commandserver(num, frame):
+                    logger.debug("Shutting down Mercurial command server.")
+                    client.close()
+                import atexit
+                atexit.register(shutdown_commandserver, None, None)
+                import signal
+                signal.signal(signal.SIGTERM, shutdown_commandserver)
+
+                def impl():
+                    from wikked.scm.mercurial import MercurialCommandServerSourceControl
+                    return MercurialCommandServerSourceControl(self.root, client)
+                self._scm_factory = impl
+
+            elif scm_type == 'hgexe':
                 def impl():
                     from wikked.scm.mercurial import MercurialSourceControl
                     return MercurialSourceControl(self.root)
                 self._scm_factory = impl
+
             elif scm_type == 'git':
                 def impl():
                     from wikked.scm.git import GitLibSourceControl
