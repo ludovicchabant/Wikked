@@ -2,7 +2,7 @@ import os
 import os.path
 import logging
 from flask import Flask, abort, g
-from wikked.wiki import Wiki
+from wikked.wiki import Wiki, WikiParameters
 
 
 # Create the main app.
@@ -67,6 +67,7 @@ def set_app_wiki_params(params):
 
 app.set_wiki_params = set_app_wiki_params
 app.wiki_updater = None
+app.set_wiki_params(WikiParameters(wiki_root))
 
 
 # Set the wiki as a request global, and open/close the database.

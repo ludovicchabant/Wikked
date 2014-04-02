@@ -3,6 +3,7 @@ import os.path
 import shutil
 import logging
 from wikked.commands.base import WikkedCommand, register_command
+from wikked.wiki import Wiki, WikiParameters, INIT_CONTEXT
 
 
 logger = logging.getLogger(__name__)
@@ -40,8 +41,8 @@ class InitCommand(WikkedCommand):
 
         logger.info("Initializing new wiki at: %s" % path)
         from wikked.wiki import WikiParameters, Wiki
-        parameters = WikiParameters(path)
-        wiki = Wiki(parameters, for_init=True)
+        parameters = WikiParameters(path, ctx=INIT_CONTEXT)
+        wiki = Wiki(parameters)
         wiki.init()
 
         if not ctx.args.bare:

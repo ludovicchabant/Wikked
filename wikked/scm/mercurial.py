@@ -179,11 +179,14 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         return subprocess.check_output(exe)
 
 
+hg_client = None
+cl_lock = threading.Lock()
+
+
 class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
     def __init__(self, root, client=None):
         MercurialBaseSourceControl.__init__(self, root)
         self.client = client
-        self.cl_lock = threading.Lock()
 
     def _initRepo(self, root):
         exe = ['hg', 'init', root]
@@ -192,23 +195,54 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def _doStart(self):
         if self.client is None:
-            import hglib
-            self.client = hglib.open(self.root)
+            if hg_client is None:
+                with cl_lock:
+                    if hg_client is None:
+                        self._createServer()
+                self.client = hg_client
+            else:
+                logger.debug("Re-using existing Mercurial command server.")
+                self.client = hg_client
+
+    def _createServer(self):
+        logger.debug("Spawning Mercurial command server.")
+        import hglib
+        global hg_client
+        hg_client = hglib.open(self.root)
+
+        def shutdown_commandserver(num, frame):
+            global hg_client
+            if hg_client is not None:
+                with cl_lock:
+                    if hg_client is not None:
+                        logger.debug("Shutting down Mercurial command server.")
+                        hg_client.close()
+                        hg_client = None
+        import atexit
+        atexit.register(shutdown_commandserver, None, None)
+        try:
+            import signal
+            signal.signal(signal.SIGTERM, shutdown_commandserver)
+        except:
+            # `mod_wsgi` prevents adding stuff to `SIGTERM`
+            # so let's not make a big deal if this doesn't
+            # go through.
+            pass
 
     def getHistory(self, path=None, limit=10):
         if path is not None:
-            with self.cl_lock:
+            with cl_lock:
                 status = self.client.status(include=[path])
             if len(status) > 0 and status[0] == '?':
                 return []
 
         needs_files = False
         if path is not None:
-            with self.cl_lock:
+            with cl_lock:
                 repo_revs = self.client.log(files=[path], follow=True, limit=limit)
         else:
             needs_files = True
-            with self.cl_lock:
+            with cl_lock:
                 repo_revs = self.client.log(follow=True, limit=limit)
         revisions = []
         for rev in repo_revs:
@@ -218,7 +252,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             r.timestamp = time.mktime(rev.date.timetuple())
             r.description = unicode(rev.desc)
             if needs_files:
-                with self.cl_lock:
+                with cl_lock:
                     rev_statuses = self.client.status(change=rev.node)
                 for rev_status in rev_statuses:
                     r.files.append({
@@ -229,7 +263,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         return revisions
 
     def getState(self, path):
-        with self.cl_lock:
+        with cl_lock:
             statuses = self.client.status(include=[path])
         if len(statuses) == 0:
             return STATE_COMMITTED
@@ -241,11 +275,11 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         raise Exception("Unsupported status: %s" % status)
 
     def getRevision(self, path, rev):
-        with self.cl_lock:
+        with cl_lock:
             return self.client.cat([path], rev=rev)
 
     def diff(self, path, rev1, rev2):
-        with self.cl_lock:
+        with cl_lock:
             if rev2 is None:
                 return self.client.diff(files=[path], change=rev1, git=True)
             return self.client.diff(files=[path], revs=[rev1, rev2], git=True)
@@ -264,13 +298,13 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             args = cmdbuilder('commit', *paths,
                     debug=True, m=op_meta['message'], A=True,
                     **kwargs)
-            with self.cl_lock:
+            with cl_lock:
                 self.client.rawcommand(args)
         except CommandError as e:
             raise SourceControlError('commit', e.out, e.args, e.out)
 
     def revert(self, paths=None):
-        with self.cl_lock:
+        with cl_lock:
             if paths is not None:
                 self.client.revert(files=paths, nobackup=True)
             else:

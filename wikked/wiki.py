@@ -25,13 +25,19 @@ class InitializationError(Exception):
     pass
 
 
+NORMAL_CONTEXT = 0
+INIT_CONTEXT = 1
+BACKGROUND_CONTEXT = 2
+
+
 class WikiParameters(object):
     """ An object that defines how a wiki gets initialized.
     """
-    def __init__(self, root=None):
+    def __init__(self, root=None, ctx=NORMAL_CONTEXT):
         if root is None:
             root = os.getcwd()
         self.root = root
+        self.context = ctx
         self.formatters = self.getFormatters()
         self.wiki_updater = self.getWikiUpdater()
         self._config = None
@@ -55,7 +61,7 @@ class WikiParameters(object):
         from wikked.db.sql import SQLDatabase
         return SQLDatabase(self.config)
 
-    def scm_factory(self, for_init=False):
+    def scm_factory(self):
         self._ensureScmFactory()
         return self._scm_factory()
 
@@ -136,22 +142,19 @@ class WikiParameters(object):
                     # Default to Mercurial. Yes. I just decided that myself.
                     scm_type = 'hg'
 
+            if self.context != NORMAL_CONTEXT and scm_type == 'hg':
+                # Quick workaround for when we're creating a new repo,
+                # or running background tasks.
+                # We'll be using the `hg` process instead of the command
+                # server, since there's no repo there yet, or we just don't
+                # want to spawn a new process unless we want to.
+                logger.debug("Forcing `hgexe` source-control for new repo.")
+                scm_type = 'hgexe'
+
             if scm_type == 'hg':
-                logger.debug("Creating Mercurial command server.")
-                import hglib
-                client = hglib.open()
-
-                def shutdown_commandserver(num, frame):
-                    logger.debug("Shutting down Mercurial command server.")
-                    client.close()
-                import atexit
-                atexit.register(shutdown_commandserver, None, None)
-                import signal
-                signal.signal(signal.SIGTERM, shutdown_commandserver)
-
                 def impl():
                     from wikked.scm.mercurial import MercurialCommandServerSourceControl
-                    return MercurialCommandServerSourceControl(self.root, client)
+                    return MercurialCommandServerSourceControl(self.root)
                 self._scm_factory = impl
 
             elif scm_type == 'hgexe':
@@ -180,7 +183,7 @@ class EndpointInfo(object):
 class Wiki(object):
     """ The wiki class! This is where the magic happens.
     """
-    def __init__(self, parameters, for_init=False):
+    def __init__(self, parameters):
         """ Creates a new wiki instance. It won't be fully functional
             until you call `start`, which does the actual initialization.
             This gives you a chance to customize a few more things before
@@ -203,7 +206,7 @@ class Wiki(object):
         self.fs = parameters.fs_factory()
         self.index = parameters.index_factory()
         self.db = parameters.db_factory()
-        self.scm = parameters.scm_factory(for_init)
+        self.scm = parameters.scm_factory()
         self.auth = parameters.auth_factory()
 
         self._wiki_updater = parameters.wiki_updater

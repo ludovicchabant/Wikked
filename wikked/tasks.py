@@ -1,6 +1,6 @@
 import logging
 from celery import Celery
-from wikked.wiki import Wiki, WikiParameters
+from wikked.wiki import Wiki, WikiParameters, BACKGROUND_CONTEXT
 
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class wiki_session(object):
         self.wiki = None
 
     def __enter__(self):
-        params = WikiParameters(root=self.wiki_root)
+        params = WikiParameters(self.wiki_root, ctx=BACKGROUND_CONTEXT)
         self.wiki = Wiki(params)
         self.wiki.start(False)
         return self.wiki
