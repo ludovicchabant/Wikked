@@ -310,16 +310,17 @@ class Wiki(object):
         for url in self.db.getPageUrls(subdir):
             yield url
 
-    def getPages(self, subdir=None, meta_query=None):
+    def getPages(self, subdir=None, meta_query=None, fields=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
         """
-        for page in self.db.getPages(subdir, meta_query):
+        for page in self.db.getPages(subdir=subdir, meta_query=meta_query,
+                fields=fields):
             yield page
 
-    def getPage(self, url):
+    def getPage(self, url, fields=None):
         """ Gets the page for a given URL.
         """
-        return self.db.getPage(url)
+        return self.db.getPage(url, fields=fields)
 
     def setPage(self, url, page_fields):
         """ Updates or creates a page for a given URL.

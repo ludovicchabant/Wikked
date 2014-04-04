@@ -31,7 +31,8 @@ def make_page_title(url):
     return url[1:]
 
 
-def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolve=False):
+def get_page_or_none(url, fields=None, convert_url=True,
+        check_perms=DONT_CHECK, force_resolve=False):
     if convert_url:
         url = url_from_viewarg(url)
 
@@ -45,7 +46,7 @@ def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolv
         elif force_resolve:
             g.wiki.resolve(only_urls=[url], force=True)
 
-        page = g.wiki.getPage(url)
+        page = g.wiki.getPage(url, fields=fields)
     except PageNotFoundError:
         return None
 
@@ -57,8 +58,10 @@ def get_page_or_none(url, convert_url=True, check_perms=DONT_CHECK, force_resolv
     return page
 
 
-def get_page_or_404(url, convert_url=True, check_perms=DONT_CHECK, force_resolve=False):
-    page = get_page_or_none(url, convert_url, check_perms, force_resolve)
+def get_page_or_404(url, fields=None, convert_url=True,
+        check_perms=DONT_CHECK, force_resolve=False):
+    page = get_page_or_none(url, fields, convert_url, check_perms,
+            force_resolve)
     if page is not None:
         return page
     app.logger.error("No such page: " + url)

@@ -72,6 +72,7 @@ def api_read_page(url):
         # Normal page.
         page = get_page_or_404(
                 path,
+                fields=['url', 'title', 'text', 'meta'],
                 convert_url=False,
                 check_perms=CHECK_FOR_READ,
                 force_resolve=force_resolve)
@@ -84,6 +85,7 @@ def api_read_page(url):
     meta_page_url = '%s:%s' % (endpoint, path)
     info_page = get_page_or_none(
             meta_page_url,
+            fields=['url', 'title', 'text', 'meta'],
             convert_url=False,
             check_perms=CHECK_FOR_READ,
             force_resolve=force_resolve)
@@ -95,6 +97,7 @@ def api_read_page(url):
             # Default page text.
             info_page = get_page_or_404(
                     endpoint_info.default,
+                    fields=['url', 'title', 'text', 'meta'],
                     convert_url=False,
                     check_perms=CHECK_FOR_READ,
                     force_resolve=force_resolve)
@@ -108,7 +111,8 @@ def api_read_page(url):
 
     # Get the list of pages to show here.
     query = {endpoint: [value]}
-    pages = g.wiki.getPages(meta_query=query)
+    pages = g.wiki.getPages(meta_query=query,
+            fields=['url', 'title', 'text', 'meta'])
     tpl_data = {
             'name': endpoint,
             'value': value,
@@ -146,7 +150,8 @@ def api_read_main_page_raw():
 
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
-    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ,
+            fields=['url', 'title', 'text', 'meta'])
     result = {'meta': get_page_meta(page), 'text': page.raw_text}
     return jsonify(result)
 
@@ -169,7 +174,8 @@ def api_get_main_page_state():
 
 @app.route('/api/state/<path:url>')
 def api_get_state(url):
-    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ,
+            fields=['url', 'title', 'path', 'meta'])
     state = page.getState()
     return jsonify({
         'meta': get_page_meta(page, True),
@@ -184,10 +190,12 @@ def api_get_main_page_outgoing_links():
 
 @app.route('/api/outlinks/<path:url>')
 def api_get_outgoing_links(url):
-    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ,
+            fields=['url', 'title', 'links'])
     links = []
     for link in page.links:
-        other = get_page_or_none(link, convert_url=False)
+        other = get_page_or_none(link, convert_url=False,
+                fields=['url', 'title', 'meta'])
         if other is not None and is_page_readable(other):
             links.append({
                 'url': other.url,
@@ -207,10 +215,12 @@ def api_get_main_page_incoming_links():
 
 @app.route('/api/inlinks/<path:url>')
 def api_get_incoming_links(url):
-    page = get_page_or_404(url, check_perms=CHECK_FOR_READ)
+    page = get_page_or_404(url, check_perms=CHECK_FOR_READ,
+            fields=['url', 'title', 'meta'])
     links = []
     for link in page.getIncomingLinks():
-        other = get_page_or_none(link, convert_url=False)
+        other = get_page_or_none(link, convert_url=False,
+                fields=['url', 'title', 'meta'])
         if other is not None and is_page_readable(other):
             links.append({
                 'url': link,
