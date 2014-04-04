@@ -12,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     scoped_session, sessionmaker,
-    relationship, backref, load_only, subqueryload)
+    relationship, backref, load_only, subqueryload, joinedload)
 from sqlalchemy.orm.exc import NoResultFound
 from wikked.db.base import Database
 from wikked.page import Page, PageData, FileSystemPage
@@ -29,11 +29,11 @@ class SQLPage(Base):
 
     id = Column(Integer, primary_key=True)
     time = Column(DateTime)
-    # Most browsers/search engines won't accept URLs longer than ~2000 chars.
-    url = Column(String(2048))
     # In the spirit of cross-platformness we let Windows' suckiness dictacte
-    # this length.
-    path = Column(String(260))
+    # this length (but it's good because it makes those 2 columns short enough
+    # to be indexable by SQL).
+    url = Column(String(260), unique=True)
+    path = Column(String(260), unique=True)
     title = Column(UnicodeText)
     raw_text = Column(UnicodeText(length=2 ** 31))
     formatted_text = Column(UnicodeText(length=2 ** 31))
@@ -405,7 +405,7 @@ class SQLDatabase(Database):
             return None
         return SQLDatabasePage(self, page, fields)
 
-    def _addFieldOptions(self, query, fields):
+    def _addFieldOptions(self, query, fields, use_joined=False):
         if fields is None:
             return query
 
@@ -428,7 +428,10 @@ class SQLDatabase(Database):
             query = query.options(load_only(col))
             sqf = subqueryfields.get(f)
             if sqf:
-                query = query.options(subqueryload(sqf))
+                if use_joined:
+                    query = query.options(joinedload(sqf))
+                else:
+                    query = query.options(subqueryload(sqf))
         return query
 
     def _addPage(self, page):
@@ -503,12 +506,6 @@ class SQLDatabasePage(Page):
 
         if fields is None or ('meta' in fields or 'links' in fields or
                               'text' in fields):
-            if not db_obj.is_ready:
-                raise Exception(
-                    "Requested extended data for page '%s' "
-                    "but data is not cached in the SQL database." % (
-                        data.url or data._db_id))
-
             if fields is None or 'text' in fields:
                 data.text = db_obj.ready_text
 
