@@ -33,6 +33,15 @@ class RunServerCommand(WikkedCommand):
                      "uncompressed scripts and stylesheets), along with using "
                      "code reloading and debugging.",
                 action='store_true')
+        parser.add_argument('--noupdate',
+                help="Don't auto-update the wiki if a page file has been "
+                     "touched (which means you can refresh a locally modified "
+                     "page with F5)",
+                action='store_true')
+        parser.add_argument('-c', '--config',
+                help="Pass some configuration value to the Flask application. "
+                     "This must be of the form: name=value",
+                nargs="*")
 
     def run(self, ctx):
         # Change working directory because the Flask app can currently
@@ -41,9 +50,15 @@ class RunServerCommand(WikkedCommand):
         os.chdir(ctx.params.root)
 
         # Setup some settings that need to be set before the app is created.
+        import wikked.settings
         if ctx.args.usetasks:
-            import wikked.settings
             wikked.settings.WIKI_ASYNC_UPDATE = True
+        for cv in ctx.args.config:
+            cname, cval = cv.split('=')
+            if cval in ['true', 'True', 'TRUE']:
+                setattr(wikked.settings, cname, True)
+            else:
+                setattr(wikked.settings, cname, cval)
 
         # Create/import the app.
         from wikked.web import app
@@ -51,7 +66,8 @@ class RunServerCommand(WikkedCommand):
         # Setup other simpler settings.
         if ctx.args.dev:
             app.config['DEV_ASSETS'] = True
-        app.config['WIKI_AUTO_RELOAD'] = True
+        if not ctx.args.noupdate:
+            app.config['WIKI_AUTO_RELOAD'] = True
 
         app.set_wiki_params(ctx.params)
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
