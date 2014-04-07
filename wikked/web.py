@@ -24,6 +24,8 @@ app.config.setdefault('UPDATE_WIKI_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('WIKI_ASYNC_UPDATE', False)
 app.config.setdefault('BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.db')
+app.config.setdefault('PROFILE', False)
+app.config.setdefault('PROFILE_DIR', None)
 
 
 # Find the wiki root, and further configure the app if there's a
@@ -46,6 +48,13 @@ if app.config['DEBUG']:
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
         '/files': os.path.join(wiki_root, '_files')
     })
+
+
+# Profiling
+if app.config['PROFILE']:
+    profile_dir = app.config['PROFILE_DIR']
+    from werkzeug.contrib.profiler import ProfilerMiddleware
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir=profile_dir)
 
 
 # Customize logging.
