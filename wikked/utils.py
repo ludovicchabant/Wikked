@@ -6,6 +6,7 @@ from xml.sax.saxutils import escape, unescape
 
 
 endpoint_regex = re.compile(r'(\w[\w\d]*)\:(.*)')
+strip_endpoint_regex = re.compile(r'^(\w[\w\d]+)\:')
 
 
 class PageNotFoundError(Exception):
@@ -47,7 +48,7 @@ def find_wiki_root(path=None):
 
 
 def get_absolute_url(base_url, url, quote=False):
-    base_url = re.sub(r'^(\w[\w\d]+)\:', '', base_url)
+    base_url = strip_endpoint_regex.sub('', base_url)
     if base_url[0] != '/':
         raise ValueError("The base URL must be absolute. Got: %s" % base_url)
 
