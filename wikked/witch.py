@@ -138,8 +138,11 @@ def main():
             return exit_code
         return 0
     except Exception as e:
-        logger.critical("Critical error while running witch command:")
-        logger.exception(e)
+        if result.debug:
+            logger.critical("Critical error while running witch command:")
+            logger.exception(e)
+        else:
+            logger.error(e)
         return -1
     finally:
         after = datetime.datetime.now()
