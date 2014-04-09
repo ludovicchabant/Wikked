@@ -125,7 +125,7 @@ class SQLInfo(Base):
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 3
+    schema_version = 4
 
     def __init__(self, config):
         Database.__init__(self)
@@ -405,7 +405,7 @@ class SQLDatabase(Database):
             return None
         return SQLDatabasePage(self, page, fields)
 
-    def _addFieldOptions(self, query, fields, use_joined=False):
+    def _addFieldOptions(self, query, fields, use_joined=True):
         if fields is None:
             return query
 
