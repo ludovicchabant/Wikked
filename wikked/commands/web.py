@@ -53,12 +53,13 @@ class RunServerCommand(WikkedCommand):
         import wikked.settings
         if ctx.args.usetasks:
             wikked.settings.WIKI_ASYNC_UPDATE = True
-        for cv in ctx.args.config:
-            cname, cval = cv.split('=')
-            if cval in ['true', 'True', 'TRUE']:
-                setattr(wikked.settings, cname, True)
-            else:
-                setattr(wikked.settings, cname, cval)
+        if ctx.args.config:
+            for cv in ctx.args.config:
+                cname, cval = cv.split('=')
+                if cval in ['true', 'True', 'TRUE']:
+                    setattr(wikked.settings, cname, True)
+                else:
+                    setattr(wikked.settings, cname, cval)
 
         # Create/import the app.
         from wikked.web import app
