@@ -6,6 +6,7 @@ from wikked.views import (get_page_meta, get_page_or_404, get_page_or_none,
         is_page_readable,
         url_from_viewarg, split_url_from_viewarg,
         CHECK_FOR_READ)
+from wikked.utils import get_absolute_url
 from wikked.web import app
 from wikked.scm.base import STATE_NAMES
 
@@ -66,16 +67,33 @@ def api_read_page(url):
             additional_info['user'] = False
 
     force_resolve = ('force_resolve' in request.args)
+    no_redirect = ('no_redirect' in request.args)
 
     endpoint, value, path = split_url_from_viewarg(url)
     if endpoint is None:
         # Normal page.
-        page = get_page_or_404(
-                path,
-                fields=['url', 'title', 'text', 'meta'],
-                convert_url=False,
-                check_perms=CHECK_FOR_READ,
-                force_resolve=force_resolve)
+        visited_paths = []
+        while True:
+            page = get_page_or_404(
+                    path,
+                    fields=['url', 'title', 'text', 'meta'],
+                    convert_url=False,
+                    check_perms=CHECK_FOR_READ,
+                    force_resolve=force_resolve)
+            visited_paths.append(path)
+            redirect_meta = page.getMeta('redirect')
+            if redirect_meta is None:
+                break
+            path = get_absolute_url(path, redirect_meta)
+            if no_redirect:
+                additional_info['redirects_to'] = path
+                break
+            if path in visited_paths:
+                app.logger.error("Circular redirect detected: " + url)
+                abort(409)
+
+        if len(visited_paths) > 1:
+            additional_info['redirected_from'] = visited_paths[:-1]
 
         result = {'meta': get_page_meta(page), 'text': page.text}
         result.update(additional_info)

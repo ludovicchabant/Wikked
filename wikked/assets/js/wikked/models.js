@@ -260,9 +260,13 @@ define([
         },
         url: function() {
             var url = PageReadModel.__super__.url.apply(this, arguments);
-            if (!this.nav.get('user')) {
-                url += '?user';
-            }
+            var qs = {};
+            if (!this.nav.get('user'))
+                qs.user = 1;
+            if (this.get('no_redirect'))
+                qs.no_redirect = 1;
+            if (_.size(qs) > 0)
+                url += '?' + $.param(qs);
             return url;
         },
         checkStatePath: function() {
@@ -272,23 +276,6 @@ define([
             if (this.get('user')) {
                 // Forward user info to the navigation model.
                 this.nav.set('user', this.get('user'));
-            }
-            if (this.getMeta('redirect')) {
-                // Handle redirects.
-                var newPath = this.getMeta('redirect')[0].replace(/^\//, "");
-                if (this.get('no_redirect')) {
-                    this.set({ 'redirects_to': newPath }, { 'silent': true });
-                } else {
-                    var oldPath = this.get('path');
-                    this.set({
-                        'path': newPath,
-                        'redirected_from': oldPath
-                    }, {
-                        'silent': true
-                    });
-                    this.fetch();
-                    this.navigate('/read/' + newPath, { replace: true, trigger: false });
-                }
             }
         }
     });
