@@ -7,6 +7,7 @@ try:
 
 except ImportError:
     logger.warning("Bcrypt not available... falling back to SHA512.")
+    logger.warning("Run `pip install Flask-Bcrypt` for more secure password hashing.")
 
     import hashlib
 
