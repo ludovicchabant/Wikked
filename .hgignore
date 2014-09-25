@@ -1,4 +1,5 @@
 syntax:glob
+benchmarks
 venv
 node_modules
 wikked/static
