@@ -78,9 +78,9 @@ def is_page_writable(page, user=current_user):
 
 def get_page_meta(page, local_only=False):
     if local_only:
-        meta = dict(page.getLocalMeta())
+        meta = dict(page.getLocalMeta() or {})
     else:
-        meta = dict(page.getMeta())
+        meta = dict(page.getMeta() or {})
     meta['title'] = page.title
     meta['url'] = urllib.quote(page.url.encode('utf-8'))
     for name in COERCE_META:
