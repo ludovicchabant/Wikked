@@ -1,5 +1,4 @@
 Flask==0.10.1
-Flask-Bcrypt==0.5.2
 Flask-Login==0.2.10
 Flask-Script==0.5.1
 Jinja2==2.7.2
@@ -8,8 +7,6 @@ Pygments==1.6
 SQLAlchemy==0.9.3
 Whoosh==2.5.5
 colorama==0.2.7
-py-bcrypt==0.4
-pysqlite==2.6.3
 pytest==2.5.2
 repoze.lru==0.6
 python-hglib
