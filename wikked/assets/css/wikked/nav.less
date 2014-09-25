@@ -1,74 +1,41 @@
 
-// Extending Pure's horizontal menu.
-
-// Allow free links and forms in menus.
-.pure-menu .pure-menu-link,
-.pure-menu .pure-menu-form {
-    display: inline-block;
-    vertical-align: middle;
-    position: relative;
-}
-
-// Make menu forms tighter.
-.pure-menu-form fieldset {
-    padding: 0;
-}
-
-@media (min-width: 48em) {
-    // Place right-aligned menu items to, well, to the right.
-    .pure-menu .pure-menu-horizontal-right {
-        float: right;
-    }
-    .pure-menu-horizontal:after {
-        clear: both;
-    }
-}
-
-
 // Navigation menu
-@wiki-menu-height: 4.5em;
-@wiki-shortcut-width: 4em;
-@wiki-shortcut-height: 3em;
+@wiki-menu-width: 12em;
+@wiki-menu-width-ext: 36em;
+@wiki-shortcut-height: 3.9em;
 
-body {
-    padding-top: @wiki-shortcut-height;
-    transition: padding 200ms ease-in-out 0s,
-                margin 200ms ease-in-out 0s;
+.wrapper {
+    transition: padding 200ms ease-in-out 0s;
+}
+.wrapper.wiki-menu-active {
+    padding-left: @wiki-menu-width !important;
+}
+.wrapper.wiki-menu-inactive {
+    padding-left: 0 !important;
 }
 
 .wiki-menu-a {
-    color: @color-gray-dark;
+    color: @color-gray-light;
 }
 .wiki-menu-a-hover {
     background: @color-green-light;
     text-decoration: none;
 }
 
-.wiki-menu-scrolling {
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.3);
-}
-
-.wiki-menu-active {
-    top: 0 !important;
-}
-
-.wiki-menu-inactive {
-    top: -2*@wiki-menu-height !important;
-}
-
 #wiki-menu {
     position: fixed !important;
-    top: -2*@wiki-menu-height;
-    left: 0;
-    width: 100%;
+    top: 0;
+    bottom: 0;
+    left: -@wiki-menu-width;
+    width: @wiki-menu-width;
+    padding-top: @wiki-shortcut-height;
+    border: none;
     z-index: 10;
-    padding-left: @wiki-shortcut-width;
+    overflow-y: auto;
     color: @color-gray-dark;
-    background-color: @body-bg;
-    border-bottom: none;
-    transition: box-shadow 200ms ease-in-out 0s,
-                border-bottom 200ms ease-in-out 0s,
-                top 200ms ease-in-out 0s,
+    background-color: @color-gray-dark;
+    transition: left 200ms ease-in-out 0s,
+                width 200ms ease-in-out 0s,
                 !important;
     a {
         padding: 1em;
@@ -80,6 +47,19 @@ body {
     a:hover, a:focus {
         .wiki-menu-a-hover();
     }
+
+    ul {
+        border-top: 1px solid @color-gray-medium;
+    }
+}
+#wiki-menu.wiki-menu-active {
+    left: 0 !important;
+}
+#wiki-menu.wiki-menu-inactive {
+    left: -@wiki-menu-width !important;
+}
+#wiki-menu.wiki-menu-ext {
+    width: @wiki-menu-width-ext !important;
 }
 
 #wiki-menu-shortcut {
@@ -98,26 +78,41 @@ body {
 @media (min-width: 48em) {
     // Hide the shortcut and move the horizontal menu down.
     #wiki-menu {
-        top: 0;
+        //left: 0;
     }
-    body {
-        padding-top: @wiki-menu-height;
+    .wrapper {
+        //padding-left: @wiki-menu-width;
     }
 }
 
 // Search
-form#search button {
-    background: none;
-    padding: 0.5em;
-    &:hover { color: @link-hover-color; }
+.search-result-hover {
+    background: @color-gray-light;
 }
+
+b.match {
+    color: @color-orange;
+    background: @color-gray-light;
+}
+
+form#search {
+    width: 100%;
+    padding: 0.2em 1em;
+
+    button {
+        background: none;
+        padding: 0.5em;
+        &:hover { color: @link-hover-color; }
+    }
+}
+
 ul#search-preview {
     position: absolute;
     list-style: none;
     margin: 0;
     padding: 0;
     top: auto;
-    left: 0;
+    left: 1em;
     z-index: 12;
     visibility: visible;
     background: #FFF;
@@ -126,26 +121,30 @@ ul#search-preview {
     box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.3);
 
     li {
-        border-bottom: 1px solid #EEE;
+        border-bottom: 1px solid @color-gray-light;
         margin: 0;
         padding: 0;
         width: 100%;
-
-        &:hover, &:focus {
-        }
     }
     a {
         margin: 0;
         padding: 0.5em;
         display: inline-block;
         width: 100%;
+        color: @color-gray-dark;
+
+        &:link, &:active, &:visited {
+            color: @color-gray-dark;
+        }
+        &:hover, &:focus {
+            color: @color-gray-dark;
+            .search-result-hover();
+        }
     }
 }
+
 ul.search-results {
     list-style: none;
-}
-b.match {
-    background: #ffeb84;
 }
 
 // Footer

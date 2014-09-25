@@ -68,3 +68,20 @@ code {
     }
 }
 
+// Allow free links and forms in menus.
+.pure-menu .pure-menu-link,
+.pure-menu .pure-menu-form {
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+}
+
+@media (min-width: 48em) {
+    // Place right-aligned menu items to, well, to the right.
+    .pure-menu .pure-menu-horizontal-right {
+        float: right;
+    }
+    .pure-menu-horizontal:after {
+        clear: both;
+    }
+}

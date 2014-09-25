@@ -1,12 +1,7 @@
 <a id="wiki-menu-shortcut" class="wiki-logo">
     <span>W</span>
 </a>
-<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open pure-menu-horizontal pure-menu-fixed">
-    <!--form id="newpage" class="pure-form pure-menu-form">
-        <fieldset>
-            <button type="submit" class="pure-button">New Page</button>
-        </fieldset>
-    </form-->
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
     <ul class="">
         <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
         <li><a href="/#/create/"><span class="glyphicon glyphicon-file"></span> New Page</a></li>
@@ -16,12 +11,12 @@
     </ul>
     <form role="search" id="search" class="pure-form pure-menu-form">
         <fieldset>
-            <input type="text" name="q" id="search-query" class="form-control input-sm" placeholder="Search..." autocomplete="off"></input>
-            <ul id="search-preview"></ul>
             <button type="submit" class="pure-button"><span class="glyphicon glyphicon-search"></span></button>
+            <input type="text" name="q" id="search-query" class="pure-input-1" placeholder="Search..." autocomplete="off"></input>
+            <ul id="search-preview"></ul>
         </fieldset>
     </form>
-    <ul class="pure-menu-horizontal-right">
+    <ul class="">
         {{#if user}}
         <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
         <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>

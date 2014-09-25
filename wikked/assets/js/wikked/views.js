@@ -186,12 +186,9 @@ define([
             this.searchPreviewList.hide();
             this.activeResultIndex = -1;
 
-            // Add a pretty shadow on the menu when scrolling down.
-            $(window).scroll(this, this._onWindowScroll);
-
             this.wikiMenu = $('#wiki-menu');
-            this.isScrolled = ($(window).scrollTop() > 0);
-            this.isMenuActive = (this.wikiMenu.css('top') == '0px');
+            this.wrapperAndWikiMenu = $('.wrapper, #wiki-menu');
+            this.isMenuActive = (this.wikiMenu.css('left') == '0px');
             this.isMenuActiveLocked = false;
 
             return this;
@@ -209,42 +206,33 @@ define([
             "focus #search-query": "_searchQueryFocused",
             "blur #search-query": "_searchQueryBlurred"
         },
-        _onWindowScroll: function(e) {
-            var scrollTop = $(window).scrollTop();
-            if (scrollTop > 0 && !e.data.isScrolled) {
-                e.data.wikiMenu.addClass('wiki-menu-scrolling');
-                e.data.isScrolled = true;
-            } else if (scrollTop === 0 && e.data.isScrolled) {
-                e.data.wikiMenu.removeClass('wiki-menu-scrolling');
-                e.data.isScrolled = false;
-            }
-        },
         _onMenuShortcutClick: function(e) {
             this.isMenuActive = !this.isMenuActive;
         },
         _onMenuShortcutHover: function(e) {
-            if (this.isMenuActive || this.isMenuActiveLocked)
-                return;
-            this.wikiMenu.toggleClass('wiki-menu-inactive', false);
-            this.wikiMenu.toggleClass('wiki-menu-active', true);
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(true);
         },
         _onMenuShortcutLeave: function(e) {
-            if (this.isMenuActive || this.isMenuActiveLocked)
-                return;
-            this.wikiMenu.toggleClass('wiki-menu-active', false);
-            this.wikiMenu.toggleClass('wiki-menu-inactive', true);
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(false);
         },
         _onMenuHover: function(e) {
-            if (this.isMenuActive || this.isMenuActiveLocked)
-                return;
-            this.wikiMenu.toggleClass('wiki-menu-inactive', false);
-            this.wikiMenu.toggleClass('wiki-menu-active', true);
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(true);
         },
         _onMenuLeave: function(e) {
-            if (this.isMenuActive || this.isMenuActiveLocked)
-                return;
-            this.wikiMenu.toggleClass('wiki-menu-active', false);
-            this.wikiMenu.toggleClass('wiki-menu-inactive', true);
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(false);
+        },
+        _toggleWikiMenu: function(onOff) {
+            if (onOff) {
+                this.wrapperAndWikiMenu.toggleClass('wiki-menu-inactive', false);
+                this.wrapperAndWikiMenu.toggleClass('wiki-menu-active', true);
+            } else {
+                this.wrapperAndWikiMenu.toggleClass('wiki-menu-active', false);
+                this.wrapperAndWikiMenu.toggleClass('wiki-menu-inactive', true);
+            }
         },
         _submitSearch: function(e) {
             e.preventDefault();
@@ -307,17 +295,19 @@ define([
         },
         _updateActiveResult: function() {
             var entries = this.searchPreviewList.children();
-            entries.toggleClass('wiki-menu-a-hover', false);
+            entries.toggleClass('search-result-hover', false);
             if (this.activeResultIndex >= 0)
-                $(entries[this.activeResultIndex]).toggleClass('wiki-menu-a-hover', true);
+                $(entries[this.activeResultIndex]).toggleClass('search-result-hover', true);
         },
         _searchQueryFocused: function(e) {
             this.isMenuActiveLocked = true;
+            this.wikiMenu.toggleClass('wiki-menu-ext', true);
         },
         _searchQueryBlurred: function(e) {
             $(e.currentTarget).val('').trigger('input');
+            this.wikiMenu.toggleClass('wiki-menu-ext', false);
             this.isMenuActiveLocked = false;
-            if (!this.wikiMenu.is(':focus'))
+            if ($(document.activeElement).parents('#wiki-menu').length === 0)
                 this._onMenuLeave(e);
         }
     });
