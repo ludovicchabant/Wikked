@@ -2,76 +2,9 @@
 // Article
 article {
     //background-image: url(http://basehold.it/i/30);
+    max-width: 768px;
     margin: 0 auto;
-    padding: 0 @line-height-computed;
-}
-
-// Navigation & footer
-.navbar {
-    color: @gray-light;
-    font-size: @font-size-small;
-    font-family: @font-family-sans-serif;
-
-    a {
-        text-decoration: none;
-        color: @gray-light;
-        &:link { color: @gray-light; }
-        &:visited { color: @gray-light; }
-        &:hover { color: @link-hover-color; }
-        &:active { color: @gray-light; }
-    }
-}
-// Fix Boostrap stuff we don't want.
-.navbar {
-    //margin-bottom: 0;
-}
-.navbar li a {
-    line-height: floor(@font-size-small * @line-height-base);
-}
-.navbar-brand {
-    // Make the first navigation link ("brand") the same size
-    // as the rest.
-    font-size: @font-size-small;
-    line-height: floor(@font-size-small * @line-height-base);
-}
-
-.footer-wrapper {
-    margin: 0 auto;
-    padding: 0 @line-height-computed;
-}
-footer {
-    color: @color-gray-dark;
-    border-top: 1px solid @color-gray;
-    padding: @line-height-computed 0;
-    font-weight: 300;
-    font-size: @font-size-small;
-    font-family: @font-family-sans-serif;
-    letter-spacing: -0.03em;
-
-    a {
-        text-decoration: none;
-        color: @color-gray-dark;
-        &:link { color: @color-gray-dark; }
-        &:visited { color: @color-gray-dark; }
-        &:hover { color: @color-green-dark; text-decoration: none; }
-        &:active { color: @color-gray-dark; }
-    }
-    ul {
-        list-type: none;
-    }
-    li {
-        display: inline-block;
-        margin: 0;
-        padding: 0 0.5em;
-    }
-    /*li:before {
-        content: '•';
-        font-weight: 700;
-        margin: 0 0.5em;
-    }
-    li:first-child:before {
-        content: none;
-    }*/
+    padding: 0 1em;
 }
 
 // Page title decorator
@@ -79,13 +12,13 @@ footer {
     text-transform: uppercase;
     font-family: @font-family-sans-serif;
     font-weight: 200;
-    font-size: 1.1em;
-    margin-top: -(@line-height-computed / 2);
-    margin-bottom: (@line-height-computed / 2);
+    font-size: 0.8em;
+    margin-top: -0.25em;
+    margin-bottom: 0.75em;
     letter-spacing: 0.1em;
     color: @color-gray-dark;
     .rev_id {
-        font-family: @font-family-monospace;
+        //font-family: @font-family-monospace;
     }
 }
 .decorator-sm {
@@ -94,81 +27,15 @@ footer {
 
 // Page info
 section.info {
-    margin: @line-height-computed 0 0 0;
-    padding: @line-height-computed 0;
-    border-top: 1px solid @color-gray;
+    margin: 1.5em 0 0 0;
+    padding: 1.5em 0;
+    border-top: 1px solid @color-gray-light;
 
     .info-categories {
         color: @color-gray-dark;
         font-weight: 300;
-        font-size: @font-size-small;
-        font-family: @font-family-sans-serif;
         text-transform: uppercase;
     }
-}
-
-// Main page classes
-/*.wrapper>article {
-    .box-shadow(0 0 10px, rgb(210, 210, 210));
-    background: @colorPage;
-    overflow: hidden;
-
-    header {
-        background: @colorBlueDark;
-        color: @colorPage;
-    }
-    footer {
-        background: @colorFooter;
-        border-top: 1px dashed darken(@colorFooter, 5%);
-    }
-    pre {
-        margin-top: @line-height-computed;
-    }
-}
-.wrapper>article>header,
-.wrapper>article>section,
-.wrapper>article>footer {
-    padding: @line-height-computed;
-}
-.wrapper>footer {
-    font-size: @font-size-small;
-}
-.special>article {
-    background: @colorGreen;
-}
-.special>article header {
-    background: @colorGreenDark;
-}
-.special>article footer {
-    background: @colorGreen;
-}
-*/
-
-// Search
-ul#search-preview {
-    position: absolute;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-
-    li {
-        background: #fff;
-        border: 1px solid #eee;
-        margin: 0;
-        padding: 0;
-    }
-    a {
-        margin: 0;
-        padding: 0.5em;
-        display: inline-block;
-        width: 100%;
-    }
-}
-ul.search-results {
-    list-style: none;
-}
-b.match {
-    background: #ffeb84;
 }
 
 // Page editing
@@ -182,17 +49,18 @@ b.match {
 }
 #wmd-input {
     height: 10em;
-    font-size: @font-size-base;
+    width: 100%;
+    //font-size: @font-size-base;
     font-family: @font-family-monospace;
     margin-bottom: 0;
-    border: 1px solid @gray-light;
+    border: 1px solid @color-gray-light;
     border-radius: 0;
     border-width: 1px 1px 0 1px;
 }
 #wmd-input-grip {
-    background: @gray-lighter;
+    //background: @gray-lighter;
     height: 12px;
-    border: 1px solid @gray-light;
+    border: 1px solid @color-gray-light;
     border-width: 0 1px 1px 1px;
     cursor: ns-resize;
 }
@@ -200,7 +68,7 @@ b.match {
     display: inline-block;
 }
 #wmd-preview-wrapper {
-    border: 1px solid @gray-light;
+    border: 1px solid @color-gray-light;
 
     #wmd-preview {
         margin: 1em;
@@ -223,7 +91,7 @@ b.match {
         letter-spacing: 0.03em;
     }
     .meta-value {
-        background: @color-gray;
+        background: @color-gray-light;
         color: black;
         padding: 0.2em 0.6em 0.2em 0.4em;
         border-radius:  0 0.5em 0.5em 0;
@@ -234,21 +102,9 @@ b.match {
     margin-bottom: 1em;
 }
 
-/* Small devices (tablets, 768px and up) */
-@media (min-width: @screen-sm-min) {
-    article, .footer-wrapper {
-        width: 700px;
+@media screen and (min-width: 48em) {
+    article {
+        padding: 0 2em;
     }
-    .wide {
-        width: 100%;
-    }
-}
-
-/* Medium devices (desktops, 992px and up) */
-@media (min-width: @screen-md-min) {
-}
-
-/* Large devices (large desktops, 1200px and up) */
-@media (min-width: @screen-lg-min) {
 }
 

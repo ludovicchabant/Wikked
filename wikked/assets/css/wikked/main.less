@@ -1,8 +1,7 @@
 
 // Main tags
 body {
-    //background: url('../img/gray_jean.png');
-    color: rgb(50, 50, 50);
+    background-color: @body-bg;
 }
 
 // Global classes
@@ -30,6 +29,42 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 p {
-  margin: 0 0 @line-height-computed;
+  margin: 0 0 1.5em;
+}
+
+code {
+    padding: 2px 4px;
+    font-size: 90%;
+    color: @code-color;
+    background-color: @code-bg;
+    white-space: nowrap;
+    border-radius: 4px;
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+}
+
+.pure-form-help {
+    margin: 0.5em 0 1em 0;
+    font-size: 85%;
+}
+
+.pure-control-addon {
+    display: table;
+    margin-bottom: 0.5em;
+
+    label, input {
+        display: table-cell;
+    }
+    label:first-child {
+        border-radius: 4px 0 0 4px;
+        padding: 0.5em 0.6em;
+        border: 1px solid #CCC;
+        border-right: 0px none;
+        width: 1%;
+        white-space: nowrap;
+    }
+    input:last-child {
+        border-radius: 0 4px 4px 0;
+        width: 100%;
+    }
 }
 

@@ -180,19 +180,81 @@ define([
         },
         render: function() {
             NavigationView.__super__.render.apply(this, arguments);
+
+            // Hide the drop-down for the search results.
             this.searchPreviewList = this.$('#search-preview');
             this.searchPreviewList.hide();
+            this.activeResultIndex = -1;
+
+            // Add a pretty shadow on the menu when scrolling down.
+            $(window).scroll(this, this._onWindowScroll);
+
+            this.wikiMenu = $('#wiki-menu');
+            this.isScrolled = ($(window).scrollTop() > 0);
+            this.isMenuActive = (this.wikiMenu.css('top') == '0px');
+            this.isMenuActiveLocked = false;
+
             return this;
         },
         events: {
+            "click #wiki-menu-shortcut": "_onMenuShortcutClick",
+            "mouseenter #wiki-menu-shortcut": "_onMenuShortcutHover",
+            "mouseleave #wiki-menu-shortcut": "_onMenuShortcutLeave",
+            "mouseenter #wiki-menu": "_onMenuHover",
+            "mouseleave #wiki-menu": "_onMenuLeave",
             "submit #search": "_submitSearch",
             "submit #newpage": "_submitNewPage",
             "input #search-query": "_previewSearch",
-            "keyup #search-query": "_searchQueryChanged"
+            "keyup #search-query": "_searchQueryChanged",
+            "focus #search-query": "_searchQueryFocused",
+            "blur #search-query": "_searchQueryBlurred"
+        },
+        _onWindowScroll: function(e) {
+            var scrollTop = $(window).scrollTop();
+            if (scrollTop > 0 && !e.data.isScrolled) {
+                e.data.wikiMenu.addClass('wiki-menu-scrolling');
+                e.data.isScrolled = true;
+            } else if (scrollTop === 0 && e.data.isScrolled) {
+                e.data.wikiMenu.removeClass('wiki-menu-scrolling');
+                e.data.isScrolled = false;
+            }
+        },
+        _onMenuShortcutClick: function(e) {
+            this.isMenuActive = !this.isMenuActive;
+        },
+        _onMenuShortcutHover: function(e) {
+            if (this.isMenuActive || this.isMenuActiveLocked)
+                return;
+            this.wikiMenu.toggleClass('wiki-menu-inactive', false);
+            this.wikiMenu.toggleClass('wiki-menu-active', true);
+        },
+        _onMenuShortcutLeave: function(e) {
+            if (this.isMenuActive || this.isMenuActiveLocked)
+                return;
+            this.wikiMenu.toggleClass('wiki-menu-active', false);
+            this.wikiMenu.toggleClass('wiki-menu-inactive', true);
+        },
+        _onMenuHover: function(e) {
+            if (this.isMenuActive || this.isMenuActiveLocked)
+                return;
+            this.wikiMenu.toggleClass('wiki-menu-inactive', false);
+            this.wikiMenu.toggleClass('wiki-menu-active', true);
+        },
+        _onMenuLeave: function(e) {
+            if (this.isMenuActive || this.isMenuActiveLocked)
+                return;
+            this.wikiMenu.toggleClass('wiki-menu-active', false);
+            this.wikiMenu.toggleClass('wiki-menu-inactive', true);
         },
         _submitSearch: function(e) {
             e.preventDefault();
-            this.model.doSearch(e.currentTarget);
+            if (this.activeResultIndex >= 0) {
+                var entries = this.searchPreviewList.children();
+                var choice = $('a', entries[this.activeResultIndex]);
+                this.model.doGoToSearchResult(choice.attr('href'));
+            } else {
+                this.model.doSearch(e.currentTarget);
+            }
             return false;
         },
         _submitNewPage: function(e) {
@@ -226,7 +288,37 @@ define([
             if (e.keyCode == 27) {
                 // Clear search on `Esc`.
                 $(e.currentTarget).val('').trigger('input');
+            } else if (e.keyCode == 38) {
+                // Up arrow.
+                e.preventDefault();
+                if (this.activeResultIndex >= 0) {
+                    this.activeResultIndex--;
+                    this._updateActiveResult();
+                }
+            } else if (e.keyCode == 40) {
+                // Down arrow.
+                e.preventDefault();
+                if (this.activeResultIndex < 
+                        this.searchPreviewList.children().length - 1) {
+                    this.activeResultIndex++;
+                    this._updateActiveResult();
+                }
             }
+        },
+        _updateActiveResult: function() {
+            var entries = this.searchPreviewList.children();
+            entries.toggleClass('wiki-menu-a-hover', false);
+            if (this.activeResultIndex >= 0)
+                $(entries[this.activeResultIndex]).toggleClass('wiki-menu-a-hover', true);
+        },
+        _searchQueryFocused: function(e) {
+            this.isMenuActiveLocked = true;
+        },
+        _searchQueryBlurred: function(e) {
+            $(e.currentTarget).val('').trigger('input');
+            this.isMenuActiveLocked = false;
+            if (!this.wikiMenu.is(':focus'))
+                this._onMenuLeave(e);
         }
     });
 
@@ -444,20 +536,16 @@ define([
             return false;
         },
         _addPreview: function() {
-            $('article').addClass('container-fluid').addClass('wide');
-            $('.header-wrapper').addClass('row');
-            $('.header-wrapper>header').addClass('col-md-12');
-            $('.editing-wrapper').addClass('row');
-            $('.editing-wrapper>.editing').addClass('col-md-6');
-            $('.editing-wrapper>.preview').addClass('col-md-6').show();
+            $('article').addClass('pure-g');
+            $('.header-wrapper>header').addClass('pure-u-1');
+            $('.editing-wrapper>.editing').addClass('pure-u-1 pure-u-md-1-2');
+            $('.editing-wrapper>.preview').addClass('pure-u-1 pure-u-md-1-2').show();
         },
         _removePreview: function() {
-            $('article').removeClass('container-fluid').removeClass('wide');
-            $('.header-wrapper').removeClass('row');
-            $('.header-wrapper>header').removeClass('col-md-12');
-            $('.editing-wrapper').removeClass('row');
-            $('.editing-wrapper>.editing').removeClass('col-md-6');
-            $('.editing-wrapper>.preview').removeClass('col-md-6').hide();
+            $('article').removeClass('pure-g');
+            $('.header-wrapper>header').removeClass('pure-u-1');
+            $('.editing-wrapper>.editing').removeClass('pure-u-1 pure-u-md-1-2');
+            $('.editing-wrapper>.preview').removeClass('pure-u-1 pure-u-md-1-2').hide();
         },
         _toggleFullPreview: function(e) {
             var $view = this;

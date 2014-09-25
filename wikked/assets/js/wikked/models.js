@@ -46,15 +46,18 @@ define([
                 .done(function (data) {
                     $model._isSearching = false;
                     callback(data);
-                    this._flushPendingQuery();
+                    $model._flushPendingQuery();
                 })
                 .fail(function() {
                     $model._isSearching = false;
-                    this._flushPendingQuery();
+                    $model._flushPendingQuery();
                 });
         },
         doSearch: function(form) {
             this.navigate('/search/' + $(form.q).val(), { trigger: true });
+        },
+        doGoToSearchResult: function(url) {
+            this.navigate(url, { trigger: true });
         },
         doNewPage: function(form) {
             this.navigate('/create/', { trigger: true });

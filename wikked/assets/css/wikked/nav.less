@@ -1,0 +1,189 @@
+
+// Extending Pure's horizontal menu.
+
+// Allow free links and forms in menus.
+.pure-menu .pure-menu-link,
+.pure-menu .pure-menu-form {
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+}
+
+// Make menu forms tighter.
+.pure-menu-form fieldset {
+    padding: 0;
+}
+
+@media (min-width: 48em) {
+    // Place right-aligned menu items to, well, to the right.
+    .pure-menu .pure-menu-horizontal-right {
+        float: right;
+    }
+    .pure-menu-horizontal:after {
+        clear: both;
+    }
+}
+
+
+// Navigation menu
+@wiki-menu-height: 4.5em;
+@wiki-shortcut-width: 4em;
+@wiki-shortcut-height: 3em;
+
+body {
+    padding-top: @wiki-shortcut-height;
+    transition: padding 200ms ease-in-out 0s,
+                margin 200ms ease-in-out 0s;
+}
+
+.wiki-menu-a {
+    color: @color-gray-dark;
+}
+.wiki-menu-a-hover {
+    background: @color-green-light;
+    text-decoration: none;
+}
+
+.wiki-menu-scrolling {
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.3);
+}
+
+.wiki-menu-active {
+    top: 0 !important;
+}
+
+.wiki-menu-inactive {
+    top: -2*@wiki-menu-height !important;
+}
+
+#wiki-menu {
+    position: fixed !important;
+    top: -2*@wiki-menu-height;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    padding-left: @wiki-shortcut-width;
+    color: @color-gray-dark;
+    background-color: @body-bg;
+    border-bottom: none;
+    transition: box-shadow 200ms ease-in-out 0s,
+                border-bottom 200ms ease-in-out 0s,
+                top 200ms ease-in-out 0s,
+                !important;
+    a {
+        padding: 1em;
+        .wiki-menu-a();
+    }
+    a:link, a:visited, a:active {
+        .wiki-menu-a();
+    }
+    a:hover, a:focus {
+        .wiki-menu-a-hover();
+    }
+}
+
+#wiki-menu-shortcut {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    z-index: 11;
+    padding: 1.28em 1.5em;
+    font-weight: bold;
+    color: @body-bg;
+    background: @color-gray-dark;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+@media (min-width: 48em) {
+    // Hide the shortcut and move the horizontal menu down.
+    #wiki-menu {
+        top: 0;
+    }
+    body {
+        padding-top: @wiki-menu-height;
+    }
+}
+
+// Search
+form#search button {
+    background: none;
+    padding: 0.5em;
+    &:hover { color: @link-hover-color; }
+}
+ul#search-preview {
+    position: absolute;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    top: auto;
+    left: 0;
+    z-index: 12;
+    visibility: visible;
+    background: #FFF;
+    border: 1px solid #CCC;
+    border-radius: 4px;
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.3);
+
+    li {
+        border-bottom: 1px solid #EEE;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+
+        &:hover, &:focus {
+        }
+    }
+    a {
+        margin: 0;
+        padding: 0.5em;
+        display: inline-block;
+        width: 100%;
+    }
+}
+ul.search-results {
+    list-style: none;
+}
+b.match {
+    background: #ffeb84;
+}
+
+// Footer
+.footer-wrapper {
+    margin: 0 auto;
+    padding: 0 1.5em;
+}
+footer {
+    color: @color-gray-dark;
+    border-top: 1px solid @color-gray-light;
+    padding: 1.5em 0;
+    font-weight: 300;
+    letter-spacing: -0.03em;
+    text-align: center;
+
+    a {
+        text-decoration: none;
+        color: @color-gray-dark;
+        &:link { color: @color-gray-dark; }
+        &:visited { color: @color-gray-dark; }
+        &:hover { color: @color-green-dark; text-decoration: none; }
+        &:active { color: @color-gray-dark; }
+    }
+    ul {
+        list-type: none;
+    }
+    li {
+        display: inline-block;
+        margin: 0;
+        padding: 0 0.5em;
+    }
+    /*li:before {
+        content: '•';
+        font-weight: 700;
+        margin: 0 0.5em;
+    }
+    li:first-child:before {
+        content: none;
+    }*/
+}
+

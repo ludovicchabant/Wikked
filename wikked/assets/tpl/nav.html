@@ -1,40 +1,32 @@
-<nav class="navbar navbar-default" role="navigation">
-    <div class="navbar-header">
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#wikked-navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="/">Home</a>
-    </div>
-
-    <div class="collapse navbar-collapse" id="wikked-navbar-collapse">
-        <ul class="nav navbar-nav">
-            {{#ifneq action to='read'}}<li><a href="{{url_read}}"><span class="glyphicon glyphicon-book"></span> Read</a></li>{{/ifneq}}
-            {{#ifneq action to='edit'}}<li><a href="{{url_edit}}"><span class="glyphicon glyphicon-edit"></span> Edit</a></li>{{/ifneq}}
-            {{#ifneq action to='history'}}<li><a href="{{url_hist}}"><span class="glyphicon glyphicon-road"></span> History</a></li>{{/ifneq}}
-        </ul>
-        <form role="search" id="search" class="navbar-form navbar-left">
-            <div class="form-group">
-                <label class="sr-only" for="search-query">Search query</label>
-                <input type="text" name="q" id="search-query" class="form-control input-sm" placeholder="Search..." autocomplete="off"></input>
-                <ul id="search-preview"></ul>
-            </div>
-            <button type="submit" class="btn btn-sm btn-default">Search</button>
-        </form>
-        <ul class="nav navbar-nav navbar-right">
-            {{#if user}}
-            <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
-            <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
-            {{else}}
-            <li><a href="{{url_login}}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
-            {{/if}}
-        </ul>
-        <form id="newpage" class="navbar-form navbar-right">
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary btn-sm">New Page</button>
-            </div>
-        </form>
-    </div>
+<a id="wiki-menu-shortcut" class="wiki-logo">
+    <span>W</span>
+</a>
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open pure-menu-horizontal pure-menu-fixed">
+    <!--form id="newpage" class="pure-form pure-menu-form">
+        <fieldset>
+            <button type="submit" class="pure-button">New Page</button>
+        </fieldset>
+    </form-->
+    <ul class="">
+        <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
+        <li><a href="/#/create/"><span class="glyphicon glyphicon-file"></span> New Page</a></li>
+        {{#ifneq action to='read'}}<li><a href="{{url_read}}"><span class="glyphicon glyphicon-book"></span> Read</a></li>{{/ifneq}}
+        {{#ifneq action to='edit'}}<li><a href="{{url_edit}}"><span class="glyphicon glyphicon-edit"></span> Edit</a></li>{{/ifneq}}
+        {{#ifneq action to='history'}}<li><a href="{{url_hist}}"><span class="glyphicon glyphicon-road"></span> History</a></li>{{/ifneq}}
+    </ul>
+    <form role="search" id="search" class="pure-form pure-menu-form">
+        <fieldset>
+            <input type="text" name="q" id="search-query" class="form-control input-sm" placeholder="Search..." autocomplete="off"></input>
+            <ul id="search-preview"></ul>
+            <button type="submit" class="pure-button"><span class="glyphicon glyphicon-search"></span></button>
+        </fieldset>
+    </form>
+    <ul class="pure-menu-horizontal-right">
+        {{#if user}}
+        <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
+        <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+        {{else}}
+        <li><a href="{{url_login}}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+        {{/if}}
+    </ul>
 </nav>

@@ -1,75 +1,69 @@
 <article>
-    <form id="page-edit">
-        <div class="header-wrapper">
-            <header>
-                {{#if is_new}}
-                <div class="form-group">
-                    <div class="input-group">
-                        <span class="input-group-addon">Title</span>
-                        <input type="text" name="title" class="form-control input-xxlarge" placeholder="New Page" required="true"></input>
+    <form id="page-edit" class="pure-form">
+        <fieldset>
+            <div class="header-wrapper">
+                <header>
+                    {{#if is_new}}
+                    <div class="pure-control-group pure-control-addon">
+                        <label for="title" class="">Title</label>
+                        <input type="text" name="title" placeholder="New Page" required="true" class=""></input>
                     </div>
-                    <span class="help-block small" for="title">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
-                </div>
-                {{else}}
-                <h1>{{meta.title}}<h1>
-                <div class="decorator">Editing</div>
-                {{/if}}
-            </header>
-        </div>
-        <div class="editing-wrapper">
-            <div class="editing">
-                <section id="wmd-button-bar-wrapper" class="container-fluid">
-                    <div class="row">
-                        <div id="wmd-button-bar" class="col-xs-10"></div>
-                        <div id="wmd-extra-bar" class="col-xs-2">
+                    <div class="pure-form-help">
+                        <span for="title">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
+                    </div>
+                    {{else}}
+                    <h1>{{meta.title}}<h1>
+                    <div class="decorator">Editing</div>
+                    {{/if}}
+                </header>
+            </div>
+            <div class="editing-wrapper">
+                <div class="editing">
+                    <section id="wmd-button-bar-wrapper" class="pure-g">
+                        <div id="wmd-button-bar" class="pure-u-4-5"></div>
+                        <div id="wmd-extra-bar" class="pure-u-1-5">
                             <ul class="wmd-button-row">
                                 <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
                             </ul>
                         </div>
-                    </div>
-                </section>
-                {{#if error}}
-                <section class="alert alert-danger">
-                    <p><strong>Error:</strong> {{error.message}}</p>
-                </section>
-                {{/if}}
-                <section id="wmd-input-wrapper">
-                    <textarea id="wmd-input" class="form-control" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
-                    <div id="wmd-input-grip"></div>
-                </section>
-                <section id="wmd-meta-wrapper">
-                    <div class="form-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-addon">Author</span>
+                    </section>
+                    {{#if error}}
+                    <section class="alert alert-danger">
+                        <p><strong>Error:</strong> {{error.message}}</p>
+                    </section>
+                    {{/if}}
+                    <section id="wmd-input-wrapper">
+                        <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                        <div id="wmd-input-grip"></div>
+                    </section>
+                    <section id="wmd-meta-wrapper">
+                        <div class="pure-control-group pure-control-addon">
+                            <label for="author">Author</label>
                             <input type="text" name="author" class="form-control" placeholder="{{commit_meta.author}}"></input>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-addon">Description</span>
+                        <div class="pure-control-group pure-control-addon">
+                            <label for="message">Description</label>
                             <input type="text" name="message" class="form-control" placeholder="{{commit_meta.desc}}" minlength="3"></input>
                         </div>
-                    </div>
-                </section>
-                <section id="wmd-commit-wrapper">
-                    <div class="form-group">
-                        <div class="input-group" id="wmd-commit">
-                            <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Save</button>
-                            <a href="{{url_read}}" class="btn">Cancel</a>
+                    </section>
+                    <section id="wmd-commit-wrapper">
+                        <div class="pure-control-group" id="wmd-commit">
+                            <button type="submit" class="pure-button pure-button-primary"><i class="icon-ok icon-white"></i> Save</button>
+                            <a href="{{url_read}}" class="pure-button">Cancel</a>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                </div>
+                <div class="preview">
+                    <section id="wmd-preview-button-bar-wrapper">
+                        <div class="pure-control-group">
+                            <button id="wmd-full-preview-button" class="pure-button" title="Run a full preview on the text, with queries and includes">Full Preview</button>
+                        </div>
+                    </section>
+                    <section id="wmd-preview-wrapper">
+                        <div id="wmd-preview"></div>
+                    </section>
+                </div>
             </div>
-            <div class="preview">
-                <section id="wmd-preview-button-bar-wrapper">
-                    <div class="form-group">
-                        <button id="wmd-full-preview-button" class="btn btn-xs" title="Run a full preview on the text, with queries and includes">Full Preview</button>
-                    </div>
-                </section>
-                <section id="wmd-preview-wrapper">
-                    <div id="wmd-preview"></div>
-                </section>
-            </div>
-        </div>
+        </fieldset>
     </form>
 </article>
