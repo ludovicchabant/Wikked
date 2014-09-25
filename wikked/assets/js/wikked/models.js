@@ -57,7 +57,7 @@ define([
             this.navigate('/search/' + $(form.q).val(), { trigger: true });
         },
         doGoToSearchResult: function(url) {
-            this.navigate(url, { trigger: true });
+            this.navigate(url + "?no_redirect", { trigger: true });
         },
         doNewPage: function(form) {
             this.navigate('/create/', { trigger: true });
@@ -275,7 +275,7 @@ define([
             }
             if (this.getMeta('redirect')) {
                 // Handle redirects.
-                var newPath = this.getMeta('redirect').replace(/^\//, "");
+                var newPath = this.getMeta('redirect')[0].replace(/^\//, "");
                 if (this.get('no_redirect')) {
                     this.set({ 'redirects_to': newPath }, { 'silent': true });
                 } else {
