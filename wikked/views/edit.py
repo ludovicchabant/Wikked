@@ -3,6 +3,7 @@ from flask import g, abort, request, jsonify
 from flask.ext.login import current_user
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
+from wikked.resolver import PageResolver
 from wikked.views import (make_page_title, get_page_or_none,
         is_page_writable, get_page_meta, url_from_viewarg,
         split_url_from_viewarg)
@@ -13,25 +14,24 @@ class DummyPage(Page):
     """ A dummy page for previewing in-progress editing.
     """
     def __init__(self, wiki, url, text):
-        Page.__init__(self, wiki, url)
-        self._text = text
+        data = self._loadData(wiki, url, text)
+        super(DummyPage, self).__init__(wiki, data)
 
-    def _loadData(self):
-        extension = self.wiki.fs.default_extension
+    def _loadData(self, wiki, url, text):
         data = PageData()
+        extension = wiki.fs.default_extension
+        data.url = url
         data.path = '__preview__.' + extension
-        data.filename = '__preview__'
-        data.extension = extension
-        data.raw_text = self._text
+        data.raw_text = text
 
-        ctx = FormattingContext(self.url)
-        f = PageFormatter(self.wiki)
+        ctx = FormattingContext(url)
+        f = PageFormatter()
         data.formatted_text = f.formatText(ctx, data.raw_text)
         data.local_meta = ctx.meta
         data.local_links = ctx.out_links
 
         data.title = (data.local_meta.get('title') or
-                make_page_title(self.url))
+                make_page_title(url))
         if isinstance(data.title, list):
             data.title = data.title[0]
 
@@ -131,6 +131,9 @@ def api_preview():
     url = url_from_viewarg(url)
     text = request.form.get('text')
     dummy = DummyPage(g.wiki, url, text)
+
+    resolver = PageResolver(dummy)
+    dummy._setExtendedData(resolver.run())
 
     result = {'text': dummy.text}
     return jsonify(result)
