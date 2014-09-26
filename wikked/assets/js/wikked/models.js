@@ -17,7 +17,10 @@ define([
             return {
                 path: "",
                 action: "read",
-                username: false
+                username: false,
+                url_extras: [
+                    { name: 'Special Pages', url: '/#/special', icon: 'dashboard' }
+                ]
             };
         },
         initialize: function() {
@@ -33,6 +36,17 @@ define([
         },
         url: function() {
             return '/api/user/info';
+        },
+        clearExtraUrls: function() {
+            this.get('url_extras').length = 0;
+        },
+        addExtraUrl: function(name, url, index, icon) {
+            extra = { name: name, url: url, icon: icon };
+            if (index === undefined || index < 0) {
+                this.get('url_extras').push(extra);
+            } else {
+                this.get('url_extras').splice(index, 0, extra);
+            }
         },
         doPreviewSearch: function(query, callback) {
             if (this._isSearching) {
@@ -103,9 +117,7 @@ define([
     var FooterModel = exports.FooterModel = Backbone.Model.extend({
         defaults: function() {
             return {
-                url_extras: [
-                    { name: 'Special Pages', url: '/#/special', icon: 'dashboard' }
-                ]
+                url_extras: []
             };
         },
         clearExtraUrls: function() {
@@ -247,7 +259,7 @@ define([
 
             // Add extra links to the footer.
             var model = this;
-            this.footer.addExtraUrl(
+            this.nav.addExtraUrl(
                 'Pages Linking Here',
                 function() { return '/#/inlinks/' + model.id; },
                 1,
@@ -303,15 +315,15 @@ define([
                     $model.set('error', err.error);
                 });
         },
-        _onChangePath: function(path) {
-            PageEditModel.__super__._onChangePath.apply(this, arguments);
-            this.set('url_read', this._getReadPath(path));
+        doCancel: function() {
+            this._goToReadPage();
         },
         _onEditSuccess: function() {
-            this.navigate('/read/' + this.get('path'), { trigger: true });
+            this._goToReadPage();
         },
-        _getReadPath: function(path) {
-            return '/#/read/' + path;
+        _goToReadPage: function() {
+            this.navigate('/read/' + this.get('path') + '?no_redirect=1',
+                    { trigger: true });
         }
     });
 
@@ -321,7 +333,7 @@ define([
         initialize: function() {
             PageHistoryModel.__super__.initialize.apply(this, arguments);
             var model = this;
-            this.footer.addExtraUrl(
+            this.nav.addExtraUrl(
                 'JSON',
                 function() { return '/api/history/' + model.id; },
                 -1,
@@ -454,7 +466,7 @@ define([
         },
         initialize: function() {
             SpecialPagesModel.__super__.initialize.apply(this, arguments);
-            this.footer.clearExtraUrls();
+            this.nav.clearExtraUrls();
         }
     });
 
@@ -462,7 +474,7 @@ define([
         action: 'special',
         initialize: function() {
             SpecialPageModel.__super__.initialize.apply(this, arguments);
-            this.footer.clearExtraUrls();
+            this.nav.clearExtraUrls();
         }
     });
 

@@ -6,12 +6,12 @@
         <div class="decorator">{{meta_query}}</div>
         {{/if}}
         {{#if redirected_from}}
-        <div class="decorator-sub">Redirected from 
+        <div class="decorator"><small>Redirected from 
             {{#each redirected_from}}
             {{#ifeq @index to=0}} {{else}} | {{/ifeq}}
             <a href="{{get_read_url this}}?no_redirect">{{this}}</a>
             {{/each}}
-        </div>
+        </small></div>
         {{/if}}
         {{#if meta.redirect}}
         <small>Redirects to <a href="{{get_read_url redirects_to}}">{{redirects_to}}</a></small>

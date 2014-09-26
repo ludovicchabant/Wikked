@@ -9,14 +9,21 @@
         {{#ifneq action to='edit'}}<li><a href="{{url_edit}}"><span class="glyphicon glyphicon-edit"></span> Edit</a></li>{{/ifneq}}
         {{#ifneq action to='history'}}<li><a href="{{url_hist}}"><span class="glyphicon glyphicon-road"></span> History</a></li>{{/ifneq}}
     </ul>
-    <form role="search" id="search" class="pure-form pure-menu-form">
+    <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider">
         <fieldset>
-            <button type="submit" class="pure-button"><span class="glyphicon glyphicon-search"></span></button>
+            <!--button type="submit" class="pure-button"><span class="glyphicon glyphicon-search"></span></button-->
             <input type="text" name="q" id="search-query" class="pure-input-1" placeholder="Search..." autocomplete="off"></input>
             <ul id="search-preview"></ul>
         </fieldset>
     </form>
-    <ul class="">
+    {{#if url_extras}}
+    <ul class="pure-menu-divider">
+    {{#each url_extras}}
+        <li><a href="{{url}}">{{#if icon}}<span class="glyphicon glyphicon-{{icon}}"></span> {{/if}}{{name}}</a></li>
+    {{/each}}
+    </ul>
+    {{/if}}
+    <ul class="pure-menu-divider">
         {{#if user}}
         <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
         <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>

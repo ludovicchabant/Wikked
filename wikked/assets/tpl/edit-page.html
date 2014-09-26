@@ -12,31 +12,23 @@
                         <span for="title">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
                     </div>
                     {{else}}
-                    <h1>{{meta.title}}<h1>
+                    <h1>{{meta.title}}</h1>
                     <div class="decorator">Editing</div>
                     {{/if}}
                 </header>
             </div>
             <div class="editing-wrapper">
                 <div class="editing">
-                    <section id="wmd-button-bar-wrapper" class="pure-g">
-                        <div id="wmd-button-bar" class="pure-u-4-5"></div>
-                        <div id="wmd-extra-bar" class="pure-u-1-5">
-                            <ul class="wmd-button-row">
-                                <li class="wmd-button" id="wmd-preview-button" title="Toggle Preview"><span></span></li>
-                            </ul>
-                        </div>
+                    <section class="editing-error alert alert-danger">
+                        <p><strong>Error:</strong> <span class="editing-error-message"></span></p>
                     </section>
-                    {{#if error}}
-                    <section class="alert alert-danger">
-                        <p><strong>Error:</strong> {{error.message}}</p>
+                    <section class="editing-input">
+                        <textarea id="editing-input-area" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
+                        <div id="editing-input-grip"></div>
                     </section>
-                    {{/if}}
-                    <section id="wmd-input-wrapper">
-                        <textarea id="wmd-input" name="text" placeholder="Your page's contents go here...">{{content}}</textarea>
-                        <div id="wmd-input-grip"></div>
+                    <section class="editing-preview">
                     </section>
-                    <section id="wmd-meta-wrapper">
+                    <section class="editing-meta">
                         <div class="pure-control-group pure-control-addon">
                             <label for="author">Author</label>
                             <input type="text" name="author" class="form-control" placeholder="{{commit_meta.author}}"></input>
@@ -46,21 +38,12 @@
                             <input type="text" name="message" class="form-control" placeholder="{{commit_meta.desc}}" minlength="3"></input>
                         </div>
                     </section>
-                    <section id="wmd-commit-wrapper">
-                        <div class="pure-control-group" id="wmd-commit">
-                            <button type="submit" class="pure-button pure-button-primary"><i class="icon-ok icon-white"></i> Save</button>
-                            <a href="{{url_read}}?no_redirect" class="pure-button">Cancel</a>
-                        </div>
-                    </section>
-                </div>
-                <div class="preview">
-                    <section id="wmd-preview-button-bar-wrapper">
+                    <section class="editing-submit">
                         <div class="pure-control-group">
-                            <button id="wmd-full-preview-button" class="pure-button" title="Run a full preview on the text, with queries and includes">Full Preview</button>
+                            <button type="submit" class="pure-button pure-button-primary"><span class="glyphicon glyphicon-ok"></span> Save</button>
+                            <button id="editing-preview-button" type="submit" class="pure-button"><span class="glyphicon glyphicon-eye-open"></span> <span class="editing-preview-button-label">Preview</span></button>
+                            <button id="editing-cancel-button" type="submit" class="pure-button"><span class="glyphicon glyphicon-remove"></span> Cancel</button>
                         </div>
-                    </section>
-                    <section id="wmd-preview-wrapper">
-                        <div id="wmd-preview"></div>
                     </section>
                 </div>
             </div>

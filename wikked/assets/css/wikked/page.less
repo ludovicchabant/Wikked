@@ -8,23 +8,23 @@ article {
 }
 
 // Page title decorators
-.decorator-sub {
-    font-size: 0.8em;
-    margin-top: -0.75em;
-    margin-bottom: 1.25em;
-    color: @color-gray-dark;
-}
-.decorator, .decorator-sm {
+.decorator {
     text-transform: uppercase;
     font-family: @font-family-sans-serif;
     font-weight: 200;
-    font-size: 0.8em;
-    margin-top: -0.25em;
-    margin-bottom: 0.75em;
+    font-size: 150%;
+    margin-top: -0.5em;
+    margin-bottom: 1.5em;
     letter-spacing: 0.1em;
     color: @color-gray-dark;
+
+    small {
+        font-size: 60%;
+        text-transform: none;
+    }
+
     .rev_id {
-        //font-family: @font-family-monospace;
+        font-family: @font-family-monospace;
     }
 }
 .decorator-sm {
@@ -45,68 +45,39 @@ section.info {
 }
 
 // Page editing
-#wmd-preview-button span {
-    background: url(../img/markdown-32x20.png);
-    width: 32px;
-    height: 20px;
+form#page-edit {
+    margin-top: 2em;
 }
-#wmd-input-wrapper {
-    margin: 0.5em 0;
+
+.editing-input, .editing-preview {
+    margin-bottom: 0.5em;
 }
-#wmd-input {
-    height: 10em;
+
+#editing-input-area {
+    min-height: 10em;
     width: 100%;
-    //font-size: @font-size-base;
     font-family: @font-family-monospace;
     margin-bottom: 0;
-    border: 1px solid @color-gray-light;
+    border: 1px solid @color-gray-medium;
     border-radius: 0;
     border-width: 1px 1px 0 1px;
 }
-#wmd-input-grip {
-    //background: @gray-lighter;
+
+#editing-input-grip {
     height: 12px;
-    border: 1px solid @color-gray-light;
+    border: 1px solid @color-gray-medium;
     border-width: 0 1px 1px 1px;
     cursor: ns-resize;
 }
-#wmd-full-preview-button {
-    display: inline-block;
-}
-#wmd-preview-wrapper {
+
+/*#wmd-preview-wrapper {
     border: 1px solid @color-gray-light;
 
     #wmd-preview {
         margin: 1em;
         background: none;
     }
-}
-#wmd-preview {
-    overflow: scroll;
-}
-.preview>h3 {
-    margin: 0;
-    padding: 0;
-}
-.preview-wiki-meta {
-    .meta-name {
-        background: @color-blue-dark;
-        color: #fff;
-        padding: 0.2em 0.4em 0.2em 0.6em;
-        border-radius: 0.5em 0 0 0.5em;
-        letter-spacing: 0.03em;
-    }
-    .meta-value {
-        background: @color-gray-light;
-        color: black;
-        padding: 0.2em 0.6em 0.2em 0.4em;
-        border-radius:  0 0.5em 0.5em 0;
-    }
-}
-.commit-meta {
-    margin-top: 1em;
-    margin-bottom: 1em;
-}
+}*/
 
 @media screen and (min-width: 48em) {
     article {

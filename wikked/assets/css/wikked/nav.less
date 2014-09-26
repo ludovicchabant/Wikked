@@ -38,7 +38,7 @@
                 width 200ms ease-in-out 0s,
                 !important;
     a {
-        padding: 1em;
+        padding: 0.5em 1em;
         .wiki-menu-a();
     }
     a:link, a:visited, a:active {
@@ -52,6 +52,7 @@
         border-top: 1px solid @color-gray-medium;
     }
 }
+
 #wiki-menu.wiki-menu-active {
     left: 0 !important;
 }
@@ -156,6 +157,7 @@ footer {
     color: @color-gray-dark;
     border-top: 1px solid @color-gray-light;
     padding: 1.5em 0;
+    font-size: 75%;
     font-weight: 300;
     letter-spacing: -0.03em;
     text-align: center;
@@ -176,13 +178,14 @@ footer {
         margin: 0;
         padding: 0 0.5em;
     }
-    /*li:before {
-        content: '•';
+    li:before {
+        content: '\2014';
         font-weight: 700;
-        margin: 0 0.5em;
+        font-size: 100%;
+        margin-right: 1em;
     }
     li:first-child:before {
         content: none;
-    }*/
+    }
 }
 

@@ -449,35 +449,14 @@ define([
                 return;
             }
 
-            // Cache some stuff.
-            this._ctrlInput = $('#wmd-input');
-            this._ctrlInputWrapper = $('#wmd-input-wrapper');
-            this._ctrlPreview = $('#wmd-preview');
-            this._ctrlPreviewWrapper = $('#wmd-preview-wrapper');
-
-            // Create the Markdown editor.
-            var m = this.model.get('path').match(/(.*)\/?/);
-            var baseUrl = m[1];
-            var lastSlash = baseUrl.lastIndexOf('/');
-            if (lastSlash >= 0)
-                baseUrl = baseUrl.substr(0, lastSlash);
-            else
-                baseUrl = '';
-            var formatter = new Client.PageFormatter(baseUrl);
-            var converter = new Markdown.Converter();
-            converter.hooks.chain("preConversion", function(text) {
-                return formatter.formatText(text);
-            });
-            var $view = this;
-            var editor = new PageDownConverter.Editor(converter); //TODO: pass options
-            editor.hooks.chain("onPreviewRefresh", function() {
-                $view._updateInputFromPreview();
-            });
-            editor.run();
-
-            // Setup UI.
-            $('.preview').hide();
-            this._isPreviewVisible = false;
+            // Initialize the preview.
+            this.inputSection = $('.editing-input');
+            this.inputCtrl = $('#editing-input-area');
+            this.previewSection = $('.editing-preview');
+            this.previewSection.hide();
+            this.previewButtonLabel = $('.editing-preview-button-label');
+            this.errorSection = $('.editing-error');
+            this.errorSection.hide();
 
             // Start validation on the form.
             $('#page-edit').validate({
@@ -493,9 +472,9 @@ define([
             });
         },
         events: {
-            "mousedown #wmd-input-grip": "_inputGripMouseDown",
-            "click #wmd-preview-button": "_togglePreview",
-            "click #wmd-full-preview-button": "_toggleFullPreview",
+            "mousedown #editing-input-grip": "_inputGripMouseDown",
+            "click #editing-preview-button": "_togglePreview",
+            "click #editing-cancel-button": "_cancelEdit",
             "submit #page-edit": "_submitEditedPage"
         },
         _inputGripMouseDown: function(e) {
@@ -504,9 +483,8 @@ define([
             var last_pageY = e.pageY;
             $('body')
                 .on('mousemove.wikked.editor_resize', function(e) {
-                    var editor_control = $view._ctrlInput;
-                    editor_control.height(editor_control.height() + e.pageY - last_pageY);
-                    $view._ctrlPreview.height(editor_control.height());
+                    var ctrl = $view.inputCtrl;
+                    ctrl.height(ctrl.height() + e.pageY - last_pageY);
                     last_pageY = e.pageY;
                 })
                 .on('mouseup.wikked.editor_resize mouseleave.wikked.editor_resize', function(e) {
@@ -514,60 +492,48 @@ define([
                 });
         },
         _togglePreview: function(e) {
-            // Show/hide live preview.
-            var w = $('body').width() - 40;
-            if (this._isPreviewVisible) {
-                this._removePreview();
-            } else {
-                this._addPreview();
-            }
-            this._isPreviewVisible = !this._isPreviewVisible;
             e.preventDefault();
-            return false;
-        },
-        _addPreview: function() {
-            $('article').addClass('pure-g');
-            $('.header-wrapper>header').addClass('pure-u-1');
-            $('.editing-wrapper>.editing').addClass('pure-u-1 pure-u-md-1-2');
-            $('.editing-wrapper>.preview').addClass('pure-u-1 pure-u-md-1-2').show();
-        },
-        _removePreview: function() {
-            $('article').removeClass('pure-g');
-            $('.header-wrapper>header').removeClass('pure-u-1');
-            $('.editing-wrapper>.editing').removeClass('pure-u-1 pure-u-md-1-2');
-            $('.editing-wrapper>.preview').removeClass('pure-u-1 pure-u-md-1-2').hide();
-        },
-        _toggleFullPreview: function(e) {
+
+            if (this.previewSection.is(':visible')) {
+                // Hide the preview, restore the textbox.
+                this.inputSection.show();
+                this.previewSection.hide();
+                this.previewButtonLabel.html("Preview");
+                return;
+            }
+
+            // Get the server to compute the preview text, hide the textbox,
+            // show the rendered text.
             var $view = this;
             var previewData = {
                 url: this.model.get('path'),
-                text: $('#wmd-input').val()
+                text: this.inputCtrl.val()
             };
             $.post('/api/preview', previewData)
                 .success(function(data) {
-                    var previewEl = $('#wmd-preview');
-                    previewEl.html(data.text);
-                    processWikiLinks(previewEl);
-                    $view._updateInputFromPreview();
+                    var el = $view.previewSection;
+                    el.html(data.text);
+                    processWikiLinks(el);
+                    el.show();
+                    $view.inputSection.hide();
+                    $view.previewButtonLabel.html("Edit");
+                    $view.errorSection.hide();
                 })
                 .error(function() {
-                    $('#wmd-preview').html("Error running preview.");
+                    $('.editing-error-message').html("Error running preview.");
+                    $view.errorSection.show();
                 });
-            e.preventDefault();
             return false;
-        },
-        _updateInputFromPreview: function() {
-            if (this._isPreviewVisible)
-                this._ctrlInput.height(this._ctrlPreview.height());
-        },
-        _updatePreviewFromInput: function() {
-            if (this._isPreviewVisible)
-                this._ctrlPreview.height(this._ctrlInput.height());
         },
         _submitEditedPage: function(e) {
             // Make the model submit the form.
             e.preventDefault();
             this.model.doEdit(e.currentTarget);
+            return false;
+        },
+        _cancelEdit: function(e) {
+            e.preventDefault();
+            this.model.doCancel();
             return false;
         },
         titleFormat: function(title) {
