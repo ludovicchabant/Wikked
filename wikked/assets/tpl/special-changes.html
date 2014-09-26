@@ -5,7 +5,7 @@
     <section>
         <p>Here are the recent changes on this wiki.</p>
         <form>
-            <table class="table table-hover history-list">
+            <table class="pure-table pure-table-bordered wiki-history">
                 <thead>
                     <tr>
                         <th>Revision</th>
@@ -14,31 +14,32 @@
                 </thead>
                 <tbody>
                     {{#eachr history}}
-                    <tr class='history-entry'>
-                        <td>{{rev_name}}</td>
+                    <tr class='wiki-history-entry'>
+                        <td><code>{{rev_name}}</code></td>
                         <td>
-                            <dl class="dl-horizontal">
+                            <dl class="pure-dl-horizontal">
                                 <dt>Date</dt>
                                 <dd>{{date_from_now timestamp}}</dd>
                                 <dt>Author</dt>
                                 <dd>{{author}}</dd>
                                 <dt>Pages ({{num_pages}})</dt>
                                 <dd>
-                                {{#if make_collapsable}}
-                                    <button class="btn page-details-toggler" data-index="{{index}}">Show/Hide</button>
-                                    <div class="page-details page-details-{{index}}">
+                                {{#if collapsed}}
+                                    <button class="pure-button wiki-history-entry-collapser" data-index="{{index}}">
+                                        <span class="glyphicon glyphicon-chevron-down"></span>
+                                        <small>Show</small>
+                                    </button>
+                                    <div class="wiki-history-entry-details wiki-history-entry-details-{{index}}">
                                 {{/if}}
-                                    <ul class="unstyled">
-                                        {{#each changes}}
+                                    <ul class="pure-ul-unstyled">
+                                        {{#each pages}}
                                         <li>
                                             <a href="#/revision{{url}}/{{../rev_id}}">{{url}}</a>
-                                            {{#if is_edit}}(edit) {{/if}}
-                                            {{#if is_add}}(added) {{/if}}
-                                            {{#if is_delete}}(deleted) {{/if}}
+                                            {{action_label}}
                                         </li>
                                         {{/each}}
                                     </ul>
-                                {{#if make_collapsable}}
+                                {{#if collapsed}}
                                     </div>
                                 {{/if}}
                                 </dd>

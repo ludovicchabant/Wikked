@@ -613,39 +613,23 @@ define([
                 return;
             }
 
-            this.$('.history-list .page-details').hide();
-            this.$('.history-list .page-details-toggler').click(function (e) {
-                index = $(this).attr('data-index');
-                $('.history-list .page-details-' + index).toggle();
+            this.$('.wiki-history .wiki-history-entry-details').hide();
+            this.$('.wiki-history .wiki-history-entry-collapser').click(function(e) {
+                var btn = $(this);
+                index = btn.attr('data-index');
+                var tgt = $('.wiki-history .wiki-history-entry-details-' + index);
+                tgt.toggle();
+                if (tgt.is(':visible')) {
+                    $('.glyphicon', btn).removeClass('glyphicon-chevron-down');
+                    $('.glyphicon', btn).addClass('glyphicon-chevron-up');
+                    $('small', btn).html('Hide');
+                } else {
+                    $('.glyphicon', btn).removeClass('glyphicon-chevron-up');
+                    $('.glyphicon', btn).addClass('glyphicon-chevron-down');
+                    $('small', btn).html('Show');
+                }
                 e.preventDefault();
             });
-        },
-        _onModelChange: function() {
-            var history = this.model.get('history');
-            if (history) {
-                for (var i = 0; i < history.length; ++i) {
-                    var rev = history[i];
-                    rev.changes = [];
-                    for (var j = 0; j < rev.pages.length; ++j) {
-                        var page = rev.pages[j];
-                        switch (page.action) {
-                            case 'edit':
-                                rev.changes.push({ is_edit: true, url: page.url });
-                                break;
-                            case 'add':
-                                rev.changes.push({ is_add: true, url: page.url });
-                                break;
-                            case 'delete':
-                                rev.changes.push({ is_delete: true, url: page.url });
-                                break;
-                        }
-                        rev.pages[j] = page;
-                    }
-                    history[i] = rev;
-                }
-                this.model.set('history', history);
-            }
-            SpecialChangesView.__super__._onModelChange.apply(this, arguments);
         }
     });
 

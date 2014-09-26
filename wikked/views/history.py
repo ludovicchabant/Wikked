@@ -45,7 +45,6 @@ def get_history_data(history, needs_files=False):
                     'action': ACTION_NAMES[f['action']]
                     })
             rev_data['num_pages'] = len(rev_data['pages'])
-            rev_data['make_collapsable'] = len(rev_data['pages']) > 1
             if len(rev_data['pages']) > 0:
                 hist_data.append(rev_data)
         else:

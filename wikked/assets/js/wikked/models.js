@@ -480,7 +480,31 @@ define([
 
     var SpecialChangesModel = exports.SpecialChangesModel = SpecialPageModel.extend({
         title: "Wiki History",
-        url: '/api/history'
+        url: '/api/history',
+        initialize: function() {
+            SpecialChangesModel.__super__.initialize.apply(this, arguments);
+            this.on('change:history', this._onHistoryChanged);
+        },
+        _onHistoryChanged: function(model, history) {
+            for (var i = 0; i < history.length; ++i) {
+                var rev = history[i];
+                rev.collapsed = (rev.pages.length > 3);
+                for (var j = 0; j < rev.pages.length; ++j) {
+                    var page = rev.pages[j];
+                    switch (page.action) {
+                        case 'edit':
+                            page.action_label = 'edit';
+                            break;
+                        case 'add':
+                            page.action_label = 'added';
+                            break;
+                        case 'delete':
+                            page.action_label = 'deleted';
+                            break;
+                    }
+                }
+            }
+        }
     });
 
     var SpecialOrphansModel = exports.SpecialOrphansModel = SpecialPageModel.extend({

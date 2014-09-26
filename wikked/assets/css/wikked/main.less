@@ -90,6 +90,32 @@ code {
     }
 }
 
+.pure-dl-horizontal {
+    dt {
+        float: left;
+        clear: left;
+        width: 10em;
+        text-align: right;
+        font-weight: bold;
+    }
+    dd {
+        margin-left: 11em;
+    }
+    dd:before, dd:after {
+        display: table;
+        content: " ";
+    }
+    dd:after {
+        clear: both;
+    }
+}
+
+.pure-ul-unstyled {
+    margin: 0;
+    padding-left: 0;
+    list-style: none outside none;
+}
+
 .wiki-icon {
     font-weight: bolder;
 }
