@@ -6,7 +6,7 @@ from wikked.web import app
 @app.route('/api/orphans')
 def api_special_orphans():
     orphans = []
-    for page in g.wiki.getPages():
+    for page in g.wiki.getPages(no_endpoint_only=True):
         try:
             if not is_page_readable(page):
                 continue

@@ -199,8 +199,8 @@ class Wiki(object):
             '/' +
             parameters.config.get('wiki', 'main_page').strip('/'))
         self.templates_url = (
-            '/' +
-            parameters.config.get('wiki', 'templates_dir').strip('/') + '/')
+            parameters.config.get('wiki', 'templates_endpoint') +
+            ':/')
         self.endpoints = self._createEndpointInfos(parameters.config)
 
         self.fs = parameters.fs_factory()
@@ -310,10 +310,12 @@ class Wiki(object):
         for url in self.db.getPageUrls(subdir):
             yield url
 
-    def getPages(self, subdir=None, meta_query=None, fields=None):
+    def getPages(self, subdir=None, meta_query=None,
+                 endpoint_only=None, no_endpoint_only=False, fields=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
         """
         for page in self.db.getPages(subdir=subdir, meta_query=meta_query,
+                endpoint_only=endpoint_only, no_endpoint_only=no_endpoint_only,
                 fields=fields):
             yield page
 
