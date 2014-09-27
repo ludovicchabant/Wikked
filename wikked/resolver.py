@@ -235,16 +235,17 @@ class PageResolver(object):
                 return ''
 
         # Get the included page. First, try with a page in the special
-        # `Templates` folder.
+        # `templates` endpoint, if the included page is not specified with an
+        # absolute path.
         include_url = opts['url']
         if include_url[0] != '/':
             include_url = self.ctx.getAbsoluteUrl(
-                    self.page.wiki.templates_url + include_url,
-                    self.page.url)
+                    include_url,
+                    self.page.wiki.templates_url)
             if not self.wiki.pageExists(include_url):
-                include_url = self.ctx.getAbsoluteUrl(opts['url'], self.page.url)
-        else:
-            include_url = self.ctx.getAbsoluteUrl(include_url, self.page.url)
+                include_url = self.ctx.getAbsoluteUrl(opts['url'],
+                                                      self.page.url)
+        # else: include URL is absolute.
 
         # Check for circular includes.
         if include_url in self.ctx.url_trail:
@@ -420,12 +421,10 @@ class PageResolver(object):
 
             if v[0] != '/':
                 include_url = self.ctx.getAbsoluteUrl(
-                        self.page.wiki.templates_url + v,
-                        page.url)
+                        v, self.page.wiki.templates_url)
                 if not self.wiki.pageExists(include_url):
                     include_url = self.ctx.getAbsoluteUrl(v, page.url)
-            else:
-                include_url = self.ctx.getAbsoluteUrl(v, page.url)
+
             included_urls.append(include_url)
 
         # Recurse into included pages.
