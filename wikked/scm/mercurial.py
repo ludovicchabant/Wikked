@@ -17,6 +17,9 @@ from base import (
 logger = logging.getLogger(__name__)
 
 
+re_rev = re.compile(r'^[0-9a-f]+$')
+
+
 class MercurialBaseSourceControl(SourceControl):
     def __init__(self, root):
         SourceControl.__init__(self)
@@ -60,7 +63,7 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         self.hg = 'hg'
         self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
 
-    def getHistory(self, path=None, limit=10):
+    def getHistory(self, path=None, limit=10, after_rev=None):
         if path is not None:
             st_out = self._run('status', path)
             if len(st_out) > 0 and st_out[0] == '?':
@@ -71,6 +74,10 @@ class MercurialSourceControl(MercurialBaseSourceControl):
             log_args.append(path)
         log_args += ['--style', self.log_style]
         log_args += ['-l', limit]
+        if after_rev:
+            if not re_rev.match(after_rev):
+                raise ValueError("Invalid revision ID: %s" % after_rev)
+            log_args += ['-r', 'reverse(:%s^)' % after_rev]
         log_out = self._run('log', *log_args)
 
         revisions = []
@@ -229,21 +236,29 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             # go through.
             pass
 
-    def getHistory(self, path=None, limit=10):
+    def getHistory(self, path=None, limit=10, after_rev=None):
         if path is not None:
             with cl_lock:
                 status = self.client.status(include=[path])
             if len(status) > 0 and status[0] == '?':
                 return []
 
+        rev = None
+        if after_rev:
+            if not re_rev.match(after_rev):
+                raise ValueError("Invalid revision ID: %s" % after_rev)
+            rev = 'reverse(:%s^)' % after_rev
+
         needs_files = False
         if path is not None:
             with cl_lock:
-                repo_revs = self.client.log(files=[path], follow=True, limit=limit)
+                repo_revs = self.client.log(files=[path], follow=True,
+                                            limit=limit, revrange=rev)
         else:
             needs_files = True
             with cl_lock:
-                repo_revs = self.client.log(follow=True, limit=limit)
+                repo_revs = self.client.log(follow=True, limit=limit,
+                                            revrange=rev)
         revisions = []
         for rev in repo_revs:
             r = Revision(rev.node)

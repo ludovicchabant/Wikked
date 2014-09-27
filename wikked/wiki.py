@@ -389,10 +389,10 @@ class Wiki(object):
         """
         return self.db.pageExists(url)
 
-    def getHistory(self, limit=10):
+    def getHistory(self, limit=10, after_rev=None):
         """ Shorthand method to get the history from the source-control.
         """
-        return self.scm.getHistory(limit=limit)
+        return self.scm.getHistory(limit=limit, after_rev=after_rev)
 
     def getSpecialFilenames(self):
         return self.special_filenames

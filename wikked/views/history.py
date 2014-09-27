@@ -54,13 +54,8 @@ def get_history_data(history, needs_files=False):
 
 @app.route('/api/history')
 def api_site_history():
-    limit = request.args.get('l')
-    if not limit:
-        limit = 10
-    else:
-        limit = int(limit)
-
-    history = g.wiki.getHistory(limit=limit)
+    after_rev = request.args.get('rev')
+    history = g.wiki.getHistory(limit=10, after_rev=after_rev)
     hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
     return jsonify(result)

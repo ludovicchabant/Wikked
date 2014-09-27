@@ -76,6 +76,7 @@ define([
             'logout':                "doLogout",
             'special':               "showSpecialPages",
             'special/changes':       "showSiteChanges",
+            'special/changes/:rev':  "showSiteChangesAfterRev",
             'special/orphans':       "showOrphans"
         },
         readPage: function(path) {
@@ -186,6 +187,13 @@ define([
             });
             this.viewManager.switchView(view);
             this.navigate('/special/changes');
+        },
+        showSiteChangesAfterRev: function(rev) {
+            var view = new Views.SpecialChangesView({
+                model: new Models.SpecialChangesModel({ after_rev: rev })
+            });
+            this.viewManager.switchView(view);
+            this.navigate('/special/changes/' + rev);
         },
         showOrphans: function() {
             var view = new Views.SpecialOrphansView({

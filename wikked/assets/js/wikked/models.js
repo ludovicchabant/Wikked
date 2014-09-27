@@ -480,10 +480,15 @@ define([
 
     var SpecialChangesModel = exports.SpecialChangesModel = SpecialPageModel.extend({
         title: "Wiki History",
-        url: '/api/history',
         initialize: function() {
             SpecialChangesModel.__super__.initialize.apply(this, arguments);
             this.on('change:history', this._onHistoryChanged);
+        },
+        url: function() {
+            var url = '/api/history';
+            if (this.get('after_rev'))
+                url += '?rev=' + this.get('after_rev');
+            return url;
         },
         _onHistoryChanged: function(model, history) {
             for (var i = 0; i < history.length; ++i) {
@@ -503,6 +508,11 @@ define([
                             break;
                     }
                 }
+            }
+            model.set('first_page', '/#/special/changes');
+            if (history.length > 0) {
+                var last_rev = history[0].rev_name;
+                model.set('next_page', '/#/special/changes/' + last_rev);
             }
         }
     });

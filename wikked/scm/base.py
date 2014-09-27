@@ -28,7 +28,7 @@ class SourceControl(object):
     def getSpecialFilenames(self):
         raise NotImplementedError()
 
-    def getHistory(self, path=None, limit=10):
+    def getHistory(self, path=None, limit=10, after_rev=None):
         raise NotImplementedError()
 
     def getState(self, path):
