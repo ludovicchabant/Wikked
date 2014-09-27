@@ -16,6 +16,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.exc import NoResultFound
 from wikked.db.base import Database
 from wikked.page import Page, PageData, FileSystemPage
+from wikked.utils import split_page_url
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ class SQLPage(Base):
     # to be indexable by SQL).
     url = Column(String(260), unique=True)
     path = Column(String(260), unique=True)
+    endpoint = Column(String(64))
     title = Column(UnicodeText)
     raw_text = Column(UnicodeText(length=2 ** 31))
     formatted_text = Column(UnicodeText(length=2 ** 31))
@@ -125,7 +127,7 @@ class SQLInfo(Base):
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 4
+    schema_version = 5
 
     def __init__(self, config):
         Database.__init__(self)
@@ -294,7 +296,7 @@ class SQLDatabase(Database):
             yield p.url
 
     def getPages(self, subdir=None, meta_query=None, uncached_only=False,
-                 fields=None):
+                 endpoint_only=None, no_endpoint_only=False, fields=None):
         q = self.session.query(SQLPage)
         if meta_query:
             q = q.join(SQLReadyMeta)
@@ -307,6 +309,10 @@ class SQLDatabase(Database):
             q = q.filter(SQLPage.url.like(subdir))
         if uncached_only:
             q = q.filter(SQLPage.is_ready is False)
+        if endpoint_only:
+            q = q.filter(SQLPage.endpoint == endpoint_only)
+        elif no_endpoint_only:
+            q = q.filter(SQLPage.endpoint == None)
         q = self._addFieldOptions(q, fields)
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
@@ -440,6 +446,7 @@ class SQLDatabase(Database):
         po = SQLPage()
         po.time = datetime.datetime.now()
         po.url = page.url
+        po.endpoint, _ = split_page_url(page.url)
         po.path = page.path
         po.title = page.title
         po.raw_text = page.raw_text

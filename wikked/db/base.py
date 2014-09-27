@@ -32,7 +32,7 @@ class Database(object):
         raise NotImplementedError()
 
     def getPages(self, subdir=None, meta_query=None, uncached_only=False,
-                 fields=None):
+                 endpoint_only=None, no_endpoint_only=False, fields=None):
         raise NotImplementedError()
 
     def getPage(self, url=None, path=None, fields=None, raise_if_none=True):
