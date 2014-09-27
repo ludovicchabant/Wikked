@@ -59,9 +59,11 @@ def api_read_page(url):
     if 'user' in request.args:
         user = current_user
         if user.is_authenticated():
+            user_page_url = 'user:' + user.username.title()
             additional_info['user'] = {
                     'username': user.username,
-                    'groups': user.groups
+                    'groups': user.groups,
+                    'page_url': user_page_url
                     }
         else:
             additional_info['user'] = False

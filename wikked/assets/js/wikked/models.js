@@ -102,7 +102,7 @@ define([
                 this.set({
                     url_login: false,
                     url_logout: '/#/logout',
-                    url_profile: '/#/read/user:' + user.username
+                    url_profile: ('/#/read/' + user.page_url)
                 });
             } else {
                 this.set({
