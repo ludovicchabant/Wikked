@@ -65,13 +65,16 @@ class UserManager(object):
         perm = page.getMeta(meta_name)
         if perm is not None:
             # Permissions are declared at the page level.
-            for p in perm:
-                allowed = [r.strip() for r in re.split(r'[ ,;]', p)]
-                if username is None and 'anonymous' in allowed:
-                    return True
-                if username is not None and (
-                        '*' in allowed or username in allowed):
-                    return True
+            if isinstance(perm, list):
+                perm = ','.join(perm)
+
+            allowed = [r.strip() for r in re.split(r'[ ,;]', perm)]
+            if username is None and 'anonymous' in allowed:
+                return True
+            if username is not None and (
+                    '*' in allowed or username in allowed):
+                return True
+
             return False
 
         perm = self._permissions.get(meta_name)
@@ -84,7 +87,6 @@ class UserManager(object):
                 return True
             return False
 
-        # No permissions declared anywhere.
         return True
 
     def _updatePermissions(self, config):
