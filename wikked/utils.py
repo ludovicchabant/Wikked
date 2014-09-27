@@ -48,7 +48,7 @@ def find_wiki_root(path=None):
 
 
 def get_absolute_url(base_url, url, quote=False):
-    base_url = strip_endpoint_regex.sub('', base_url)
+    endpoint, base_url = split_page_url(base_url)
     if base_url[0] != '/':
         raise ValueError("The base URL must be absolute. Got: %s" % base_url)
 
@@ -68,6 +68,8 @@ def get_absolute_url(base_url, url, quote=False):
         abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
     if quote:
         abs_url = urllib.quote(abs_url.encode('utf-8'))
+    if endpoint:
+        return '%s:%s' % (endpoint, abs_url)
     return abs_url
 
 
