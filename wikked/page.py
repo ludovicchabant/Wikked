@@ -30,6 +30,7 @@ class PageData(object):
     def __init__(self):
         self.url = None
         self.path = None
+        self.cache_time = None
         self.title = None
         self.raw_text = None
         self.formatted_text = None
@@ -55,6 +56,10 @@ class Page(object):
     @property
     def path(self):
         return self._data.path
+
+    @property
+    def cache_time(self):
+        return self._data.cache_time
 
     @property
     def extension(self):
@@ -133,6 +138,7 @@ class FileSystemPage(Page):
         data = PageData()
         data.url = page_info.url
         data.path = page_info.path
+        data.cache_time = None
         data.raw_text = page_info.content
 
         # Format the page and get the meta properties.

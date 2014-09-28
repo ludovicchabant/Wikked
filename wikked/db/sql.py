@@ -29,7 +29,7 @@ class SQLPage(Base):
     __tablename__ = 'pages'
 
     id = Column(Integer, primary_key=True)
-    time = Column(DateTime)
+    cache_time = Column(DateTime)
     # In the spirit of cross-platformness we let Windows' suckiness dictacte
     # this length (but it's good because it makes those 2 columns short enough
     # to be indexable by SQL).
@@ -53,6 +53,7 @@ class SQLPage(Base):
 
     ready_text = Column(UnicodeText(length=2 ** 31))
     is_ready = Column(Boolean)
+    needs_invalidate = Column(Boolean)
 
     ready_meta = relationship(
         'SQLReadyMeta',
@@ -127,7 +128,7 @@ class SQLInfo(Base):
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 5
+    schema_version = 6
 
     def __init__(self, config):
         Database.__init__(self)
@@ -236,7 +237,17 @@ class SQLDatabase(Database):
             self.session.commit()
 
         page = FileSystemPage(self.wiki, page_info)
-        self._addPage(page)
+        added_p = self._addPage(page)
+        self.session.commit()
+
+        # Invalidate all the appropriate pages.
+        q = self.session.query(SQLPage)\
+                .options(load_only('id', 'needs_invalidate', 'is_ready'))\
+                .filter(SQLPage.needs_invalidate is True)
+        for p in q.all():
+            if p.id == added_p.id:
+                continue
+            p.is_ready = False
         self.session.commit()
 
     def updateAll(self, page_infos, force=False):
@@ -252,7 +263,7 @@ class SQLDatabase(Database):
         page_infos = list(page_infos)
         page_urls = set([p.url for p in page_infos])
         db_pages = self.session.query(SQLPage).\
-            options(load_only('id', 'url', 'path', 'time')).\
+            options(load_only('id', 'url', 'path', 'cache_time')).\
             all()
         for p in db_pages:
             if not os.path.isfile(p.path):
@@ -262,7 +273,7 @@ class SQLDatabase(Database):
                 already_added.add(p.path)
                 path_time = datetime.datetime.fromtimestamp(
                     os.path.getmtime(p.path))
-                if path_time > p.time or (force and p.url in page_urls):
+                if path_time > p.cache_time or (force and p.url in page_urls):
                     # File has changed since last index.
                     to_remove.append(p)
                     to_update.add(p.path)
@@ -317,30 +328,6 @@ class SQLDatabase(Database):
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
 
-    def isPageValid(self, url):
-        db_obj = self.session.query(SQLPage).\
-            options(load_only('id', 'url', 'path', 'time')).\
-            filter(SQLPage.url == url).\
-            first()
-        if not db_obj:
-            return False
-        path_time = datetime.datetime.fromtimestamp(
-            os.path.getmtime(db_obj.path))
-        return path_time < db_obj.time
-
-    def invalidateCache(self, ids):
-        if not isinstance(ids, list):
-            ids = list(ids)
-        logger.debug("Invalidating %d page caches in SQL database." % len(ids))
-
-        db_pages = self.session.query(SQLPage).\
-            options(load_only('id', 'url', 'is_ready')).\
-            filter(SQLPage.id.in_(ids)).\
-            all()
-        for p in db_pages:
-            p.is_ready = False
-        self.session.commit()
-
     def cachePage(self, page):
         if not hasattr(page, '_id') or not page._id:
             raise Exception("Given page '%s' has no `_id` attribute set." % page.url)
@@ -361,6 +348,7 @@ class SQLDatabase(Database):
             raise
 
         db_obj.ready_text = page._data.text
+        db_obj.needs_invalidate = False
 
         del db_obj.ready_meta[:]
         for name, value in page._data.ext_meta.iteritems():
@@ -371,6 +359,8 @@ class SQLDatabase(Database):
             else:
                 for v in value:
                     db_obj.ready_meta.append(SQLReadyMeta(name, v))
+            if name in ['include', 'query']:
+                db_obj.needs_invalidate = True
 
         del db_obj.ready_links[:]
         for link_url in page._data.ext_links:
@@ -444,7 +434,7 @@ class SQLDatabase(Database):
         logger.debug("Adding page '%s' to SQL database." % page.url)
 
         po = SQLPage()
-        po.time = datetime.datetime.now()
+        po.cache_time = datetime.datetime.now()
         po.url = page.url
         po.endpoint, _ = split_page_url(page.url)
         po.path = page.path
@@ -489,6 +479,8 @@ class SQLDatabasePage(Page):
             data.url = db_obj.url
         if fields is None or 'path' in fields:
             data.path = db_obj.path
+        if fields is None or 'cache_time' in fields:
+            data.cache_time = db_obj.cache_time
         if fields is None or 'title' in fields:
             data.title = db_obj.title
         if fields is None or 'raw_text' in fields:

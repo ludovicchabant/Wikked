@@ -281,15 +281,6 @@ class Wiki(object):
             page_info.url,
             fields=['url', 'path', 'title', 'text']))
 
-        # Invalidate all the appropriate pages.
-        logger.info("Handling dependencies...")
-        invalidate_ids = []
-        db_pages = self.db.getPages(fields=['local_meta'])
-        for p in db_pages:
-            if p.getLocalMeta('include') or p.getLocalMeta('query'):
-                invalidate_ids.append(p._id)
-        self.db.invalidateCache(invalidate_ids)
-
     def updateAll(self):
         """ Completely updates all pages, i.e. read them from the file-system
             and have them fully resolved and cached in the DB.

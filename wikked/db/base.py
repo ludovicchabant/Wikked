@@ -50,9 +50,6 @@ class Database(object):
             raise PageNotFoundError(url or path)
         return page
 
-    def isPageValid(self, url):
-        return True
-
     def cachePage(self, page):
         pass
 

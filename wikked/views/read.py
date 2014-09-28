@@ -68,7 +68,6 @@ def api_read_page(url):
         else:
             additional_info['user'] = False
 
-    force_resolve = ('force_resolve' in request.args)
     no_redirect = ('no_redirect' in request.args)
 
     endpoint, value, path = split_url_from_viewarg(url)
@@ -80,8 +79,7 @@ def api_read_page(url):
                     path,
                     fields=['url', 'title', 'text', 'meta'],
                     convert_url=False,
-                    check_perms=CHECK_FOR_READ,
-                    force_resolve=force_resolve)
+                    check_perms=CHECK_FOR_READ)
             visited_paths.append(path)
             redirect_meta = page.getMeta('redirect')
             if redirect_meta is None:
@@ -107,8 +105,7 @@ def api_read_page(url):
             meta_page_url,
             fields=['url', 'title', 'text', 'meta'],
             convert_url=False,
-            check_perms=CHECK_FOR_READ,
-            force_resolve=force_resolve)
+            check_perms=CHECK_FOR_READ)
 
     endpoint_info = g.wiki.endpoints.get(endpoint)
     if endpoint_info is not None:
@@ -119,8 +116,7 @@ def api_read_page(url):
                     endpoint_info.default,
                     fields=['url', 'title', 'text', 'meta'],
                     convert_url=False,
-                    check_perms=CHECK_FOR_READ,
-                    force_resolve=force_resolve)
+                    check_perms=CHECK_FOR_READ)
 
         if not endpoint_info.query:
             # Not a query-based endpoint (like categories). Let's just

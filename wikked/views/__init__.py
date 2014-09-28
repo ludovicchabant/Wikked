@@ -1,5 +1,7 @@
+import os.path
 import urllib
 import string
+import datetime
 from flask import g, abort, jsonify
 from flask.ext.login import current_user
 from wikked.fs import PageNotFoundError
@@ -32,23 +34,29 @@ def make_page_title(url):
 
 
 def get_page_or_none(url, fields=None, convert_url=True,
-        check_perms=DONT_CHECK, force_resolve=False):
+        check_perms=DONT_CHECK):
     if convert_url:
         url = url_from_viewarg(url)
 
-    try:
-        if app.config.get('WIKI_AUTO_RELOAD'):
-            if not g.wiki.db.isPageValid(url):
-                app.logger.info("Page '%s' has changed, reloading." % url)
-                g.wiki.updatePage(url=url)
-            else:
-                app.logger.debug("Page '%s' is up to date." % url)
-        elif force_resolve:
-            g.wiki.resolve(only_urls=[url], force=True)
+    auto_reload = app.config.get('WIKI_AUTO_RELOAD')
+    if auto_reload and fields is not None:
+        if 'path' not in fields:
+            fields.append('path')
+        if 'cache_time' not in fields:
+            fields.append('cache_time')
 
+    try:
         page = g.wiki.getPage(url, fields=fields)
     except PageNotFoundError:
         return None
+
+    if auto_reload:
+        path_time = datetime.datetime.fromtimestamp(
+            os.path.getmtime(page.path))
+        if path_time >= page.cache_time:
+            app.logger.info("Page '%s' has changed, reloading." % url)
+            g.wiki.updatePage(path=page.path)
+            page = g.wiki.getPage(url, fields=fields)
 
     if check_perms == CHECK_FOR_READ and not is_page_readable(page):
         abort(401)
@@ -59,9 +67,8 @@ def get_page_or_none(url, fields=None, convert_url=True,
 
 
 def get_page_or_404(url, fields=None, convert_url=True,
-        check_perms=DONT_CHECK, force_resolve=False):
-    page = get_page_or_none(url, fields, convert_url, check_perms,
-            force_resolve)
+        check_perms=DONT_CHECK):
+    page = get_page_or_none(url, fields, convert_url, check_perms)
     if page is not None:
         return page
     app.logger.error("No such page: " + url)
