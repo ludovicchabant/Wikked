@@ -322,7 +322,7 @@ define([
             this._goToReadPage();
         },
         _goToReadPage: function() {
-            this.navigate('/read/' + this.get('path') + '?no_redirect=1',
+            this.navigate('/read/' + this.get('path') + '?no_redirect',
                     { trigger: true });
         }
     });

@@ -441,7 +441,6 @@ define([
         defaultTemplateSource: tplEditPage,
         dispose: function() {
             PageEditView.__super__.dispose.apply(this, arguments);
-            this._removePreview();
         },
         renderCallback: function() {
             PageEditView.__super__.renderCallback.apply(this, arguments);
