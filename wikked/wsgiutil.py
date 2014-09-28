@@ -5,7 +5,7 @@ import wikked.settings
 logger = logging.getLogger()
 
 
-def get_wsgi_app(wiki_root=None, async_update=True, log_file=None,
+def get_wsgi_app(wiki_root=None, async_update=False, log_file=None,
         max_log_bytes=0, log_backup_count=0, log_level=logging.INFO):
     if log_file:
         from logging.handlers import RotatingFileHandler
@@ -20,4 +20,4 @@ def get_wsgi_app(wiki_root=None, async_update=True, log_file=None,
     wikked.settings.WIKI_ASYNC_UPDATE = async_update
     from wikked.web import app
     return app
-    
+
