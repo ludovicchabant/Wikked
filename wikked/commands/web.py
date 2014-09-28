@@ -64,6 +64,11 @@ class RunServerCommand(WikkedCommand):
         # Create/import the app.
         from wikked.web import app
 
+        # Remove Flask's default logging handler. Since the app is under the
+        # overall Wikked package, logging is handled by the root logger
+        # already.
+        app.logger.handlers = []
+
         # Setup other simpler settings.
         if ctx.args.dev:
             app.config['DEV_ASSETS'] = True
