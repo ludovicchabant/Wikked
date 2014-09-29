@@ -1,6 +1,6 @@
 import time
 import urllib
-from flask import render_template, request, g, jsonify
+from flask import render_template, request, g, jsonify, make_response
 from flask.ext.login import current_user
 from wikked.views import (get_page_meta, get_page_or_404, get_page_or_none,
         is_page_readable,
@@ -167,9 +167,10 @@ def api_read_main_page_raw():
 @app.route('/api/raw/<path:url>')
 def api_read_page_raw(url):
     page = get_page_or_404(url, check_perms=CHECK_FOR_READ,
-            fields=['url', 'title', 'text', 'meta'])
-    result = {'meta': get_page_meta(page), 'text': page.raw_text}
-    return jsonify(result)
+            fields=['raw_text', 'meta'])
+    resp = make_response(page.raw_text)
+    resp.mimetype = 'text/plain'
+    return resp
 
 
 @app.route('/api/query')
