@@ -107,15 +107,6 @@ define([
             else
                 jel.attr('href', '/#/read/' + wiki_url);
         });
-        $('a.wiki-meta-link', el).each(function(i) {
-            var jel = $(this);
-            var meta_name = jel.attr('data-wiki-meta');
-            var meta_value = jel.attr('data-wiki-value');
-            if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                jel.attr('href', '/#/edit/' + meta_name + ':' + meta_value);
-            else
-                jel.attr('href', '/#/read/' + meta_name + ':' + meta_value);
-        });
     };
 
     var PageView = exports.PageView = Backbone.View.extend({

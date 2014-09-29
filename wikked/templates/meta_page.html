@@ -1,7 +1,7 @@
 {% if info_text %}
 {{info_text|safe}}
 {% else %}
-<p>No additional information is available for this page. You can <a class="wiki-meta-link missing" data-wiki-meta="{{name}}" data-wiki-value="{{safe_value}}" data-action="edit">write some right now</a>.</p>
+<p>No additional information is available for this page. You can <a class="wiki-link missing" data-wiki-endpoint="{{name}}" data-wiki-url="{{url}}" data-action="edit">write some right now</a>.</p>
 {% endif %}
 
 <h3>Pages in {{name}} "{{value}}"</h3>

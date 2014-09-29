@@ -135,6 +135,7 @@ def api_read_page(url):
             fields=['url', 'title', 'text', 'meta'])
     tpl_data = {
             'name': endpoint,
+            'url': meta_page_url,
             'value': value,
             'safe_value': urllib.quote(value.encode('utf-8')),
             'pages': [get_page_meta(p) for p in pages]

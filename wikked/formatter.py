@@ -116,7 +116,7 @@ class PageFormatter(object):
             value = m.group(2).strip()
             if endpoint in self.endpoints:
                 return self.endpoints[endpoint](ctx, endpoint, value, value)
-            return self._formatMetaLink(ctx, endpoint, value, value)
+            return self._formatEndpointLink(ctx, endpoint, value, value)
         text = re.sub(r'\[\[(\w[\w\d]+)\:([^\]]+)\]\]', repl1, text)
 
         # [[display name|endpoint:Something/Whatever]]
@@ -126,7 +126,7 @@ class PageFormatter(object):
             value = m.group(3).strip()
             if endpoint in self.endpoints:
                 return self.endpoints[endpoint](ctx, endpoint, value, display)
-            return self._formatMetaLink(ctx, endpoint, value, display)
+            return self._formatEndpointLink(ctx, endpoint, value, display)
         text = re.sub(r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)\:([^\]]+)\]\]', repl2, text)
 
         # [[display name|Whatever/PageName]]
@@ -205,14 +205,16 @@ class PageFormatter(object):
 
         return '<a class="wiki-asset" href="%s">%s</a>' % (abs_url, display)
 
-    def _formatMetaLink(self, ctx, endpoint, value, display):
-        meta_url = '%s:%s' % (endpoint, value)
-        ctx.out_links.append(meta_url)
-        return '<a class="wiki-meta-link" data-wiki-meta="%s" data-wiki-value="%s">%s</a>' % (endpoint, value, display)
+    def _formatEndpointLink(self, ctx, endpoint, value, display):
+        url = '%s:%s' % (endpoint, value)
+        ctx.out_links.append(url)
+        return ('<a class="wiki-link" data-wiki-endpoint="%s" '
+                'data-wiki-url="%s">%s</a>' % (endpoint, url, display))
 
     def _formatWikiLink(self, ctx, display, url):
         ctx.out_links.append(url)
-        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (url, display)
+        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (
+                url, display)
 
     @staticmethod
     def parseWikiLinks(text):
