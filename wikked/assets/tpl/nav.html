@@ -1,13 +1,13 @@
 <a id="wiki-menu-shortcut" class="wiki-logo">
     <span>W</span>
 </a>
-<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{{#if showMenu}} wiki-menu-active{{/if}}">
     <ul class="">
         <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
         <li><a href="/#/create/"><span class="glyphicon glyphicon-file"></span> New Page</a></li>
-        {{#ifneq action to='read'}}<li><a href="{{url_read}}"><span class="glyphicon glyphicon-book"></span> Read</a></li>{{/ifneq}}
-        {{#ifneq action to='edit'}}<li><a href="{{url_edit}}"><span class="glyphicon glyphicon-edit"></span> Edit</a></li>{{/ifneq}}
-        {{#ifneq action to='history'}}<li><a href="{{url_hist}}"><span class="glyphicon glyphicon-road"></span> History</a></li>{{/ifneq}}
+        {{#if url_read}}<li><a href="{{url_read}}"><span class="glyphicon glyphicon-book"></span> Read</a></li>{{/if}}
+        {{#if url_edit}}<li><a href="{{url_edit}}"><span class="glyphicon glyphicon-edit"></span> Edit</a></li>{{/if}}
+        {{#if url_hist}}<li><a href="{{url_hist}}"><span class="glyphicon glyphicon-road"></span> History</a></li>{{/if}}
     </ul>
     <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider">
         <fieldset>

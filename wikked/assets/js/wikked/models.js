@@ -16,22 +16,18 @@ define([
         defaults: function() {
             return {
                 path: "",
-                action: "read",
                 username: false,
+                urls: [],
                 url_extras: [
                     { name: 'Special Pages', url: '/#/special', icon: 'dashboard' }
                 ]
             };
         },
         initialize: function() {
-            this.on('change:path', function(model, path) {
-                model._onChangePath(path);
-            });
-            this._onChangePath(this.get('path'));
-            this.on('change:user', function(model, auth) {
-                model._onChangeUser(auth);
-            });
-            this._onChangeUser(this.get('user'));
+            this.on('change:path', this._onChangePath, this);
+            this.on('change:user', this._onChangeUser, this);
+            this._onChangePath(this, this.get('path'));
+            this._onChangeUser(this, this.get('user'));
             return this;
         },
         url: function() {
@@ -76,14 +72,17 @@ define([
         doNewPage: function(form) {
             this.navigate('/create/', { trigger: true });
         },
-        _onChangePath: function(path) {
-            this.set({
-                url_home: '/',
-                url_read: '/#/read/' + path,
-                url_edit: '/#/edit/' + path,
-                url_hist: '/#/changes/' + path,
-                url_search: '/search'
-            });
+        _onChangePath: function(model, path) {
+            var attrs ={
+                url_home: '/#/'};
+            var urls = this.get('urls');
+            if (_.contains(urls, 'read'))
+                attrs.url_read = '/#/read/' + path;
+            if (_.contains(urls, 'edit'))
+                attrs.url_edit = '/#/edit/' + path;
+            if (_.contains(urls, 'history'))
+                attrs.url_hist = '/#/changes/' + path;
+            this.set(attrs);
         },
         _isSearching: false,
         _pendingQuery: null,
@@ -97,7 +96,7 @@ define([
                 this.doPreviewSearch(q, c);
             }
         },
-        _onChangeUser: function(user) {
+        _onChangeUser: function(model, user) {
             if (user) {
                 this.set({
                     url_login: false,
@@ -158,14 +157,10 @@ define([
             };
         },
         initialize: function() {
-            this.on('change:path', function(model, path) {
-                model._onChangePath(path);
-            });
-            this.on('change:text', function(model, text) {
-                model._onChangeText(text);
-            });
-            this._onChangePath(this.get('path'));
-            this._onChangeText('');
+            this.on('change:path', this._onChangePath, this);
+            this.on('change:text', this._onChangeText, this);
+            this._onChangePath(this, this.get('path'));
+            this._onChangeText(this, '');
             return this;
         },
         url: function() {
@@ -189,45 +184,53 @@ define([
                 this._onAppSet(app);
             }
         },
-        _onChangePath: function(path) {
+        _onChangePath: function(model, path) {
         },
-        _onChangeText: function(text) {
+        _onChangeText: function(model, text) {
             this.set('content', new Handlebars.SafeString(text));
         }
     });
 
     var PageStateModel = exports.PageStateModel = PageModel.extend({
         urlRoot: '/api/state/',
-        _onChangePath: function(path) {
+        _onChangePath: function(model, path) {
             PageStateModel.__super__._onChangePath.apply(this, arguments);
             this.set('url_edit', '/#/edit/' + path);
         }
     });
 
     var MasterPageModel = exports.MasterPageModel = PageModel.extend({
+        navUrls: [],
         initialize: function() {
-            this.nav = new NavigationModel({ path: this.id });
+            var navAttrs = { path: this.id, urls: this.navUrls };
+            this.nav = new NavigationModel(navAttrs);
             this.footer = new FooterModel();
             MasterPageModel.__super__.initialize.apply(this, arguments);
-            this.on('change:auth', function(model, auth) {
-                model._onChangeAuth(auth);
-            });
+            this._addNavExtraUrls();
+            this._addFooterExtraUrls();
+            this.on('change:auth', this._onChangeAuth, this);
             this.on('error', this._onError, this);
-            if (this.action !== undefined) {
-                this.nav.set('action', this.action);
-                this.footer.set('action', this.action);
-            }
             return this;
+        },
+        _addNavExtraUrls: function() {
+        },
+        _addFooterExtraUrls: function() {
+            var model = this;
+            this.footer.addExtraUrl(
+                'JSON',
+                function() { return model.url(); },
+                -1,
+                'cog');
         },
         _onAppSet: function(app) {
             this.nav.app = app;
             this.footer.app = app;
         },
-        _onChangePath: function(path) {
+        _onChangePath: function(model, path) {
             MasterPageModel.__super__._onChangePath.apply(this, arguments);
             this.nav.set('path', path);
         },
-        _onChangeAuth: function(auth) {
+        _onChangeAuth: function(model, auth) {
             this.nav.set('auth', auth);
         },
         _onError: function(model, resp) {
@@ -252,23 +255,29 @@ define([
 
     var PageReadModel = exports.PageReadModel = MasterPageModel.extend({
         urlRoot: '/api/read/',
-        action: 'read',
+        navUrls: ['edit', 'history'],
         initialize: function() {
             PageReadModel.__super__.initialize.apply(this, arguments);
             this.on('change', this._onChange, this);
-
-            // Add extra links to the footer.
+            return this;
+        },
+        _addNavExtraUrls: function() {
+            PageReadModel.__super__._addNavExtraUrls.apply(this, arguments);
             var model = this;
             this.nav.addExtraUrl(
                 'Pages Linking Here',
                 function() { return '/#/inlinks/' + model.id; },
                 1,
                 'link');
+        },
+        _addFooterExtraUrls: function() {
+            PageReadModel.__super__._addFooterExtraUrls.apply(this, arguments);
+            var model = this;
             this.footer.addExtraUrl(
-                'JSON',
-                function() { return '/api/read/' + model.id; },
+                'RAW',
+                function() { return '/api/raw/' + model.id; },
                 -1,
-                'cog');
+                'wrench');
         },
         url: function() {
             var url = PageReadModel.__super__.url.apply(this, arguments);
@@ -293,13 +302,12 @@ define([
     });
 
     var PageSourceModel = exports.PageSourceModel = MasterPageModel.extend({
-        urlRoot: '/api/raw/',
-        action: 'source'
+        urlRoot: '/api/raw/'
     });
 
     var PageEditModel = exports.PageEditModel = MasterPageModel.extend({
-        action: 'edit',
         urlRoot: '/api/edit/',
+        navUrls: ['read', 'history'],
         doEdit: function(form) {
             if (this.get('is_new')) {
                 this.set('path', $('input[name="title"]', form).val());
@@ -329,16 +337,7 @@ define([
 
     var PageHistoryModel = exports.PageHistoryModel = MasterPageModel.extend({
         urlRoot: '/api/history/',
-        action: 'history',
-        initialize: function() {
-            PageHistoryModel.__super__.initialize.apply(this, arguments);
-            var model = this;
-            this.nav.addExtraUrl(
-                'JSON',
-                function() { return '/api/history/' + model.id; },
-                -1,
-                'road');
-        },
+        navUrls: ['read', 'edit'],
         doDiff: function(form) {
             var rev1 = $('input[name=rev1]:checked', form).val();
             var rev2 = $('input[name=rev2]:checked', form).val();
@@ -357,7 +356,6 @@ define([
     });
 
     var PageRevisionModel = exports.PageRevisionModel = MasterPageModel.extend({
-        action: 'revision',
         defaults: function() {
             return {
                 path: "",
@@ -369,10 +367,8 @@ define([
         },
         initialize: function() {
             PageRevisionModel.__super__.initialize.apply(this, arguments);
-            this.on('change:rev', function(model, rev) {
-                model._onChangeRev(rev);
-            });
-            this._onChangeRev(this.get('rev'));
+            this.on('change:rev', this._onChangeRev, this);
+            this._onChangeRev(this, this.get('rev'));
             return this;
         },
         doRevert: function(form) {
@@ -386,7 +382,7 @@ define([
                     alert('Error reverting page...');
                 });
         },
-        _onChangeRev: function(rev) {
+        _onChangeRev: function(model, rev) {
             var setmap = { disp_rev: rev };
             if (rev.match(/[a-f0-9]{40}/)) {
                 setmap.disp_rev = rev.substring(0, 8);
@@ -396,7 +392,6 @@ define([
     });
 
     var PageDiffModel = exports.PageDiffModel = MasterPageModel.extend({
-        action: 'diff',
         defaults: function() {
             return {
                 path: "",
@@ -413,24 +408,20 @@ define([
         },
         initialize: function() {
             PageDiffModel.__super__.initialize.apply(this, arguments);
-            this.on('change:rev1', function(model, rev1) {
-                model._onChangeRev1(rev1);
-            });
-            this.on('change:rev2', function(model, rev2) {
-                model._onChangeRev2(rev2);
-            });
-            this._onChangeRev1(this.get('rev1'));
-            this._onChangeRev2(this.get('rev2'));
+            this.on('change:rev1', this._onChangeRev1, this);
+            this.on('change:rev2', this._onChangeRev2, this);
+            this._onChangeRev1(this, this.get('rev1'));
+            this._onChangeRev2(this, this.get('rev2'));
             return this;
         },
-        _onChangeRev1: function(rev1) {
+        _onChangeRev1: function(model, rev1) {
             var setmap = { disp_rev1: rev1 };
             if (rev1 !== undefined && rev1.match(/[a-f0-9]{40}/)) {
                 setmap.disp_rev1 = rev1.substring(0, 8);
             }
             this.set(setmap);
         },
-        _onChangeRev2: function(rev2) {
+        _onChangeRev2: function(model, rev2) {
             var setmap = { disp_rev2:  rev2 };
             if (rev2 !== undefined && rev2.match(/[a-f0-9]{40}/)) {
                 setmap.disp_rev2 = rev2.substring(0, 8);
@@ -441,7 +432,6 @@ define([
 
     var IncomingLinksModel = exports.IncomingLinksModel = MasterPageModel.extend({
         urlRoot: '/api/inlinks/',
-        action: 'inlinks',
         _onChangePath: function(path) {
             IncomingLinksModel.__super__._onChangePath.apply(this, arguments);
             this.set('url_read', '/#/read/' + path);
@@ -450,7 +440,6 @@ define([
 
     var WikiSearchModel = exports.WikiSearchModel = MasterPageModel.extend({
         urlRoot: '/api/search',
-        action: 'search',
         title: function() {
             return 'Search';
         },
@@ -460,21 +449,19 @@ define([
     });
 
     var SpecialPagesModel = exports.SpecialPagesModel = MasterPageModel.extend({
-        action: 'special',
         title: function() {
             return 'Special Pages';
         },
         initialize: function() {
             SpecialPagesModel.__super__.initialize.apply(this, arguments);
-            this.nav.clearExtraUrls();
+        },
+        _addFooterExtraUrls: function() {
         }
     });
 
     var SpecialPageModel = exports.SpecialPageModel = MasterPageModel.extend({
-        action: 'special',
         initialize: function() {
             SpecialPageModel.__super__.initialize.apply(this, arguments);
-            this.nav.clearExtraUrls();
         }
     });
 
@@ -482,10 +469,10 @@ define([
         title: "Wiki History",
         initialize: function() {
             SpecialChangesModel.__super__.initialize.apply(this, arguments);
-            this.on('change:history', this._onHistoryChanged);
+            this.on('change:history', this._onHistoryChanged, this);
         },
         url: function() {
-            var url = '/api/history';
+            var url = '/api/site-history';
             if (this.get('after_rev'))
                 url += '?rev=' + this.get('after_rev');
             return url;

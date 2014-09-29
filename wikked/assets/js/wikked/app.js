@@ -31,12 +31,12 @@ define([
 
             if (view) {
                 this._currentView = view;
-                this.el.html(view.el);
                 if (autoFetch || autoFetch === undefined) {
                     view.model.fetch();
                 } else {
                     view.render();
                 }
+                this.el.empty().append(view.el);
             }
 
             return this;
@@ -80,14 +80,15 @@ define([
             'special/orphans':       "showOrphans"
         },
         readPage: function(path) {
-            path_clean = this.stripQuery(path);
-            no_redirect = this.getQueryVariable('no_redirect', path);
+            var path_clean = this.stripQuery(path);
+            var no_redirect = this.getQueryVariable('no_redirect', path);
+            var model_attrs = { path: path_clean };
+            if (no_redirect) model_attrs.no_redirect = true;
+
             var view = new Views.PageReadView({
-                model: new Models.PageReadModel({ path: path_clean })
+                model: new Models.PageReadModel(model_attrs)
             });
-            if (no_redirect) {
-                view.model.set('no_redirect', true);
-            }
+
             this.viewManager.switchView(view);
             this.navigate('/read/' + path);
         },

@@ -124,10 +124,8 @@ define([
         isMainPage: true,
         initialize: function() {
             PageView.__super__.initialize.apply(this, arguments);
-            if (this.model !== undefined) {
-                var $view = this;
-                this.model.on("change", function() { $view._onModelChange(); });
-            }
+            if (this.model)
+                this.model.on("change", this._onModelChange, this);
             return this;
         },
         dispose: function() {
@@ -145,7 +143,12 @@ define([
                 this.template = Handlebars.compile(_.result(this, 'templateSource'));
             }
             if (this.template !== undefined) {
-                this.renderTemplate(this.template);
+                var markup = this.renderTemplate(this.template);
+                var $markup = $(markup);
+                if (this.preRenderCallback !== undefined) {
+                    this.preRenderCallback($markup);
+                }
+                this.$el.append($markup);
                 if (this.renderCallback !== undefined) {
                     this.renderCallback();
                 }
@@ -156,7 +159,11 @@ define([
             return this;
         },
         renderTemplate: function(tpl) {
-            this.$el.html(tpl(this.model.toJSON()));
+            var ctx = this.renderContext();
+            return tpl(ctx);
+        },
+        renderContext: function() {
+            return this.model.toJSON();
         },
         renderTitle: function(formatter) {
             var title = _.result(this.model, 'title');
@@ -172,26 +179,30 @@ define([
     _.extend(PageView, Backbone.Events);
 
     var NavigationView = exports.NavigationView = PageView.extend({
+        className: 'nav-wrapper',
         templateSource: tplNav,
         isMainPage: false,
         initialize: function() {
             NavigationView.__super__.initialize.apply(this, arguments);
             return this;
         },
-        render: function() {
-            NavigationView.__super__.render.apply(this, arguments);
-
+        renderContext: function() {
+            var ctx = NavigationView.__super__.renderContext.apply(this, arguments);
+            var ima = localStorage.getItem('wikked.nav.isMenuActive');
+            if (ima == 'true') ctx.showMenu = true;
+            return ctx;
+        },
+        renderCallback: function() {
             // Hide the drop-down for the search results.
             this.searchPreviewList = this.$('#search-preview');
             this.searchPreviewList.hide();
             this.activeResultIndex = -1;
 
-            this.wikiMenu = $('#wiki-menu');
-            this.wrapperAndWikiMenu = $('.wrapper, #wiki-menu');
+            // Cache some stuff for handling the menu.
+            this.wikiMenu = this.$('#wiki-menu');
+            this.wrapperAndWikiMenu = this.$('.wrapper, #wiki-menu');
             this.isMenuActive = (this.wikiMenu.css('left') == '0px');
             this.isMenuActiveLocked = false;
-
-            return this;
         },
         events: {
             "click #wiki-menu-shortcut": "_onMenuShortcutClick",
@@ -208,6 +219,7 @@ define([
         },
         _onMenuShortcutClick: function(e) {
             this.isMenuActive = !this.isMenuActive;
+            localStorage.setItem('wikked.nav.isMenuActive', this.isMenuActive);
         },
         _onMenuShortcutHover: function(e) {
             if (!this.isMenuActive && !this.isMenuActiveLocked)
@@ -313,6 +325,7 @@ define([
     });
 
     var FooterView = exports.FooterView = PageView.extend({
+        className: 'footer-wrapper',
         templateSource: tplFooter,
         isMainPage: false,
         initialize: function() {
@@ -338,17 +351,37 @@ define([
     });
 
     var MasterPageView = exports.MasterPageView = PageView.extend({
+        className: function() {
+            var cls = 'wrapper';
+
+            // HACK-ish: we need to know if the menu needs to be shown 
+            //           on init or not. Can't do it later otherwise
+            //           we'll get the CSS animation to play right away.
+            var ima = localStorage.getItem('wikked.nav.isMenuActive');
+            if (ima == 'true') cls += ' wiki-menu-active';
+
+            return cls;
+        },
         initialize: function() {
             MasterPageView.__super__.initialize.apply(this, arguments);
             this.nav = this._createNavigation(this.model.nav);
             this.footer = this._createFooter(this.model.footer);
             return this;
         },
+        dispose: function() {
+            if (this.footer) this.footer.dispose();
+            if (this.nav) this.nav.dispose();
+            MasterPageView.__super__.dispose.apply(this, arguments);
+        },
         renderCallback: function() {
-            this.$el.prepend('<div class="nav-wrapper"></div>');
-            this.$el.append('<div class="footer-wrapper"></div>');
-            this.nav.setElement(this.$('>.nav-wrapper')).render();
-            this.footer.setElement(this.$('>.footer-wrapper')).render();
+            if (this.nav) {
+                this.nav.render();
+                this.$el.prepend(this.nav.el);
+            }
+            if (this.footer) {
+                this.footer.render();
+                this.$el.append(this.footer.el);
+            }
             this.isError = (this.model.get('error_code') !== undefined);
         },
         templateSource: function() {
@@ -588,16 +621,8 @@ define([
         defaultTemplateSource: tplSearchResults
     });
 
-    var SpecialNavigationView = exports.SpecialNavigationView = NavigationView.extend({
-        templateSource: tplSpecialNav
-    });
-
     var SpecialMasterPageView = exports.SpecialMasterPageView = MasterPageView.extend({
-        className: 'wrapper special',
-        _createNavigation: function(model) {
-            model.set('show_root_link', true);
-            return new SpecialNavigationView({ model: model });
-        }
+        className: 'wrapper special'
     });
 
     var SpecialPagesView = exports.SpecialPagesView = SpecialMasterPageView.extend({
