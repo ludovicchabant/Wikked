@@ -218,7 +218,7 @@ define([
             var model = this;
             this.footer.addExtraUrl(
                 'JSON',
-                function() { return model.url(); },
+                function() { return _.result(model, 'url'); },
                 -1,
                 'cog');
         },
