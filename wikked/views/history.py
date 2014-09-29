@@ -52,13 +52,18 @@ def get_history_data(history, needs_files=False):
     return hist_data
 
 
-@app.route('/api/history')
+@app.route('/api/site-history')
 def api_site_history():
     after_rev = request.args.get('rev')
     history = g.wiki.getHistory(limit=10, after_rev=after_rev)
     hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
     return jsonify(result)
+
+
+@app.route('/api/history/')
+def api_main_page_history():
+    return api_page_history(g.wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/history/<path:url>')
