@@ -148,7 +148,7 @@ define([
                 if (this.preRenderCallback !== undefined) {
                     this.preRenderCallback($markup);
                 }
-                this.$el.append($markup);
+                this.$el.empty().append($markup);
                 if (this.renderCallback !== undefined) {
                     this.renderCallback();
                 }
