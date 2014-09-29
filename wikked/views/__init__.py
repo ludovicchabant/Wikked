@@ -15,18 +15,18 @@ CHECK_FOR_WRITE = 2
 
 
 def url_from_viewarg(url):
-    url = urllib.unquote(url)
-    endpoint, path = split_page_url(url)
+    endpoint, path = split_url_from_viewarg(url)
     if endpoint:
-        return u'%s:/%s' % (endpoint, path)
-    return u'/' + path
+        return u'%s:%s' % (endpoint, path)
+    return path
 
 
 def split_url_from_viewarg(url):
     url = urllib.unquote(url)
     endpoint, path = split_page_url(url)
-    value = string.rsplit(path, '/', 1)[-1]
-    return (endpoint, value, u'/' + path)
+    if endpoint:
+        return (endpoint, path)
+    return (None, u'/' + path)
 
 
 def make_page_title(url):
@@ -100,7 +100,7 @@ def get_category_meta(category):
     result = []
     for item in category:
         result.append({
-            'url': urllib.quote(item.encode('utf-8')),
+            'url': u'category:/' + urllib.quote(item.encode('utf-8')),
             'name': item
             })
     return result

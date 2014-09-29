@@ -98,7 +98,7 @@ def api_edit_main_page():
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
 def api_edit_page(url):
-    endpoint, value, path = split_url_from_viewarg(url)
+    endpoint, path = split_url_from_viewarg(url)
 
     if request.method == 'GET':
         url = path
@@ -106,10 +106,10 @@ def api_edit_page(url):
         custom_data = None
         if endpoint is not None:
             url = u'%s:%s' % (endpoint, path)
-            default_title = u'%s: %s' % (endpoint, value)
+            default_title = u'%s: %s' % (endpoint, path)
             custom_data = {
                     'meta_query': endpoint,
-                    'meta_value': value
+                    'meta_value': path.lstrip('/')
                     }
 
         return get_edit_page(
@@ -121,7 +121,7 @@ def api_edit_page(url):
     default_message = u'Edited ' + url
     if endpoint is not None:
         url = u'%s:%s' % (endpoint, path)
-        default_message = u'Edited %s %s' % (endpoint, value)
+        default_message = u'Edited %s %s' % (endpoint, path.lstrip('/'))
     return do_edit_page(url, default_message)
 
 

@@ -70,7 +70,7 @@ def api_read_page(url):
 
     no_redirect = ('no_redirect' in request.args)
 
-    endpoint, value, path = split_url_from_viewarg(url)
+    endpoint, path = split_url_from_viewarg(url)
     if endpoint is None:
         # Normal page.
         visited_paths = []
@@ -121,11 +121,15 @@ def api_read_page(url):
         if not endpoint_info.query:
             # Not a query-based endpoint (like categories). Let's just
             # return the text.
-            result = {'meta': get_page_meta(info_page), 'text': info_page.text}
+            result = {
+                    'endpoint': endpoint,
+                    'meta': get_page_meta(info_page),
+                    'text': info_page.text}
             result.update(additional_info)
             return jsonify(result)
 
     # Get the list of pages to show here.
+    value = path.lstrip('/')
     query = {endpoint: [value]}
     pages = g.wiki.getPages(meta_query=query,
             fields=['url', 'title', 'text', 'meta'])
@@ -143,6 +147,7 @@ def api_read_page(url):
     # under either a default text, or the text from the meta page.
     text = render_template('meta_page.html', **tpl_data)
     result = {
+            'endpoint': endpoint,
             'meta_query': endpoint,
             'meta_value': value,
             'query': query,

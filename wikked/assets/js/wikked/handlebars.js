@@ -107,7 +107,7 @@ define([
     });
     Handlebars.registerHelper('get_cat_url', function(url, options) {
         url = url.toString();
-        return '/#/read/category:' + url.replace(/^\//, '');
+        return '/#/read/' + url.replace(/^\//, '');
     });
 });
 
