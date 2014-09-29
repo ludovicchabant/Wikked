@@ -5,6 +5,7 @@ import urllib
 from xml.sax.saxutils import escape, unescape
 
 
+re_terminal_path = re.compile(r'[/\\]|(\w\:)')
 endpoint_regex = re.compile(r'(\w[\w\d]*)\:(.*)')
 strip_endpoint_regex = re.compile(r'^(\w[\w\d]+)\:')
 
@@ -42,7 +43,7 @@ def find_wiki_root(path=None):
                 os.path.isdir(os.path.join(path, '.hg'))):
             return path
         path = os.path.dirname(path)
-        if not path or path == '/':
+        if not path or re_terminal_path.match(path):
             break
     return None
 
