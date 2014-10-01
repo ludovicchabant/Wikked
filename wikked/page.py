@@ -62,6 +62,10 @@ class Page(object):
         return self._data.cache_time
 
     @property
+    def is_resolved(self):
+        return self._data.is_resolved
+
+    @property
     def extension(self):
         if self._data.path is None:
             raise Exception("The 'path' field was not loaded.")

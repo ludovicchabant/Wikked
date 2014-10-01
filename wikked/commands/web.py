@@ -8,6 +8,10 @@ from wikked.commands.base import WikkedCommand, register_command
 logger = logging.getLogger(__name__)
 
 
+def autoreload_wiki_updater(wiki, url):
+    wiki.db.uncachePages(except_url=url, only_required=True)
+
+
 @register_command
 class RunServerCommand(WikkedCommand):
     def __init__(self):
@@ -74,8 +78,9 @@ class RunServerCommand(WikkedCommand):
             app.config['DEV_ASSETS'] = True
         if not ctx.args.noupdate:
             app.config['WIKI_AUTO_RELOAD'] = True
+            ctx.params.wiki_updater = autoreload_wiki_updater
 
-        app.set_wiki_params(ctx.params)
+        app.wiki_params = ctx.params
         if bool(app.config.get('UPDATE_WIKI_ON_START')):
             ctx.wiki.updateAll()
 

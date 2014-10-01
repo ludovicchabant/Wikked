@@ -69,14 +69,8 @@ if app.config['SQL_DEBUG']:
 app.logger.debug("Creating Flask application...")
 
 
-def set_app_wiki_params(params):
-    app.wiki_params = params
-    if app.wiki_updater is not None:
-        app.wiki_params.wiki_updater = app.wiki_updater
-
-app.set_wiki_params = set_app_wiki_params
-app.wiki_updater = None
-app.set_wiki_params(WikiParameters(wiki_root))
+# Set the default wiki parameters.
+app.wiki_params = WikiParameters(wiki_root)
 
 
 # Set the wiki as a request global, and open/close the database.
@@ -143,7 +137,7 @@ if app.config['WIKI_ASYNC_UPDATE']:
 
     # Configure Celery.
     app.config['BROKER_URL'] = app.config['BROKER_URL'] % (
-        { 'root': wiki_root })
+            {'root': wiki_root})
     celery_app.conf.update(app.config)
     app.logger.debug("Using Celery broker: %s" % app.config['BROKER_URL'])
 
@@ -151,5 +145,5 @@ if app.config['WIKI_ASYNC_UPDATE']:
     def async_updater(wiki):
         app.logger.debug("Running update task on Celery.")
         update_wiki.delay(wiki.root)
-    app.wiki_updater = async_updater
+    app.wiki_params.wiki_updater = async_updater
 

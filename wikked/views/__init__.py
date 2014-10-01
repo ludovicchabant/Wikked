@@ -44,6 +44,8 @@ def get_page_or_none(url, fields=None, convert_url=True,
             fields.append('path')
         if 'cache_time' not in fields:
             fields.append('cache_time')
+        if 'is_resolved' not in fields:
+            fields.append('is_resolved')
 
     try:
         page = g.wiki.getPage(url, fields=fields)
@@ -56,6 +58,12 @@ def get_page_or_none(url, fields=None, convert_url=True,
         if path_time >= page.cache_time:
             app.logger.info("Page '%s' has changed, reloading." % url)
             g.wiki.updatePage(path=page.path)
+            page = g.wiki.getPage(url, fields=fields)
+        elif not page.is_resolved:
+            app.logger.info("Page '%s' was not resolved, resolving now." % url)
+            g.wiki.resolve(only_urls=[url])
+            g.wiki.index.updatePage(g.wiki.db.getPage(
+                url, fields=['url', 'path', 'title', 'text']))
             page = g.wiki.getPage(url, fields=fields)
 
     if check_perms == CHECK_FOR_READ and not is_page_readable(page):

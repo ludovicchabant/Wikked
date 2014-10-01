@@ -4,9 +4,6 @@ from wikked.utils import PageNotFoundError
 class Database(object):
     """ The base class for a database cache.
     """
-    def __init__(self):
-        pass
-
     def start(self, wiki):
         pass
 
@@ -19,7 +16,7 @@ class Database(object):
     def close(self, commit, exception):
         pass
 
-    def reset(self, page_infos, page_factory):
+    def reset(self, page_infos):
         pass
 
     def updatePage(self, page_info):
@@ -51,6 +48,9 @@ class Database(object):
         return page
 
     def cachePage(self, page):
+        pass
+
+    def uncachePages(self, except_url=None, only_required=False):
         pass
 
     def pageExists(self, url=None, path=None):

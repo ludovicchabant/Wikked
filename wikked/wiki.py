@@ -30,6 +30,10 @@ INIT_CONTEXT = 1
 BACKGROUND_CONTEXT = 2
 
 
+def synchronous_wiki_updater(wiki, url):
+    wiki.updateAll()
+
+
 class WikiParameters(object):
     """ An object that defines how a wiki gets initialized.
     """
@@ -39,7 +43,7 @@ class WikiParameters(object):
         self.root = root
         self.context = ctx
         self.formatters = self.getFormatters()
-        self.wiki_updater = self.getWikiUpdater()
+        self.wiki_updater = synchronous_wiki_updater
         self._config = None
         self._index_factory = None
         self._scm_factory = None
@@ -94,9 +98,6 @@ class WikiParameters(object):
             formatters[func] = extensions
         except ImportError:
             pass
-
-    def getWikiUpdater(self):
-        return lambda wiki: wiki.updateAll()
 
     def _loadConfig(self):
         # Merge the default settings with any settings provided by
@@ -245,8 +246,7 @@ class Wiki(object):
         """
         logger.info("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
-        factory = lambda pi: FileSystemPage(self, pi)
-        self.db.reset(page_infos, factory)
+        self.db.reset(page_infos)
         self.resolve(force=True)
         self.index.reset(self.getPages())
 
@@ -342,7 +342,7 @@ class Wiki(object):
         self.updatePage(path=page_info.path)
 
         # Update all the other pages.
-        self._wiki_updater(self)
+        self._wiki_updater(self, url)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
@@ -375,7 +375,7 @@ class Wiki(object):
         self.updatePage(url)
 
         # Update all the other pages.
-        self._wiki_updater(self)
+        self._wiki_updater(self, url)
 
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.
@@ -401,23 +401,6 @@ class Wiki(object):
                 ep.default = config.get(s, 'default')
             endpoints[ep.name] = ep
         return endpoints
-
-    def _setupPostSetPageUpdater(self, async):
-        if async:
-            logger.debug("Setting up asynchronous updater.")
-            from tasks import update_wiki
-            self._postSetPageUpdate = lambda wiki: update_wiki.delay(self.root)
-        else:
-            logger.debug("Setting up simple updater.")
-            self._postSetPageUpdate = lambda wiki: wiki._simplePostSetPageUpdate()
-
-    def _simpleWikiUpdater(self):
-        page_urls = self.db.getPageUrls(uncached_only=True)
-        self.resolve(only_urls=page_urls)
-        pages = [self.db.getPage(url=pu,
-                                 fields=['url', 'path', 'title', 'text'])
-                 for pu in page_urls]
-        self.index.updateAll(pages)
 
 
 def reloader_stat_loop(wiki, interval=1):

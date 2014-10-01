@@ -211,11 +211,11 @@ class SQLDatabase(Database):
                 self._session.commit()
             self._session.remove()
 
-    def reset(self, page_infos, page_factory):
+    def reset(self, page_infos):
         logger.debug("Re-creating SQL database.")
         self._createSchema()
         for pi in page_infos:
-            page = page_factory(pi)
+            page = FileSystemPage(self.wiki, pi)
             self._addPage(page)
         self.session.commit()
 
@@ -237,17 +237,7 @@ class SQLDatabase(Database):
             self.session.commit()
 
         page = FileSystemPage(self.wiki, page_info)
-        added_p = self._addPage(page)
-        self.session.commit()
-
-        # Invalidate all the appropriate pages.
-        q = self.session.query(SQLPage)\
-                .options(load_only('id', 'needs_invalidate', 'is_ready'))\
-                .filter(SQLPage.needs_invalidate is True)
-        for p in q.all():
-            if p.id == added_p.id:
-                continue
-            p.is_ready = False
+        self._addPage(page)
         self.session.commit()
 
     def updateAll(self, page_infos, force=False):
@@ -370,6 +360,18 @@ class SQLDatabase(Database):
 
         self.session.commit()
 
+    def uncachePages(self, except_url=None, only_required=False):
+        q = self.session.query(SQLPage)\
+                .options(load_only('id', 'url', 'needs_invalidate', 'is_ready'))
+        if except_url:
+            q = q.filter(SQLPage.url != except_url)
+        if only_required:
+            q = q.filter(SQLPage.needs_invalidate == True)
+
+        for p in q.all():
+            p.is_ready = False
+        self.session.commit()
+
     def pageExists(self, url=None, path=None):
         q = self.session.query(SQLPage.id, SQLPage.url).filter_by(url=url)
         res = self.session.query(q.exists())
@@ -410,7 +412,8 @@ class SQLDatabase(Database):
                 'local_links': 'links',
                 'meta': 'ready_meta',
                 'links': 'ready_links',
-                'text': 'ready_text'}
+                'text': 'ready_text',
+                'is_resolved': 'is_ready'}
         subqueryfields = {
                 'local_meta': SQLPage.meta,
                 'local_links': SQLPage.links,
@@ -481,6 +484,8 @@ class SQLDatabasePage(Page):
             data.path = db_obj.path
         if fields is None or 'cache_time' in fields:
             data.cache_time = db_obj.cache_time
+        if fields is None or 'is_resolved' in fields:
+            data.is_resolved = db_obj.is_ready
         if fields is None or 'title' in fields:
             data.title = db_obj.title
         if fields is None or 'raw_text' in fields:
