@@ -6,7 +6,7 @@ from flask import g, abort, jsonify
 from flask.ext.login import current_user
 from wikked.fs import PageNotFoundError
 from wikked.utils import split_page_url, get_absolute_url
-from wikked.web import app
+from wikked.web import app, get_wiki
 
 
 DONT_CHECK = 0
@@ -48,23 +48,25 @@ def get_page_or_none(url, fields=None, convert_url=True,
             fields.append('is_resolved')
 
     try:
-        page = g.wiki.getPage(url, fields=fields)
+        wiki = get_wiki()
+        page = wiki.getPage(url, fields=fields)
     except PageNotFoundError:
         return None
 
     if auto_reload:
+        wiki = get_wiki()
         path_time = datetime.datetime.fromtimestamp(
             os.path.getmtime(page.path))
         if path_time >= page.cache_time:
             app.logger.info("Page '%s' has changed, reloading." % url)
-            g.wiki.updatePage(path=page.path)
-            page = g.wiki.getPage(url, fields=fields)
+            wiki.updatePage(path=page.path)
+            page = wiki.getPage(url, fields=fields)
         elif not page.is_resolved:
             app.logger.info("Page '%s' was not resolved, resolving now." % url)
-            g.wiki.resolve(only_urls=[url])
-            g.wiki.index.updatePage(g.wiki.db.getPage(
+            wiki.resolve(only_urls=[url])
+            wiki.index.updatePage(wiki.db.getPage(
                 url, fields=['url', 'path', 'title', 'text']))
-            page = g.wiki.getPage(url, fields=fields)
+            page = wiki.getPage(url, fields=fields)
 
     if check_perms == CHECK_FOR_READ and not is_page_readable(page):
         abort(401)
@@ -179,13 +181,14 @@ def get_or_build_pagelist(list_name, builder, fields=None):
     # just catching up.
     # Otherwise, everything is synchronous and we need to build the
     # list if needed.
+    wiki = get_wiki()
     build_inline = not app.config['WIKI_ASYNC_UPDATE']
-    page_list = g.wiki.db.getPageListOrNone(list_name, fields=fields,
+    page_list = wiki.db.getPageListOrNone(list_name, fields=fields,
                                             valid_only=build_inline)
     if page_list is None and build_inline:
         app.logger.info("Regenerating list: %s" % list_name)
         page_list = builder()
-        g.wiki.db.addPageList(list_name, page_list)
+        wiki.db.addPageList(list_name, page_list)
 
     return page_list
 
@@ -193,10 +196,11 @@ def get_or_build_pagelist(list_name, builder, fields=None):
 def get_generic_pagelist_builder(filter_func):
     def builder():
         # Make sure all pages have been resolved.
-        g.wiki.resolve()
+        wiki = get_wiki()
+        wiki.resolve()
 
         pages = []
-        for page in g.wiki.getPages(no_endpoint_only=True,
+        for page in wiki.getPages(no_endpoint_only=True,
                                     fields=['url', 'title', 'meta']):
             try:
                 if filter_func(page):

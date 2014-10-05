@@ -9,11 +9,12 @@ from wikked.utils import PageNotFoundError
 from wikked.views import (is_page_readable, get_page_meta, get_page_or_404,
         url_from_viewarg,
         CHECK_FOR_READ)
-from wikked.web import app
+from wikked.web import app, get_wiki
 
 
 def get_history_data(history, needs_files=False):
     hist_data = []
+    wiki = get_wiki()
     for i, rev in enumerate(reversed(history)):
         rev_data = {
             'index': i + 1,
@@ -27,9 +28,9 @@ def get_history_data(history, needs_files=False):
             rev_data['pages'] = []
             for f in rev.files:
                 url = None
-                path = os.path.join(g.wiki.root, f['path'])
+                path = os.path.join(wiki.root, f['path'])
                 try:
-                    page = g.wiki.db.getPage(path=path)
+                    page = wiki.db.getPage(path=path)
                     # Hide pages that the user can't see.
                     if not is_page_readable(page):
                         continue
@@ -54,8 +55,9 @@ def get_history_data(history, needs_files=False):
 
 @app.route('/api/site-history')
 def api_site_history():
+    wiki = get_wiki()
     after_rev = request.args.get('rev')
-    history = g.wiki.getHistory(limit=10, after_rev=after_rev)
+    history = wiki.getHistory(limit=10, after_rev=after_rev)
     hist_data = get_history_data(history, needs_files=True)
     result = {'history': hist_data}
     return jsonify(result)
@@ -63,7 +65,8 @@ def api_site_history():
 
 @app.route('/api/history/')
 def api_main_page_history():
-    return api_page_history(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_page_history(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/history/<path:url>')
@@ -125,7 +128,8 @@ def api_revert_page(url):
             'author': author,
             'message': message
             }
-    g.wiki.revertPage(url, page_fields)
+    wiki = get_wiki()
+    wiki.revertPage(url, page_fields)
     result = {'reverted': 1}
     return jsonify(result)
 

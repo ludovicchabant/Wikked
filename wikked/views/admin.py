@@ -1,13 +1,14 @@
 from flask import g, jsonify, abort, request
 from flask.ext.login import login_user, logout_user, current_user
-from wikked.web import app, login_manager
+from wikked.web import app, get_wiki, login_manager
 
 
 @app.route('/api/admin/reindex', methods=['POST'])
 def api_admin_reindex():
     if not current_user.is_authenticated() or not current_user.is_admin():
         return login_manager.unauthorized()
-    g.wiki.index.reset(g.wiki.getPages())
+    wiki = get_wiki()
+    wiki.index.reset(wiki.getPages())
     result = {'ok': 1}
     return jsonify(result)
 
@@ -18,7 +19,8 @@ def api_user_login():
     password = request.form.get('password')
     remember = request.form.get('remember')
 
-    user = g.wiki.auth.getUser(username)
+    wiki = get_wiki()
+    user = wiki.auth.getUser(username)
     if user is not None and app.bcrypt:
         if app.bcrypt.check_password_hash(user.password, password):
             login_user(user, remember=bool(remember))
@@ -58,7 +60,8 @@ def api_current_user_info():
 
 @app.route('/api/user/info/<name>')
 def api_user_info(name):
-    user = g.wiki.auth.getUser(name)
+    wiki = get_wiki()
+    user = wiki.auth.getUser(name)
     if user is not None:
         result = {
                 'user': {

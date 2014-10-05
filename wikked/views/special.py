@@ -4,7 +4,7 @@ from wikked.views import (
     get_or_build_pagelist, get_generic_pagelist_builder,
     get_redirect_target, CircularRedirectError, RedirectNotFound)
 from wikked.utils import get_absolute_url
-from wikked.web import app
+from wikked.web import app, get_wiki
 
 
 def orphans_filter_func(page):
@@ -58,7 +58,8 @@ def api_search():
         abort(400)
 
     readable_hits = []
-    hits = list(g.wiki.index.search(query))
+    wiki = get_wiki()
+    hits = list(wiki.index.search(query))
     for h in hits:
         page = get_page_or_none(h.url, convert_url=False)
         if page is not None and is_page_readable(page):
@@ -81,7 +82,8 @@ def api_searchpreview():
         abort(400)
 
     readable_hits = []
-    hits = list(g.wiki.index.previewSearch(query))
+    wiki = get_wiki()
+    hits = list(wiki.index.previewSearch(query))
     for h in hits:
         page = get_page_or_none(h.url, convert_url=False)
         if page is not None and is_page_readable(page):

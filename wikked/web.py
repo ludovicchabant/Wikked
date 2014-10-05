@@ -73,6 +73,16 @@ def remove_page_lists(wiki, url):
     wiki.db.removeAllPageLists()
 
 
+def get_wiki():
+    wiki = getattr(g, '_wiki', None)
+    if wiki is None:
+        wiki = Wiki(app.wiki_params)
+        wiki.post_update_hooks.append(remove_page_lists)
+        wiki.start()
+        g.wiki = wiki
+    return wiki
+
+
 # Set the default wiki parameters.
 app.wiki_params = WikiParameters(wiki_root)
 
@@ -84,10 +94,7 @@ app.wiki_params = WikiParameters(wiki_root)
 #       access to the context instance for the wiki.
 @app.before_request
 def before_request():
-    wiki = Wiki(app.wiki_params)
-    wiki.post_update_hooks.append(remove_page_lists)
-    wiki.start()
-    g.wiki = wiki
+    pass
 
 
 @app.teardown_request
@@ -109,7 +116,8 @@ def shutdown_session(exception=None):
 
 # Login extension.
 def user_loader(username):
-    return g.wiki.auth.getUser(username)
+    wiki = get_wiki()
+    return wiki.auth.getUser(username)
 
 
 from flask.ext.login import LoginManager

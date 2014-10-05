@@ -8,7 +8,7 @@ from wikked.views import (get_page_meta, get_page_or_404, get_page_or_none,
         url_from_viewarg, split_url_from_viewarg,
         RedirectNotFound, CircularRedirectError,
         CHECK_FOR_READ)
-from wikked.web import app
+from wikked.web import app, get_wiki
 from wikked.scm.base import STATE_NAMES
 
 
@@ -43,7 +43,8 @@ def api_list_all_pages():
 
 @app.route('/api/list/<path:url>')
 def api_list_pages(url):
-    pages = filter(is_page_readable, g.wiki.getPages(url_from_viewarg(url)))
+    wiki = get_wiki()
+    pages = filter(is_page_readable, wiki.getPages(url_from_viewarg(url)))
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
     return jsonify(result)
@@ -51,7 +52,8 @@ def api_list_pages(url):
 
 @app.route('/api/read/')
 def api_read_main_page():
-    return api_read_page(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_read_page(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/read/<path:url>')
@@ -107,7 +109,8 @@ def api_read_page(url):
             convert_url=False,
             check_perms=CHECK_FOR_READ)
 
-    endpoint_info = g.wiki.endpoints.get(endpoint)
+    wiki = get_wiki()
+    endpoint_info = wiki.endpoints.get(endpoint)
     if endpoint_info is not None:
         # We have some information about this endpoint...
         if endpoint_info.default and info_page is None:
@@ -131,7 +134,7 @@ def api_read_page(url):
     # Get the list of pages to show here.
     value = path.lstrip('/')
     query = {endpoint: [value]}
-    pages = g.wiki.getPages(meta_query=query,
+    pages = wiki.getPages(meta_query=query,
             fields=['url', 'title', 'text', 'meta'])
     tpl_data = {
             'name': endpoint,
@@ -167,7 +170,8 @@ def api_read_page(url):
 
 @app.route('/api/raw/')
 def api_read_main_page_raw():
-    return api_read_page_raw(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_read_page_raw(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/raw/<path:url>')
@@ -181,8 +185,9 @@ def api_read_page_raw(url):
 
 @app.route('/api/query')
 def api_query():
+    wiki = get_wiki()
     query = dict(request.args)
-    pages = g.wiki.getPages(meta_query=query)
+    pages = wiki.getPages(meta_query=query)
     result = {
             'query': query,
             'pages': [get_page_meta(p) for p in pages]
@@ -192,7 +197,8 @@ def api_query():
 
 @app.route('/api/state/')
 def api_get_main_page_state():
-    return api_get_state(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_get_state(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/state/<path:url>')
@@ -208,7 +214,8 @@ def api_get_state(url):
 
 @app.route('/api/outlinks/')
 def api_get_main_page_outgoing_links():
-    return api_get_outgoing_links(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_get_outgoing_links(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/outlinks/<path:url>')
@@ -233,7 +240,8 @@ def api_get_outgoing_links(url):
 
 @app.route('/api/inlinks/')
 def api_get_main_page_incoming_links():
-    return api_get_incoming_links(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_get_incoming_links(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/inlinks/<path:url>')

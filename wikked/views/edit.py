@@ -7,7 +7,7 @@ from wikked.resolver import PageResolver
 from wikked.views import (make_page_title, get_page_or_none,
         is_page_writable, get_page_meta, url_from_viewarg,
         split_url_from_viewarg)
-from wikked.web import app
+from wikked.web import app, get_wiki
 
 
 class DummyPage(Page):
@@ -67,7 +67,8 @@ def get_edit_page(url, default_title=None, custom_data=None):
 def do_edit_page(url, default_message):
     page = get_page_or_none(url, convert_url=False)
     if page and not is_page_writable(page):
-        app.logger.error("Page '%s' is not writable for user '%s'." % (url, current_user.get_id()))
+        app.logger.error("Page '%s' is not writable for user '%s'." % (
+            url, current_user.get_id()))
         abort(401)
 
     if not 'text' in request.form:
@@ -85,7 +86,8 @@ def do_edit_page(url, default_message):
             'author': author,
             'message': message
             }
-    g.wiki.setPage(url, page_fields)
+    wiki = get_wiki()
+    wiki.setPage(url, page_fields)
 
     result = {'saved': 1}
     return jsonify(result)
@@ -93,7 +95,8 @@ def do_edit_page(url, default_message):
 
 @app.route('/api/edit/', methods=['GET', 'POST'])
 def api_edit_main_page():
-    return api_edit_page(g.wiki.main_page_url.lstrip('/'))
+    wiki = get_wiki()
+    return api_edit_page(wiki.main_page_url.lstrip('/'))
 
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
@@ -130,7 +133,8 @@ def api_preview():
     url = request.form.get('url')
     url = url_from_viewarg(url)
     text = request.form.get('text')
-    dummy = DummyPage(g.wiki, url, text)
+    wiki = get_wiki()
+    dummy = DummyPage(wiki, url, text)
 
     resolver = PageResolver(dummy)
     dummy._setExtendedData(resolver.run())
@@ -158,9 +162,10 @@ def api_validate_newpage():
     try:
         # Check that there's no page with that name already, and that
         # the name can be correctly mapped to a filename.
-        if g.wiki.pageExists(path):
+        wiki = get_wiki()
+        if wiki.pageExists(path):
             raise Exception("Page '%s' already exists" % path)
-        g.wiki.fs.getPhysicalPagePath(path, make_new=True)
+        wiki.fs.getPhysicalPagePath(path, make_new=True)
     except Exception:
         return '"This page name is invalid or unavailable"'
     return '"true"'
