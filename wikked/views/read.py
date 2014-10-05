@@ -1,12 +1,13 @@
 import time
 import urllib
-from flask import render_template, request, g, jsonify, make_response
+from flask import (render_template, request, g, jsonify, make_response,
+                   abort)
 from flask.ext.login import current_user
 from wikked.views import (get_page_meta, get_page_or_404, get_page_or_none,
-        is_page_readable,
+        is_page_readable, get_redirect_target,
         url_from_viewarg, split_url_from_viewarg,
+        RedirectNotFound, CircularRedirectError,
         CHECK_FOR_READ)
-from wikked.utils import get_absolute_url
 from wikked.web import app
 from wikked.scm.base import STATE_NAMES
 
@@ -73,26 +74,25 @@ def api_read_page(url):
     endpoint, path = split_url_from_viewarg(url)
     if endpoint is None:
         # Normal page.
-        visited_paths = []
-        while True:
-            page = get_page_or_404(
+        try:
+            page, visited_paths = get_redirect_target(
                     path,
                     fields=['url', 'title', 'text', 'meta'],
                     convert_url=False,
-                    check_perms=CHECK_FOR_READ)
-            visited_paths.append(path)
-            redirect_meta = page.getMeta('redirect')
-            if redirect_meta is None:
-                break
-            path = get_absolute_url(path, redirect_meta)
-            if no_redirect:
-                additional_info['redirects_to'] = path
-                break
-            if path in visited_paths:
-                app.logger.error("Circular redirect detected: " + url)
-                abort(409)
+                    check_perms=CHECK_FOR_READ,
+                    first_only=no_redirect)
+        except RedirectNotFound as e:
+            app.logger.exception(e)
+            abort(404)
+        except CircularRedirectError as e:
+            app.logger.exception(e)
+            abort(409)
+        if page is None:
+            abort(404)
 
-        if len(visited_paths) > 1:
+        if no_redirect:
+            additional_info['redirects_to'] = visited_paths[-1]
+        elif len(visited_paths) > 1:
             additional_info['redirected_from'] = visited_paths[:-1]
 
         result = {'meta': get_page_meta(page), 'text': page.text}

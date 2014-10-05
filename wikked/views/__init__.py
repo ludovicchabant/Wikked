@@ -5,7 +5,7 @@ import datetime
 from flask import g, abort, jsonify
 from flask.ext.login import current_user
 from wikked.fs import PageNotFoundError
-from wikked.utils import split_page_url
+from wikked.utils import split_page_url, get_absolute_url
 from wikked.web import app
 
 
@@ -114,6 +114,51 @@ def get_category_meta(category):
     return result
 
 
+class CircularRedirectError(Exception):
+    def __init__(self, url, visited):
+        super(CircularRedirectError, self).__init__(
+                "Circular redirect detected at '%s' "
+                "after visiting: %s" % (url, visited))
+
+
+class RedirectNotFound(Exception):
+    def __init__(self, url, not_found):
+        super(RedirectNotFound, self).__init__(
+                "Target redirect page '%s' not found from '%s'." %
+                (url, not_found))
+
+
+def get_redirect_target(path, fields=None, convert_url=False,
+                        check_perms=DONT_CHECK, first_only=False):
+    page = None
+    orig_path = path
+    visited_paths = []
+
+    while True:
+        page = get_page_or_none(
+                path,
+                fields=fields,
+                convert_url=convert_url,
+                check_perms=check_perms)
+        if page is None:
+            raise RedirectNotFound(orig_path, path)
+
+        visited_paths.append(path)
+        redirect_meta = page.getMeta('redirect')
+        if redirect_meta is None:
+            break
+
+        path = get_absolute_url(path, redirect_meta)
+        if first_only:
+            visited_paths.append(path)
+            break
+
+        if path in visited_paths:
+            raise CircularRedirectError(path, visited_paths)
+
+    return page, visited_paths
+
+
 COERCE_META = {
     'category': get_category_meta
     }
@@ -126,4 +171,39 @@ def make_auth_response(data):
                 'is_admin': current_user.is_admin()
                 }
     return jsonify(data)
+
+
+def get_or_build_pagelist(list_name, builder, fields=None):
+    # If the wiki is using background jobs, we can accept invalidated
+    # lists... it just means that a background job is hopefully still
+    # just catching up.
+    # Otherwise, everything is synchronous and we need to build the
+    # list if needed.
+    build_inline = not app.config['WIKI_ASYNC_UPDATE']
+    page_list = g.wiki.db.getPageListOrNone(list_name, fields=fields,
+                                            valid_only=build_inline)
+    if page_list is None and build_inline:
+        app.logger.info("Regenerating list: %s" % list_name)
+        page_list = builder()
+        g.wiki.db.addPageList(list_name, page_list)
+
+    return page_list
+
+
+def get_generic_pagelist_builder(filter_func):
+    def builder():
+        # Make sure all pages have been resolved.
+        g.wiki.resolve()
+
+        pages = []
+        for page in g.wiki.getPages(no_endpoint_only=True,
+                                    fields=['url', 'title', 'meta']):
+            try:
+                if filter_func(page):
+                    pages.append(page)
+            except Exception as e:
+                app.logger.error("Error while inspecting page: %s" % page.url)
+                app.logger.error("   %s" % e)
+        return pages
+    return builder
 

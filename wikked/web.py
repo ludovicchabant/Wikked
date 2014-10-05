@@ -69,6 +69,10 @@ if app.config['SQL_DEBUG']:
 app.logger.debug("Creating Flask application...")
 
 
+def remove_page_lists(wiki, url):
+    wiki.db.removeAllPageLists()
+
+
 # Set the default wiki parameters.
 app.wiki_params = WikiParameters(wiki_root)
 
@@ -81,6 +85,7 @@ app.wiki_params = WikiParameters(wiki_root)
 @app.before_request
 def before_request():
     wiki = Wiki(app.wiki_params)
+    wiki.post_update_hooks.append(remove_page_lists)
     wiki.start()
     g.wiki = wiki
 

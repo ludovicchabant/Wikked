@@ -211,6 +211,7 @@ class Wiki(object):
         self.auth = parameters.auth_factory()
 
         self._wiki_updater = parameters.wiki_updater
+        self.post_update_hooks = []
 
     @property
     def root(self):
@@ -341,8 +342,13 @@ class Wiki(object):
         # Update the DB and index with the new/modified page.
         self.updatePage(path=page_info.path)
 
+        # Invalidate all page lists.
+        self.db.removeAllPageLists()
+
         # Update all the other pages.
         self._wiki_updater(self, url)
+        for hook in self.post_update_hooks:
+            hook(self, url)
 
     def revertPage(self, url, page_fields):
         """ Reverts the page with the given URL to an older revision.
@@ -376,6 +382,8 @@ class Wiki(object):
 
         # Update all the other pages.
         self._wiki_updater(self, url)
+        for hook in self.post_update_hooks:
+            hook(self, url)
 
     def pageExists(self, url):
         """ Returns whether a page exists at the given URL.

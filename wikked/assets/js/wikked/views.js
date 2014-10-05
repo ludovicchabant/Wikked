@@ -34,7 +34,7 @@ define([
         'text!tpl/special-nav.html',
         'text!tpl/special-pages.html',
         'text!tpl/special-changes.html',
-        'text!tpl/special-orphans.html'
+        'text!tpl/special-pagelist.html'
         ],
     function($, JQueryValidate, _, Backbone, Handlebars,
         BootstrapTooltip, BootstrapAlert, BootstrapCollapse,
@@ -43,7 +43,7 @@ define([
         tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
         tplNav, tplFooter, tplSearchResults, tplLogin,
         tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
-        tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialOrphans) {
+        tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialPageList) {
 
     var exports = {};
 
@@ -191,7 +191,7 @@ define([
 
             // Cache some stuff for handling the menu.
             this.wikiMenu = this.$('#wiki-menu');
-            this.wrapperAndWikiMenu = this.$('.wrapper, #wiki-menu');
+            this.wrapperAndWikiMenu = $([this.parentEl, this.$('#wiki-menu')]);
             this.isMenuActive = (this.wikiMenu.css('left') == '0px');
             this.isMenuActiveLocked = false;
         },
@@ -356,6 +356,7 @@ define([
         initialize: function() {
             MasterPageView.__super__.initialize.apply(this, arguments);
             this.nav = this._createNavigation(this.model.nav);
+            this.nav.parentEl = this.el;
             this.footer = this._createFooter(this.model.footer);
             return this;
         },
@@ -613,7 +614,13 @@ define([
     });
 
     var SpecialMasterPageView = exports.SpecialMasterPageView = MasterPageView.extend({
-        className: 'wrapper special'
+        className: function() {
+            var cls = 'wrapper special';
+            // See comment for `MasterPageView`.
+            var ima = localStorage.getItem('wikked.nav.isMenuActive');
+            if (ima == 'true') cls += ' wiki-menu-active';
+            return cls;
+        }
     });
 
     var SpecialPagesView = exports.SpecialPagesView = SpecialMasterPageView.extend({
@@ -648,8 +655,8 @@ define([
         }
     });
 
-    var SpecialOrphansView = exports.SpecialOrphansView = SpecialMasterPageView.extend({
-        defaultTemplateSource: tplSpecialOrphans
+    var SpecialPageListView = exports.SpecialPageListView = SpecialMasterPageView.extend({
+        defaultTemplateSource: tplSpecialPageList
     });
 
     return exports;

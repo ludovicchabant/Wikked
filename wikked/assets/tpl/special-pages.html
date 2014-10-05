@@ -3,9 +3,18 @@
         <h1>Special Pages</h1>
     </header>
     <section>
-        <h3><a href="/#/special/changes">Recent Changes</a></h3>
-        <p>See all changes in the wiki.</p>
-        <h3><a href="/#/special/orphans">Orphaned Pages</a></h3>
-        <p>Lists pages in the wiki that have no links to them.</p>
+        <div class="pure-g">
+            {{#each sections}}
+            <div class="pure-u-1-3">
+                <h2>{{title}}</h2>
+                {{#each pages}}
+                <h3><a href="{{url}}">{{title}}</a></h3>
+                {{#if description}}
+                <p>{{description}}</p>
+                {{/if}}
+                {{/each}}
+            </div>
+            {{/each}}
+        </div>
     </section>
 </article>

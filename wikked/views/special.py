@@ -1,28 +1,54 @@
 from flask import g, jsonify, request, abort
-from wikked.views import is_page_readable, get_page_meta, get_page_or_none
+from wikked.views import (
+    is_page_readable, get_page_meta, get_page_or_none,
+    get_or_build_pagelist, get_generic_pagelist_builder,
+    get_redirect_target, CircularRedirectError, RedirectNotFound)
+from wikked.utils import get_absolute_url
 from wikked.web import app
+
+
+def orphans_filter_func(page):
+    for link in page.getIncomingLinks():
+        return False
+    return True
+
+
+def broken_redirects_filter_func(page):
+    redirect_meta = page.getMeta('redirect')
+    if redirect_meta is None:
+        return False
+
+    path = get_absolute_url(page.url, redirect_meta)
+    try:
+        target, visited = get_redirect_target(
+                path,
+                fields=['url', 'meta'])
+    except CircularRedirectError:
+        return True
+    except RedirectNotFound:
+        return True
+    return False
+
+
+def generic_pagelist_view(list_name, filter_func):
+    pages = get_or_build_pagelist(
+            list_name,
+            get_generic_pagelist_builder(filter_func),
+            fields=['url', 'title', 'meta'])
+    data = [get_page_meta(p) for p in pages if is_page_readable(p)]
+    result = {'pages': data}
+    return jsonify(result)
 
 
 @app.route('/api/orphans')
 def api_special_orphans():
-    orphans = []
-    for page in g.wiki.getPages(no_endpoint_only=True):
-        try:
-            if not is_page_readable(page):
-                continue
-            is_orphan = True
-            for link in page.getIncomingLinks():
-                is_orphan = False
-                break
-            if is_orphan:
-                orphans.append({'path': page.url, 'meta': get_page_meta(page)})
-        except Exception as e:
-            app.logger.error("Error while inspecting page: %s" % page.url)
-            app.logger.error("   %s" % e)
+    return generic_pagelist_view('orphans', orphans_filter_func)
 
-    result = {'orphans': orphans}
-    return jsonify(result)
 
+@app.route('/api/broken-redirects')
+def api_special_broken_redirects():
+    return generic_pagelist_view('broken_redirects',
+                                 broken_redirects_filter_func)
 
 
 @app.route('/api/search')
@@ -36,9 +62,15 @@ def api_search():
     for h in hits:
         page = get_page_or_none(h.url, convert_url=False)
         if page is not None and is_page_readable(page):
-            readable_hits.append({'url': h.url, 'title': h.title, 'text': h.hl_text})
+            readable_hits.append({
+                    'url': h.url,
+                    'title': h.title,
+                    'text': h.hl_text})
 
-    result = {'query': query, 'hit_count': len(readable_hits), 'hits': readable_hits}
+    result = {
+            'query': query,
+            'hit_count': len(readable_hits),
+            'hits': readable_hits}
     return jsonify(result)
 
 
@@ -55,6 +87,9 @@ def api_searchpreview():
         if page is not None and is_page_readable(page):
             readable_hits.append({'url': h.url, 'title': h.title})
 
-    result = {'query': query, 'hit_count': len(readable_hits), 'hits': readable_hits}
+    result = {
+            'query': query,
+            'hit_count': len(readable_hits),
+            'hits': readable_hits}
     return jsonify(result)
 

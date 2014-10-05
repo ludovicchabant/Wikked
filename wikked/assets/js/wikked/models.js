@@ -454,6 +454,45 @@ define([
         },
         initialize: function() {
             SpecialPagesModel.__super__.initialize.apply(this, arguments);
+            this.set('sections', [
+                {
+                    title: "Wiki",
+                    pages: [
+                        {
+                            title: "Recent Changes",
+                            url: '/#/special/changes',
+                            description: "See all changes in the wiki."
+                        }
+                    ]
+                },
+                {
+                    title: "Page Lists",
+                    pages: [
+                        {
+                            title: "Orphaned Pages",
+                            url: '/#/special/list/orphans',
+                            description: ("Lists pages in the wiki that have " +
+                                          "no links to them.")
+                        },
+                        {
+                            title: "Broken Redirects",
+                            url: '/#/special/list/broken-redirects',
+                            description: ("Lists pages that redirect to a " +
+                                          "missing page.")
+                        }
+                    ]
+                },
+                {
+                    title: "Users",
+                    pages: [
+                        {
+                            title: "All Users",
+                            url: '/#/special/users',
+                            description: "A list of all registered users."
+                        }
+                    ]
+                }
+            ]);
         },
         _addFooterExtraUrls: function() {
         }
@@ -504,9 +543,44 @@ define([
         }
     });
 
-    var SpecialOrphansModel = exports.SpecialOrphansModel = SpecialPageModel.extend({
-        title: "Orphaned Pages",
-        url: '/api/orphans'
+    var SpecialPageListModel = exports.SpecialPageListModel = SpecialPageModel.extend({
+        title: function() { return this.titleMap[this.get('name')]; },
+        url: function() { return '/api/' + this.get('name'); },
+        initialize: function() {
+            SpecialPageListModel.__super__.initialize.apply(this, arguments);
+            var name = this.get('name');
+            this.set({
+                'title': this.titleMap[name],
+                'message': this.messageMap[name],
+                'aside': this.asideMap[name],
+                'empty': this.emptyMap[name],
+                'url_suffix': this.urlSuffix[name]
+            });
+        },
+        titleMap: {
+            'orphans': "Orphaned Pages",
+            'broken-redirects': "Broken Redirects"
+        },
+        messageMap: {
+            'orphans': ("Here is a list of pages that don't have any pages " +
+                        "linking to them. This means user will only be able " +
+                        "to find them by searching for them, or by getting " +
+                        "a direct link."),
+            'broken-redirects':
+                        ("Here is a list of pages that redirect to a non-" +
+                         "existing page.")
+        },
+        asideMap: {
+            'orphans': ("The main page usually shows up here but that's " +
+                        "OK since it's the page everyone sees first.")
+        },
+        emptyMap: {
+            'orphans': "No orphaned pages!",
+            'broken-redirects': "No broken redirects!"
+        },
+        urlSuffix: {
+            'broken-redirects': '?no_redirect'
+        }
     });
 
     return exports;

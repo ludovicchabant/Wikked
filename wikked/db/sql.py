@@ -12,9 +12,10 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
     scoped_session, sessionmaker,
-    relationship, backref, load_only, subqueryload, joinedload)
+    relationship, backref, load_only, subqueryload, joinedload,
+    Load)
 from sqlalchemy.orm.exc import NoResultFound
-from wikked.db.base import Database
+from wikked.db.base import Database, PageListNotFound
 from wikked.page import Page, PageData, FileSystemPage
 from wikked.utils import split_page_url
 
@@ -125,10 +126,34 @@ class SQLInfo(Base):
     time_value = Column(DateTime)
 
 
+class SQLPageList(Base):
+    __tablename__ = 'page_lists'
+
+    id = Column(Integer, primary_key=True)
+    list_name = Column(String(64), unique=True)
+    is_valid = Column(Boolean)
+
+    page_refs = relationship(
+        'SQLPageListItem',
+        order_by='SQLPageListItem.id',
+        cascade='all, delete, delete-orphan')
+
+
+class SQLPageListItem(Base):
+    __tablename__ = 'page_list_items'
+
+    id = Column(Integer, primary_key=True)
+    list_id = Column(Integer, ForeignKey('page_lists.id'))
+    page_id = Column(Integer, ForeignKey('pages.id'))
+
+    page = relationship(
+            'SQLPage')
+
+
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 6
+    schema_version = 7
 
     def __init__(self, config):
         Database.__init__(self)
@@ -403,34 +428,45 @@ class SQLDatabase(Database):
             return None
         return SQLDatabasePage(self, page, fields)
 
-    def _addFieldOptions(self, query, fields, use_joined=True):
+    def _addFieldOptions(self, query, fields, use_joined=True,
+            use_load_obj=False):
         if fields is None:
             return query
 
+        if use_load_obj:
+            obj = Load(SQLPage)
+            l_load_only = obj.load_only
+            l_joinedload = obj.joinedload
+            l_subqueryload = obj.subqueryload
+        else:
+            l_load_only = load_only
+            l_joinedload = joinedload
+            l_subqueryload = subqueryload
+
         fieldnames = {
-                'local_meta': 'meta',
-                'local_links': 'links',
-                'meta': 'ready_meta',
-                'links': 'ready_links',
-                'text': 'ready_text',
-                'is_resolved': 'is_ready'}
+                'local_meta': SQLPage.meta,
+                'local_links': SQLPage.links,
+                'meta': SQLPage.ready_meta,
+                'links': SQLPage.ready_links,
+                'text': SQLPage.ready_text,
+                'is_resolved': SQLPage.is_ready}
         subqueryfields = {
                 'local_meta': SQLPage.meta,
                 'local_links': SQLPage.links,
                 'meta': SQLPage.ready_meta,
                 'links': SQLPage.ready_links}
         # Always load the ID.
-        query = query.options(load_only('id'))
+        query = query.options(l_load_only(SQLPage.id))
         # Load requested fields... some need subqueries.
         for f in fields:
             col = fieldnames.get(f) or f
-            query = query.options(load_only(col))
+            query = query.options(l_load_only(col))
             sqf = subqueryfields.get(f)
             if sqf:
                 if use_joined:
-                    query = query.options(joinedload(sqf))
+                    query = query.options(l_joinedload(sqf))
                 else:
-                    query = query.options(subqueryload(sqf))
+                    query = query.options(l_subqueryload(sqf))
         return query
 
     def _addPage(self, page):
@@ -462,6 +498,65 @@ class SQLDatabase(Database):
         self.session.add(po)
 
         return po
+
+    def addPageList(self, list_name, pages):
+        page_list = self.session.query(SQLPageList)\
+                .filter(SQLPageList.list_name == list_name)\
+                .first()
+        if page_list is not None:
+            # We may have a previous list marked as non-valid. Let's
+            # revive it.
+            if page_list.is_valid:
+                raise Exception("Page list already exists and is valid: %s" % list_name)
+            logger.debug("Reviving page list '%s'." % list_name)
+            self.session.query(SQLPageListItem)\
+                    .filter(SQLPageListItem.list_id == page_list.id)\
+                    .delete()
+            page_list.is_valid = True
+        else:
+            logger.debug("Creating page list '%s'." % list_name)
+            page_list = SQLPageList()
+            page_list.list_name = list_name
+            page_list.is_valid = True
+            self.session.add(page_list)
+
+        for p in pages:
+            item = SQLPageListItem()
+            item.page_id = p._id
+            page_list.page_refs.append(item)
+
+        self.session.commit()
+
+    def getPageList(self, list_name, fields=None, valid_only=True):
+        page_list = self.session.query(SQLPageList)\
+                .filter(SQLPageList.list_name == list_name)\
+                .first()
+        if page_list is None or (
+                valid_only and not page_list.is_valid):
+            raise PageListNotFound(list_name)
+
+        q = self.session.query(SQLPageListItem)\
+                .filter(SQLPageListItem.list_id == page_list.id)\
+                .join(SQLPageListItem.page)
+        q = self._addFieldOptions(q, fields, use_load_obj=True)
+        for po in q.all():
+            yield SQLDatabasePage(self, po.page, fields)
+
+    def removePageList(self, list_name):
+        # Just mark the list as not valid anymore.
+        page_list = self.session.query(SQLPageList)\
+                .filter(SQLPageList.list_name == list_name)\
+                .first()
+        if page_list is None:
+            raise Exception("No such list: %s" % list_name)
+        page_list.is_valid = False
+        self.session.commit()
+
+    def removeAllPageLists(self):
+        q = self.session.query(SQLPageList)
+        for pl in q.all():
+            pl.is_valid = False
+        self.session.commit()
 
 
 class SQLDatabasePage(Page):
@@ -529,3 +624,4 @@ class SQLDatabasePage(Page):
                 data.ext_links = [l.target_url for l in db_obj.ready_links]
 
         return data
+

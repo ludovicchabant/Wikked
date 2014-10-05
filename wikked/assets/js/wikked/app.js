@@ -77,7 +77,7 @@ define([
             'special':               "showSpecialPages",
             'special/changes':       "showSiteChanges",
             'special/changes/:rev':  "showSiteChangesAfterRev",
-            'special/orphans':       "showOrphans"
+            'special/list/:name':    "showPageList"
         },
         readPage: function(path) {
             var path_clean = this.stripQuery(path);
@@ -196,12 +196,12 @@ define([
             this.viewManager.switchView(view);
             this.navigate('/special/changes/' + rev);
         },
-        showOrphans: function() {
-            var view = new Views.SpecialOrphansView({
-                model: new Models.SpecialOrphansModel()
+        showPageList: function(name) {
+            var view = new Views.SpecialPageListView({
+                model: new Models.SpecialPageListModel({ name: name })
             });
             this.viewManager.switchView(view);
-            this.navigate('/special/orphans');
+            this.navigate('/special/list/' + name);
         },
         stripQuery: function(url) {
             q = url.indexOf("?");
