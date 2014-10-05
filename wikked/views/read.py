@@ -227,10 +227,7 @@ def api_get_outgoing_links(url):
         other = get_page_or_none(link, convert_url=False,
                 fields=['url', 'title', 'meta'])
         if other is not None and is_page_readable(other):
-            links.append({
-                'url': other.url,
-                'title': other.title
-                })
+            links.append(get_page_meta(other))
         else:
             links.append({'url': link, 'missing': True})
 
@@ -253,10 +250,7 @@ def api_get_incoming_links(url):
         other = get_page_or_none(link, convert_url=False,
                 fields=['url', 'title', 'meta'])
         if other is not None and is_page_readable(other):
-            links.append({
-                'url': link,
-                'title': other.title
-                })
+            links.append(get_page_meta(other))
         else:
             links.append({'url': link, 'missing': True})
 

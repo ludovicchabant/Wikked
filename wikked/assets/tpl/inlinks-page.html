@@ -4,7 +4,7 @@
         <div class="decorator">Incoming Links</div>
     </header>
     <section>
-        <p>The following pages link to <a href="{{url_read}}">{{meta.title}}</a>:</p>
+        <p>The following pages link to <a href="{{get_read_url meta.url}}">{{meta.title}}</a>:</p>
         <ul>
         {{#each in_links}}
             <li>
