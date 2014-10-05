@@ -1,0 +1,39 @@
+{
+    "sections": [
+        {
+            "title": "Wiki",
+            "pages": [
+                {
+                    "title": "Recent Changes",
+                    "url": "/#/special/changes",
+                    "description": "See all changes in the wiki."
+                }
+            ]
+        },
+        {
+            "title": "Page Lists",
+            "pages": [
+                {
+                    "title": "Orphaned Pages",
+                    "url": "/#/special/list/orphans",
+                    "description": "Lists pages in the wiki that have no links to them."
+                },
+                {
+                    "title": "Broken Redirects",
+                    "url": "/#/special/list/broken-redirects",
+                    "description": "Lists pages that redirect to a missing page."
+                }
+            ]
+        },
+        {
+            "title": "Users",
+            "pages": [
+                {
+                    "title": "All Users",
+                    "url": "/#/special/users",
+                    "description": "A list of all registered users."
+                }
+            ]
+        }
+    ]
+}

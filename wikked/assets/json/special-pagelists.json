@@ -1,0 +1,23 @@
+{
+    "titles": {
+        "orphans": "Orphaned Pages",
+        "broken-redirects": "Broken Redirects"
+    },
+    "messages": {
+        "orphans": "Here is a list of pages that don't have any pages linking to them. This means user will only be able to find them by searching for them, or by getting a direct link.",
+        "broken-redirects":
+            "Here is a list of pages that redirect to a non-existing page."
+    },
+    "asides": {
+        "orphans":
+            "The main page usually shows up here but that's OK since it's the page everyone sees first."
+    },
+    "empties": {
+        "orphans": "No orphaned pages!",
+        "broken-redirects": "No broken redirects!"
+    },
+    "url_suffixes": {
+        "broken-redirects": "?no_redirect"
+    }
+}
+
