@@ -7,29 +7,6 @@ from wikked.utils import get_absolute_url
 from wikked.web import app, get_wiki
 
 
-def orphans_filter_func(page):
-    for link in page.getIncomingLinks():
-        return False
-    return True
-
-
-def broken_redirects_filter_func(page):
-    redirect_meta = page.getMeta('redirect')
-    if redirect_meta is None:
-        return False
-
-    path = get_absolute_url(page.url, redirect_meta)
-    try:
-        target, visited = get_redirect_target(
-                path,
-                fields=['url', 'meta'])
-    except CircularRedirectError:
-        return True
-    except RedirectNotFound:
-        return True
-    return False
-
-
 def generic_pagelist_view(list_name, filter_func):
     pages = get_or_build_pagelist(
             list_name,
@@ -42,13 +19,41 @@ def generic_pagelist_view(list_name, filter_func):
 
 @app.route('/api/orphans')
 def api_special_orphans():
-    return generic_pagelist_view('orphans', orphans_filter_func)
+    def filter_func(page):
+        for link in page.getIncomingLinks():
+            return False
+        return True
+
+    return generic_pagelist_view('orphans', filter_func)
 
 
 @app.route('/api/broken-redirects')
 def api_special_broken_redirects():
-    return generic_pagelist_view('broken_redirects',
-                                 broken_redirects_filter_func)
+    def filter_func(page):
+        redirect_meta = page.getMeta('redirect')
+        if redirect_meta is None:
+            return False
+
+        path = get_absolute_url(page.url, redirect_meta)
+        try:
+            target, visited = get_redirect_target(
+                    path,
+                    fields=['url', 'meta'])
+        except CircularRedirectError:
+            return True
+        except RedirectNotFound:
+            return True
+        return False
+
+    return generic_pagelist_view('broken_redirects', filter_func)
+
+
+@app.route('/api/dead-ends')
+def api_special_dead_ends():
+    def filter_func(page):
+        return len(page.links) == 0
+
+    return generic_pagelist_view('dead_ends', filter_func)
 
 
 @app.route('/api/search')
