@@ -3,15 +3,17 @@
 @wiki-menu-width: 12em;
 @wiki-menu-width-ext: 36em;
 @wiki-shortcut-height: 3.9em;
+@wiki-shortcut-width: 3.0em;
 
 .wrapper {
     transition: padding 200ms ease-in-out 0s;
+    padding-left: @wiki-shortcut-width;
 }
 .wrapper.wiki-menu-active {
     padding-left: @wiki-menu-width !important;
 }
 .wrapper.wiki-menu-inactive {
-    padding-left: 0 !important;
+    padding-left: @wiki-shortcut-width !important;
 }
 
 .wiki-menu-a {
