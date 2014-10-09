@@ -197,6 +197,7 @@ define([
         },
         events: {
             "click #wiki-menu-shortcut": "_onMenuShortcutClick",
+            "click #wiki-menu-pin": "_onMenuShortcutClick",
             "mouseenter #wiki-menu-shortcut": "_onMenuShortcutHover",
             "mouseleave #wiki-menu-shortcut": "_onMenuShortcutLeave",
             "mouseenter #wiki-menu": "_onMenuHover",

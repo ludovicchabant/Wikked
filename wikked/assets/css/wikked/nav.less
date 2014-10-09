@@ -2,8 +2,8 @@
 // Navigation menu
 @wiki-menu-width: 12em;
 @wiki-menu-width-ext: 36em;
-@wiki-shortcut-height: 3.9em;
-@wiki-shortcut-width: 3.0em;
+@wiki-shortcut-height: 3.6em;
+@wiki-shortcut-width: 4.1em;
 
 .wrapper {
     transition: padding 200ms ease-in-out 0s;
@@ -24,17 +24,33 @@
     text-decoration: none;
 }
 
+#wiki-menu-pin {
+    height: @wiki-shortcut-height;
+    padding: 0 1.5em 0 @wiki-shortcut-width;
+    text-align: right;
+    color: @color-gray-medium;
+    cursor: pointer;
+
+    &:hover {
+        color: @color-gray-light;
+    }
+
+    span {
+        line-height: @wiki-shortcut-height;
+    }
+}
+#wiki-menu-pin
+
 #wiki-menu {
     position: fixed !important;
     top: 0;
     bottom: 0;
     left: -@wiki-menu-width;
     width: @wiki-menu-width;
-    padding-top: @wiki-shortcut-height;
     border: none;
     z-index: 10;
     overflow-y: auto;
-    color: @color-gray-dark;
+    color: @color-gray-light;
     background-color: @color-gray-dark;
     transition: left 200ms ease-in-out 0s,
                 width 200ms ease-in-out 0s,
@@ -70,7 +86,8 @@
     top: 0;
     left: 0;
     z-index: 11;
-    padding: 1.28em 1.5em;
+    padding: 1.3em 1.5em;
+    line-height: 1em;
     font-weight: bold;
     color: @body-bg;
     background: @color-gray-dark;
