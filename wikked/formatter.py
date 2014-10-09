@@ -45,7 +45,8 @@ class PageFormatter(object):
                 'query': self._processQuery
                 }
         self.endpoints = {
-                'url': self._formatUrlLink
+                'url': self._formatUrlLink,
+                'asset': self._formatAssetLink
                 }
 
     def formatText(self, ctx, text):
@@ -192,6 +193,14 @@ class PageFormatter(object):
                 mod_attr, '|'.join(processed_args))
 
     def _formatUrlLink(self, ctx, endpoint, value, display):
+        if value.startswith('/'):
+            return '/files' + value
+
+        abs_url = os.path.join('/files', ctx.urldir, value)
+        abs_url = os.path.normpath(abs_url).replace('\\', '/')
+        return abs_url
+
+    def _formatAssetLink(self, ctx, endpoint, value, display):
         img_exts = ['.jpg', '.jpeg', '.png', '.gif']
         base, ext = os.path.splitext(value)
         if value.startswith('/'):
