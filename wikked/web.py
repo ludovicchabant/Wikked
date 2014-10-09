@@ -16,16 +16,22 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 
 
 # Setup some config defaults.
-app.config.setdefault('DEV_ASSETS', False)
 app.config.setdefault('SQL_DEBUG', False)
 app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
 app.config.setdefault('WIKI_ROOT', None)
-app.config.setdefault('UPDATE_WIKI_ON_START', True)
+app.config.setdefault('WIKI_DEV_ASSETS', False)
+app.config.setdefault('WIKI_UPDATE_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('WIKI_ASYNC_UPDATE', False)
-app.config.setdefault('BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.db')
+app.config.setdefault('WIKI_SERVE_FILES', False)
+app.config.setdefault('WIKI_BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.db')
+app.config.setdefault('WIKI_NO_FLASK_LOGGER', False)
 app.config.setdefault('PROFILE', False)
 app.config.setdefault('PROFILE_DIR', None)
+
+
+if app.config['WIKI_NO_FLASK_LOGGER']:
+    app.logger.handlers = []
 
 
 # Find the wiki root, and further configure the app if there's a
@@ -42,7 +48,7 @@ if os.path.isfile(config_path):
 
 
 # Make the app serve static content and wiki assets in DEBUG mode.
-if app.config['DEBUG']:
+if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
     from werkzeug import SharedDataMiddleware
     import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
@@ -149,10 +155,10 @@ if app.config['WIKI_ASYNC_UPDATE']:
     from wikked.tasks import celery_app, update_wiki
 
     # Configure Celery.
-    app.config['BROKER_URL'] = app.config['BROKER_URL'] % (
+    app.config['WIKI_BROKER_URL'] = app.config['WIKI_BROKER_URL'] % (
             {'root': wiki_root})
     celery_app.conf.update(app.config)
-    app.logger.debug("Using Celery broker: %s" % app.config['BROKER_URL'])
+    app.logger.debug("Using Celery broker: %s" % app.config['WIKI_BROKER_URL'])
 
     # Make the wiki use the background update task.
     def async_updater(wiki):

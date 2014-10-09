@@ -65,23 +65,25 @@ class RunServerCommand(WikkedCommand):
                 else:
                     setattr(wikked.settings, cname, cval)
 
-        # Create/import the app.
-        from wikked.web import app
-
         # Remove Flask's default logging handler. Since the app is under the
         # overall Wikked package, logging is handled by the root logger
         # already.
-        app.logger.handlers = []
+        wikked.settings.WIKI_NO_FLASK_LOGGER = True
 
-        # Setup other simpler settings.
+        # When running from the command line, we only have one web server
+        # so make it also serve static files.
+        wikked.settings.WIKI_SERVE_FILES = True
         if ctx.args.dev:
-            app.config['DEV_ASSETS'] = True
+            wikked.settings.WIKI_DEV_ASSETS = True
         if not ctx.args.noupdate:
-            app.config['WIKI_AUTO_RELOAD'] = True
+            wikked.settings.WIKI_AUTO_RELOAD = True
             ctx.params.wiki_updater = autoreload_wiki_updater
 
+        # Create/import the app.
+        from wikked.web import app
+
         app.wiki_params = ctx.params
-        if bool(app.config.get('UPDATE_WIKI_ON_START')):
+        if bool(app.config.get('WIKI_UPDATE_ON_START')):
             ctx.wiki.updateAll()
 
         # Run!
