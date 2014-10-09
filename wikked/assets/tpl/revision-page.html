@@ -4,12 +4,12 @@
         <div class="decorator">Revision: <span class="rev_id">{{disp_rev}}</span></div>
     </header>
     <section>
-        <pre><code>{{text}}</code></pre>
+        <pre class="raw">{{text}}</pre>
         <form id="page-revert" class="page-revert">
             <input type="hidden" name="rev" value="{{rev}}"/>
             <div class="form-group">
-                <button type="submit" class="btn btn-danger" name="btn-revert">Revert</button>
-                <span class="help-block small" for="btn-revert">Revert the page to this revision</span>
+                <button type="submit" id="revert-page" class="pure-button pure-button-warning">Revert</button>
+                <label class="small" for="revert-page">Revert the page to this revision</span>
             </div>
         </form>
     </section>
