@@ -587,7 +587,7 @@ define([
             return title + ' [' + this.model.get('rev') + ']';
         },
         events: {
-            "submit #page-revert": "_submitPageRevert"
+            "submit #revert-page": "_submitPageRevert"
         },
         _submitPageRevert: function(e) {
             e.preventDefault();
