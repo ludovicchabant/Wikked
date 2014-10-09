@@ -346,7 +346,7 @@ define([
             var rev2 = $('input[name=rev2]:checked', form).val();
             this.navigate('/diff/r/' + this.get('path') + '/' + rev1 + '/' + rev2, { trigger: true });
         },
-        _onChangePath: function(path) {
+        _onChangePath: function(model, path) {
             PageHistoryModel.__super__._onChangePath.apply(this, arguments);
             this.set({
                 url_read: '/#/read/' + path,
