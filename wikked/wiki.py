@@ -143,7 +143,7 @@ class WikiParameters(object):
                     # Default to Mercurial. Yes. I just decided that myself.
                     scm_type = 'hg'
 
-            if self.context != NORMAL_CONTEXT and scm_type == 'hg':
+            if self.context == INIT_CONTEXT and scm_type == 'hg':
                 # Quick workaround for when we're creating a new repo,
                 # or running background tasks.
                 # We'll be using the `hg` process instead of the command
@@ -237,10 +237,10 @@ class Wiki(object):
         for o in order:
             o.postInit()
 
-    def stop(self):
+    def stop(self, exception=None):
         """ De-initializes the wiki and its sub-systems.
         """
-        self.db.close()
+        self.db.close(exception)
 
     def reset(self):
         """ Clears all the cached data and rebuilds it from scratch.
