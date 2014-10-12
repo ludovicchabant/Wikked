@@ -21,7 +21,7 @@ class Database(object):
         """ Called after a new wiki has been created. """
         pass
 
-    def close(self, commit, exception):
+    def close(self, exception):
         """ Called when the wiki is disposed of. """
         pass
 

@@ -81,8 +81,10 @@ class RunServerCommand(WikkedCommand):
 
         # Create/import the app.
         from wikked.web import app
-
         app.wiki_params = ctx.params
+        ctx.wiki.db.hookupWebApp(app)
+
+        # Update if needed.
         if bool(app.config.get('WIKI_UPDATE_ON_START')):
             ctx.wiki.updateAll()
 

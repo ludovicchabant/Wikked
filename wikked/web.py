@@ -75,14 +75,24 @@ if app.config['SQL_DEBUG']:
 app.logger.debug("Creating Flask application...")
 
 
+# This lets components further modify the wiki that's created for
+# each request.
+app.wikked_post_init = []
+
+
+# We'll hook this up to the post-page-update event, where we want to
+# clear all cached page lists.
 def remove_page_lists(wiki, url):
     wiki.db.removeAllPageLists()
 
 
+# When requested, set the wiki as a request global.
 def get_wiki():
     wiki = getattr(g, '_wiki', None)
     if wiki is None:
         wiki = Wiki(app.wiki_params)
+        for i in app.wikked_post_init:
+            i(wiki)
         wiki.post_update_hooks.append(remove_page_lists)
         wiki.start()
         g.wiki = wiki
@@ -91,33 +101,6 @@ def get_wiki():
 
 # Set the default wiki parameters.
 app.wiki_params = WikiParameters(wiki_root)
-
-
-# Set the wiki as a request global, and open/close the database.
-# NOTE: this must happen before the login extension is registered
-#       because it will also add a `before_request` callback, and
-#       that will call our authentication handler that needs
-#       access to the context instance for the wiki.
-@app.before_request
-def before_request():
-    pass
-
-
-@app.teardown_request
-def teardown_request(exception):
-    return exception
-
-
-# SQLAlchemy.
-# TODO: this totally assumes things about the wiki's DB API.
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    wiki = getattr(g, 'wiki', None)
-    if wiki:
-        wiki.db.close(
-                commit=app.config['SQL_COMMIT_ON_TEARDOWN'],
-                exception=exception)
-    return exception
 
 
 # Login extension.

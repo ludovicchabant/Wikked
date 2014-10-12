@@ -4,6 +4,7 @@ import types
 import string
 import logging
 import datetime
+import threading
 from sqlalchemy import (
     create_engine,
     and_,
@@ -15,6 +16,7 @@ from sqlalchemy.orm import (
     relationship, backref, load_only, subqueryload, joinedload,
     Load)
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import Session
 from wikked.db.base import Database, PageListNotFound
 from wikked.page import Page, PageData, FileSystemPage
 from wikked.utils import split_page_url
@@ -150,6 +152,79 @@ class SQLPageListItem(Base):
             'SQLPage')
 
 
+class _WikkedSQLSession(Session):
+    """ A session that can get its engine to bind to from a state
+        object. This effectively makes it possible to setup a session
+        factory before we have an engine.
+    """
+    def __init__(self, state, autocommit=False, autoflush=True):
+        self.state = state
+        super(_WikkedSQLSession, self).__init__(
+                autocommit=autocommit,
+                autoflush=autoflush,
+                bind=state.engine)
+
+
+class _SQLStateBase(object):
+    """ Base class for the 2 different state holder objects used by
+        the `SQLDatabase` cache. One is the "default" one, which is used
+        by command line wikis. The other is used when running the Flask
+        application, and stays active for as long as the application is
+        running. This makes it possible to reuse the same engine and
+        session factory.
+    """
+    def __init__(self, engine_url, scopefunc=None):
+        logger.debug("Creating SQL state.")
+        self.engine_url = engine_url
+        self._engine = None
+        self._engine_lock = threading.Lock()
+        self.session = scoped_session(
+                self._createScopedSession,
+                scopefunc=scopefunc)
+
+    @property
+    def engine(self):
+        """ Returns the SQL engine. An engine will be created if there
+            wasn't one already. """
+        if self._engine is None:
+            with self._engine_lock:
+                if self._engine is None:
+                    logger.debug("Creating SQL engine with URL: %s" %
+                                 self.engine_url)
+                    self._engine = create_engine(self.engine_url,
+                                                 convert_unicode=True)
+        return self._engine
+
+    def close(self, exception=None):
+        logger.debug("Closing SQL session.")
+        self.session.remove()
+
+    def _createScopedSession(self, **kwargs):
+        """ The factory for SQL sessions. When a session is created,
+            it will pull the engine in, which will lazily create the
+            engine. """
+        logger.debug("Creating SQL session.")
+        return _WikkedSQLSession(self, **kwargs)
+
+
+class _SharedSQLState(_SQLStateBase):
+    """ The shared state, used when running the Flask application.
+    """
+    def __init__(self, app, engine_url, scopefunc):
+        super(_SharedSQLState, self).__init__(engine_url, scopefunc)
+        self.app = app
+
+    def postInitHook(self, wiki):
+        wiki.db._state = self
+
+
+class _EmbeddedSQLState(_SQLStateBase):
+    """ The embedded state, used by default in command line wikis.
+    """
+    def __init__(self, engine_url):
+        super(_EmbeddedSQLState, self).__init__(engine_url)
+
+
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
@@ -159,25 +234,48 @@ class SQLDatabase(Database):
         Database.__init__(self)
         self.engine_url = config.get('wiki', 'database_url')
         self.auto_update = config.getboolean('wiki', 'auto_update')
-        self._engine = None
-        self._session = None
+        self._state = None
+        self._state_lock = threading.Lock()
+
+    def hookupWebApp(self, app):
+        """ Hook up a Flask application with all the stuff we need.
+            This includes patching every wiki created during request
+            handling to use our `_SharedSQLState` object, and removing
+            any active sessions after the request is done. """
+        from flask import g, _app_ctx_stack
+
+        logger.debug("Hooking up Flask app for SQL database.")
+        state = _SharedSQLState(app, self.engine_url,
+                                _app_ctx_stack.__ident_func__)
+        app.wikked_post_init.append(state.postInitHook)
+
+        @app.teardown_appcontext
+        def shutdown_session(exception=None):
+            # See if the wiki, and its DB, were used...
+            wiki = getattr(g, 'wiki', None)
+            if wiki and wiki.db._state:
+                wiki.db._state.close(
+                        exception=exception)
+            return exception
 
     @property
     def engine(self):
-        if self._engine is None:
-            logger.debug("Creating SQL engine from URL: %s" % self.engine_url)
-            self._engine = create_engine(self.engine_url, convert_unicode=True)
-        return self._engine
+        return self._getState().engine
 
     @property
     def session(self):
-        if self._session is None:
-            logger.debug("Opening database from URL: %s" % self.engine_url)
-            self._session = scoped_session(sessionmaker(
-                autocommit=False,
-                autoflush=False,
-                bind=self.engine))
-        return self._session
+        return self._getState().session
+
+    def _getState(self):
+        """ If no state has been specified yet, use the default
+            embedded one (which means no sharing of engines or session
+            factories with any other wikis. """
+        if self._state is not None:
+            return self._state
+        with self._state_lock:
+            if self._state is None:
+                self._state = _EmbeddedSQLState(self.engine_url)
+        return self._state
 
     def _needsSchemaUpdate(self):
         if (self.engine_url == 'sqlite://' or
@@ -230,11 +328,9 @@ class SQLDatabase(Database):
     def start(self, wiki):
         self.wiki = wiki
 
-    def close(self, commit, exception):
-        if self._session is not None:
-            if commit and exception is None:
-                self._session.commit()
-            self._session.remove()
+    def close(self, exception):
+        if self._state is not None:
+            self._state.close(exception)
 
     def reset(self, page_infos):
         logger.debug("Re-creating SQL database.")
