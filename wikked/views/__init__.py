@@ -184,7 +184,7 @@ def get_or_build_pagelist(list_name, builder, fields=None):
     wiki = get_wiki()
     build_inline = not app.config['WIKI_ASYNC_UPDATE']
     page_list = wiki.db.getPageListOrNone(list_name, fields=fields,
-                                            valid_only=build_inline)
+                                          valid_only=build_inline)
     if page_list is None and build_inline:
         app.logger.info("Regenerating list: %s" % list_name)
         page_list = builder()
@@ -193,15 +193,17 @@ def get_or_build_pagelist(list_name, builder, fields=None):
     return page_list
 
 
-def get_generic_pagelist_builder(filter_func):
+def get_generic_pagelist_builder(filter_func, fields=None):
+    fields = fields or ['url', 'title', 'meta']
     def builder():
         # Make sure all pages have been resolved.
         wiki = get_wiki()
         wiki.resolve()
 
         pages = []
-        for page in wiki.getPages(no_endpoint_only=True,
-                                    fields=['url', 'title', 'meta']):
+        for page in wiki.getPages(
+                no_endpoint_only=True,
+                fields=fields):
             try:
                 if filter_func(page):
                     pages.append(page)

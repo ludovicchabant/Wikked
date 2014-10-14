@@ -22,6 +22,16 @@
                     "title": "Broken Redirects",
                     "url": "/#/special/list/broken-redirects",
                     "description": "Lists pages that redirect to a missing page."
+                },
+                {
+                    "title": "Double Redirects",
+                    "url": "/#/special/list/double-redirects",
+                    "description": "Lists pages that redirect twice or more."
+                },
+                {
+                    "title": "Dead-End Pages",
+                    "url": "/#/special/list/dead-ends",
+                    "description": "Lists pages that don't have any outgoing links."
                 }
             ]
         },
