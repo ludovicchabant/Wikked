@@ -34,7 +34,7 @@ sleep_time_min = 0
 sleep_time_max = 0.5
 
 [distribute]
-log_path = log-distributed
+log_path = logs-distributed
 funkload_location=http://pypi.python.org/packages/source/f/funkload/funkload-1.16.1.tar.gz
 
 [workers]
