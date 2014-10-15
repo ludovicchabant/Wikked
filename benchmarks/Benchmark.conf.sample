@@ -1,0 +1,52 @@
+# main section for the test case
+[main]
+title=Wikked Load Tests 1
+description=Test fetching pages randomly
+url=http://localhost:5000
+
+# a section for each test
+[test_benchmark]
+description=Access some random URLs
+#username=foo
+#password=bar
+page_names=Main page;Sandbox;Another Sandbox
+nb_times=20
+
+# a section to configure the test mode
+[ftest]
+log_to = console file
+log_path = logs/test-load1.log
+result_path = results/test-load1.xml
+sleep_time_min = 0
+sleep_time_max = 0
+
+# a section to configure the bench mode
+[bench]
+cycles = 10:20:40
+duration = 10
+startup_delay = 0.01
+sleep_time = 0.01
+cycle_time = 1
+log_to =
+log_path = logs/bench-load1.log
+result_path = results/bench-load1.xml
+sleep_time_min = 0
+sleep_time_max = 0.5
+
+[distribute]
+log_path = log-distributed
+funkload_location=http://pypi.python.org/packages/source/f/funkload/funkload-1.16.1.tar.gz
+
+[workers]
+hosts = foo1 foo2
+
+[foo1]
+host=foo's ip
+username=foo
+ssh_key=foo's key
+
+[foo2]
+host=foo's ip
+username=foo
+ssh_key=foo's key
+

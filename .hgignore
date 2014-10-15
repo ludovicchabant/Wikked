@@ -1,5 +1,4 @@
 syntax:glob
-benchmarks
 venv
 node_modules
 wikked/static
@@ -11,4 +10,8 @@ build
 *.sublime-*
 MANIFEST
 Wikked.egg-info
+benchmarks/Benchmark.conf
+benchmarks/logs
+benchmarks/logs-distributed
+benchmarks/results
 
