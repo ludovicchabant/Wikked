@@ -3,11 +3,11 @@
 </a>
 <nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
     <ul class="">
-        <li><a href="/"><span class="glyphicon glyphicon-home"></span> Home</a></li>
+        <li><a href="/"><span class="fa fa-home"></span> Home</a></li>
         {{#if show_root_link}}
-        <li><a href="/#/special"><span class="glyphicon glyphicon-dashboard"></span> Special Pages</a></li>
+        <li><a href="/#/special"><span class="fa fa-dashboard"></span> Special Pages</a></li>
         {{/if}}
-        <li><a href="/#/create/"><span class="glyphicon glyphicon-file"></span> New Page</a></li>
+        <li><a href="/#/create/"><span class="fa fa-file"></span> New Page</a></li>
     </ul>
     <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider">
         <fieldset>
@@ -17,10 +17,10 @@
     </form>
     <ul class="pure-menu-divider">
         {{#if user}}
-        <li><a href="{{url_profile}}"><span class="glyphicon glyphicon-cog"></span> {{user.username}}</a></li>
-        <li><a href="{{url_logout}}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+        <li><a href="{{url_profile}}"><span class="fa fa-cog"></span> {{user.username}}</a></li>
+        <li><a href="{{url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
         {{else}}
-        <li><a href="{{url_login}}"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+        <li><a href="{{url_login}}"><span class="fa fa-log-in"></span> Login</a></li>
         {{/if}}
     </ul>
 </nav>

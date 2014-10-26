@@ -13,10 +13,6 @@ require.config({
         handlebars: 'js/handlebars-1.0.rc.1',
         moment: 'js/moment.min',
         text: 'js/text',
-        bootstrap_modal: 'bootstrap/js/modal',
-        bootstrap_tooltip: 'bootstrap/js/tooltip',
-        bootstrap_alert: 'bootstrap/js/alert',
-        bootstrap_collapse: 'bootstrap/js/collapse',
         pagedown_converter: 'js/pagedown/Markdown.Converter',
         pagedown_editor: 'js/pagedown/Markdown.Editor',
         pagedown_sanitizer: 'js/pagedown/Markdown.Sanitizer'
@@ -37,15 +33,6 @@ require.config({
         },
         'handlebars': {
             exports: 'Handlebars'
-        },
-        'bootstrap_modal': {
-            deps: ['jquery']
-        },
-        'bootstrap_tooltip': {
-            deps: ['jquery']
-        },
-        'bootstrap_collapse': {
-            deps: ['jquery']
         },
         'pagedown_converter': {
             exports: 'Markdown'

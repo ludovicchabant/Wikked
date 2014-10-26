@@ -7,9 +7,6 @@ define([
         'underscore',
         'backbone',
         'handlebars',
-        'bootstrap_tooltip',
-        'bootstrap_alert',
-        'bootstrap_collapse',
         'pagedown_converter',
         'pagedown_editor',
         'pagedown_sanitizer',
@@ -37,7 +34,6 @@ define([
         'text!tpl/special-pagelist.html'
         ],
     function($, JQueryValidate, _, Backbone, Handlebars,
-        BootstrapTooltip, BootstrapAlert, BootstrapCollapse,
         PageDownConverter, PageDownEditor, PageDownSanitizer,
         Client, Models, Util,
         tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
@@ -643,12 +639,12 @@ define([
                 var tgt = $('.wiki-history .wiki-history-entry-details-' + index);
                 tgt.toggle();
                 if (tgt.is(':visible')) {
-                    $('.glyphicon', btn).removeClass('glyphicon-chevron-down');
-                    $('.glyphicon', btn).addClass('glyphicon-chevron-up');
+                    $('.fa', btn).removeClass('fa-chevron-down');
+                    $('.fa', btn).addClass('fa-chevron-up');
                     $('small', btn).html('Hide');
                 } else {
-                    $('.glyphicon', btn).removeClass('glyphicon-chevron-up');
-                    $('.glyphicon', btn).addClass('glyphicon-chevron-down');
+                    $('.fa', btn).removeClass('fa-chevron-up');
+                    $('.fa', btn).addClass('fa-chevron-down');
                     $('small', btn).html('Show');
                 }
                 e.preventDefault();

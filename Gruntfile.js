@@ -42,7 +42,7 @@ module.exports = function(grunt) {
         }
       }
     },
-    imagemin: {
+    /*imagemin: {
       all: {
         files: [{
               expand: true,
@@ -51,16 +51,15 @@ module.exports = function(grunt) {
               src: ['img/*.{png,jpg,gif}']
         }]
       }
-    },
+    },*/
     copy: {
       development: {
         files: [
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['img/**']},
+          //{expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['img/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']},
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['json/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/js/*.js']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/fonts/**']}
+          {expand: true, cwd: 'wikked/assets/font-awesome', dest: 'wikked/static/', src: ['fonts/**']}
         ]
       },
       dev_scripts: {
@@ -77,7 +76,7 @@ module.exports = function(grunt) {
       production: {
         files: [
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/require.js']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['bootstrap/fonts/**']}
+          {expand: true, cwd: 'wikked/assets/font-awesome', dest: 'wikked/static/', src: ['fonts/**']}
         ]
       }
     },
