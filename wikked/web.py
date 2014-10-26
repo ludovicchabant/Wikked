@@ -28,6 +28,11 @@ app.config.setdefault('WIKI_BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.d
 app.config.setdefault('WIKI_NO_FLASK_LOGGER', False)
 app.config.setdefault('PROFILE', False)
 app.config.setdefault('PROFILE_DIR', None)
+app.config.setdefault('INFLUXDB_HOST', None)
+app.config.setdefault('INFLUXDB_PORT', 8086)
+app.config.setdefault('INFLUXDB_USERNAME', 'root')
+app.config.setdefault('INFLUXDB_PASSWORD', 'root')
+app.config.setdefault('INFLUXDB_DATABASE', 'database')
 
 
 if app.config['WIKI_NO_FLASK_LOGGER']:
@@ -148,4 +153,41 @@ if app.config['WIKI_ASYNC_UPDATE']:
         app.logger.debug("Running update task on Celery.")
         update_wiki.delay(wiki.root)
     app.wiki_params.wiki_updater = async_updater
+
+
+# InfluxDB metrics.
+if app.config['INFLUXDB_HOST']:
+    try:
+        import influxdb
+    except ImportError:
+        raise Exception("Please install the `influxdb` package if you need "
+                        "analytics for your Wikked app.")
+    host = app.config['INFLUXDB_HOST']
+    port = app.config['INFLUXDB_PORT']
+    username = app.config['INFLUXDB_USERNAME']
+    password = app.config['INFLUXDB_PASSWORD']
+    database = app.config['INFLUXDB_DATABASE']
+    metrics_db = influxdb.InfluxDBClient(host, port, username, password, database)
+    app.logger.info("Opening InfluxDB %s on %s:%s as %s." % (
+        database, host, port, username))
+
+    import time
+    from flask import g, request, request_started, request_tearing_down
+    def on_request_started(sender, **extra):
+        g.metrics_start_time = time.clock()
+    def on_request_tearing_down(sender, **extra):
+        duration = time.clock() - g.metrics_start_time
+        data = [
+                  {
+                      "name": "requests",
+                      "columns": ["request_path", "compute_time"],
+                      "points": [
+                          [str(request.path), duration]
+                          ]
+                      }
+                  ]
+        metrics_db.write_points(data)
+
+    request_started.connect(on_request_started, app)
+    request_tearing_down.connect(on_request_tearing_down, app)
 
