@@ -42,7 +42,7 @@ module.exports = function(grunt) {
         }
       }
     },
-    /*imagemin: {
+    imagemin: {
       all: {
         files: [{
               expand: true,
@@ -51,7 +51,7 @@ module.exports = function(grunt) {
               src: ['img/*.{png,jpg,gif}']
         }]
       }
-    },*/
+    },
     copy: {
       development: {
         files: [
