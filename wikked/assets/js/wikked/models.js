@@ -348,6 +348,20 @@ define([
         },
         _onChangePath: function(model, path) {
             PageHistoryModel.__super__._onChangePath.apply(this, arguments);
+            if (path === '') {
+                // This is the main page. Let's wait until we know its URL,
+                // and use that instead for all the view data links, because
+                // most of them require an actual page URL.
+                this.on('change:url', this._onChangeUrl, this);
+                return;
+            }
+            this._setViewData(path);
+        },
+        _onChangeUrl: function(model, url) {
+            this.off('change:meta', this._onChangeUrl, this);
+            this._setViewData(url);
+        },
+        _setViewData: function(path) {
             this.set({
                 url_read: '/#/read/' + path,
                 url_edit: '/#/edit/' + path,
