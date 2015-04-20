@@ -91,12 +91,6 @@ app.logger.debug("Creating Flask application...")
 app.wikked_post_init = []
 
 
-# We'll hook this up to the post-page-update event, where we want to
-# clear all cached page lists.
-def remove_page_lists(wiki, url):
-    wiki.db.removeAllPageLists()
-
-
 # When requested, set the wiki as a request global.
 def get_wiki():
     wiki = getattr(g, '_wiki', None)
@@ -104,7 +98,6 @@ def get_wiki():
         wiki = Wiki(app.wiki_params)
         for i in app.wikked_post_init:
             i(wiki)
-        wiki.post_update_hooks.append(remove_page_lists)
         wiki.start()
         g.wiki = wiki
     return wiki
