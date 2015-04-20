@@ -1,6 +1,7 @@
 import os
 import os.path
 import logging
+from werkzeug import SharedDataMiddleware
 from flask import Flask, abort, g
 from wikked.wiki import Wiki, WikiParameters
 
@@ -54,11 +55,16 @@ if os.path.isfile(config_path):
 
 # Make the app serve static content and wiki assets in DEBUG mode.
 if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
-    from werkzeug import SharedDataMiddleware
-    import os
     app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
         '/files': os.path.join(wiki_root, '_files')
     })
+
+
+# In DEBUG mode, also serve raw assets instead of static ones.
+if app.config['WIKI_DEV_ASSETS']:
+    assets_folder = os.path.join(os.path.dirname(__file__), 'assets')
+    app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
+        '/dev-assets': assets_folder})
 
 
 # Profiling
