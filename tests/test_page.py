@@ -75,7 +75,6 @@ class PageTest(WikkedTest):
             '/sub_dir/Second.txt': "Go back to [[../First]], or to [[Second Sibling]].",
             '/sub_dir/Second Sibling.txt': "Go back to [[Second]]."
             })
-        print str(list(wiki.getPageUrls()))
         first = wiki.getPage('/First')
         self.assertEqual(['/First Sibling'], first.links)
         first2 = wiki.getPage('/First Sibling')
@@ -94,7 +93,7 @@ class PageTest(WikkedTest):
 
     def testImageUrl(self):
         wiki = self._getWikiFromStructure({
-            '/foo.txt': "URL: [[blah|url:/blah/boo/image.png]]"
+            '/foo.txt': "URL: [[blah|asset:/blah/boo/image.png]]"
             })
         foo = wiki.getPage('/foo')
         self.assertEqual("URL: <img src=\"/files/blah/boo/image.png\" alt=\"blah\"></img>", foo.getFormattedText())

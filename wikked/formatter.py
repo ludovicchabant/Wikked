@@ -194,11 +194,11 @@ class PageFormatter(object):
 
     def _formatUrlLink(self, ctx, endpoint, value, display):
         if value.startswith('/'):
-            return '/files' + value
-
-        abs_url = os.path.join('/files', ctx.urldir, value)
-        abs_url = os.path.normpath(abs_url).replace('\\', '/')
-        return abs_url
+            abs_url = '/files' + value
+        else:
+            abs_url = os.path.join('/files', ctx.urldir, value)
+            abs_url = os.path.normpath(abs_url).replace('\\', '/')
+        return '<a class="wiki-asset" href="%s">%s</a>' % (abs_url, display)
 
     def _formatAssetLink(self, ctx, endpoint, value, display):
         img_exts = ['.jpg', '.jpeg', '.png', '.gif']
