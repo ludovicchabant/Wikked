@@ -8,7 +8,7 @@ import threading
 import subprocess
 from hglib.error import CommandError
 from hglib.util import cmdbuilder
-from base import (
+from .base import (
         SourceControl, Author, Revision, SourceControlError,
         ACTION_ADD, ACTION_EDIT, ACTION_DELETE,
         STATE_NEW, STATE_MODIFIED, STATE_COMMITTED)
@@ -61,7 +61,8 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         MercurialBaseSourceControl.__init__(self, root)
 
         self.hg = 'hg'
-        self.log_style = os.path.join(os.path.dirname(__file__), 'resources', 'hg_log.style')
+        self.log_style = os.path.join(os.path.dirname(__file__),
+                                      'resources', 'hg_log.style')
 
     def getHistory(self, path=None, limit=10, after_rev=None):
         if path is not None:
@@ -148,7 +149,8 @@ class MercurialSourceControl(MercurialBaseSourceControl):
 
         m = re.match(r'(\d+) ([0-9a-f]+) \[([^\]]+)\] ([^ ]+)', lines[0])
         if m is None:
-            raise Exception('Error parsing history from Mercurial, got: ' + lines[0])
+            raise Exception('Error parsing history from Mercurial, got: ' +
+                            lines[0])
 
         rev = Revision()
         rev.rev_id = int(m.group(1))
@@ -188,6 +190,24 @@ class MercurialSourceControl(MercurialBaseSourceControl):
 
 hg_client = None
 cl_lock = threading.Lock()
+
+
+def _b(strs):
+    """ Convert a list of strings to binary UTF8 arrays. """
+    if strs is None:
+        return None
+    if isinstance(strs, str):
+        return strs.encode('utf8')
+    return list([s.encode('utf8') if s is not None else None for s in strs])
+
+
+def _s(strs):
+    """ Convert a byte array to string using UTF8 encoding. """
+    if strs is None:
+        return None
+    if isinstance(strs, bytes):
+        return strs.decode('utf8')
+    return list([s.decode('utf8') if s is not None else None for s in strs])
 
 
 def create_hg_client(root):
@@ -241,7 +261,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def getHistory(self, path=None, limit=10, after_rev=None):
         if path is not None:
-            status = self.client.status(include=[path])
+            status = _s(self.client.status(include=_b([path])))
             if len(status) > 0 and status[0] == '?':
                 return []
 
@@ -253,34 +273,34 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
         needs_files = False
         if path is not None:
-            repo_revs = self.client.log(files=[path], follow=True,
-                                        limit=limit, revrange=rev)
+            repo_revs = self.client.log(files=_b([path]), follow=True,
+                                        limit=limit, revrange=_b(rev))
         else:
             needs_files = True
             repo_revs = self.client.log(follow=True, limit=limit,
-                                        revrange=rev)
+                                        revrange=_b(rev))
         revisions = []
         for rev in repo_revs:
-            r = Revision(rev.node)
-            r.rev_name = rev.node[:12]
-            r.author = Author(rev.author)
+            r = Revision(_s(rev.node))
+            r.rev_name = _s(rev.node[:12])
+            r.author = Author(_s(rev.author))
             r.timestamp = time.mktime(rev.date.timetuple())
-            r.description = unicode(rev.desc)
+            r.description = _s(rev.desc)
             if needs_files:
                 rev_statuses = self.client.status(change=rev.node)
                 for rev_status in rev_statuses:
                     r.files.append({
-                        'path': rev_status[1].decode('utf-8', 'replace'),
-                        'action': self.actions[rev_status[0]]
+                        'path': _s(rev_status[1]),
+                        'action': self.actions[_s(rev_status[0])]
                         })
             revisions.append(r)
         return revisions
 
     def getState(self, path):
-        statuses = self.client.status(include=[path])
+        statuses = self.client.status(include=_b([path]))
         if len(statuses) == 0:
             return STATE_COMMITTED
-        status = statuses[0]
+        status = _s(statuses[0])
         if status[0] == '?' or status[0] == 'A':
             return STATE_NEW
         if status[0] == 'M':
@@ -288,12 +308,14 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         raise Exception("Unsupported status: %s" % status)
 
     def getRevision(self, path, rev):
-        return self.client.cat([path], rev=rev)
+        return _s(self.client.cat(_b([path]), rev=_b(rev)))
 
     def diff(self, path, rev1, rev2):
         if rev2 is None:
-            return self.client.diff(files=[path], change=rev1, git=True)
-        return self.client.diff(files=[path], revs=[rev1, rev2], git=True)
+            return _s(self.client.diff(files=_b([path]), change=_b(rev1),
+                                       git=True))
+        return _s(self.client.diff(files=_b([path]), revs=_b([rev1, rev2]),
+                                   git=True))
 
     def commit(self, paths, op_meta):
         if 'message' not in op_meta or not op_meta['message']:
@@ -301,13 +323,14 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
         kwargs = {}
         if 'author' in op_meta:
-            kwargs['u'] = op_meta['author']
+            kwargs['u'] = _b(op_meta['author'])
         try:
             # We need to write our own command because somehow the `commit`
             # method in `hglib` doesn't support specifying the file(s)
             # directly -- only with `--include`. Weird.
-            args = cmdbuilder('commit', *paths,
-                    debug=True, m=op_meta['message'], A=True,
+            args = cmdbuilder(
+                    b'commit', *_b(paths),
+                    debug=True, m=_b(op_meta['message']), A=True,
                     **kwargs)
             self.client.rawcommand(args)
         except CommandError as e:
@@ -315,7 +338,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def revert(self, paths=None):
         if paths is not None:
-            self.client.revert(files=paths, nobackup=True)
+            self.client.revert(files=_b(paths), nobackup=True)
         else:
             self.client.revert(all=True, nobackup=True)
 

@@ -1,5 +1,5 @@
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import string
 import datetime
 from flask import g, abort, jsonify
@@ -17,16 +17,16 @@ CHECK_FOR_WRITE = 2
 def url_from_viewarg(url):
     endpoint, path = split_url_from_viewarg(url)
     if endpoint:
-        return u'%s:%s' % (endpoint, path)
+        return '%s:%s' % (endpoint, path)
     return path
 
 
 def split_url_from_viewarg(url):
-    url = urllib.unquote(url)
+    url = urllib.parse.unquote(url)
     endpoint, path = split_page_url(url)
     if endpoint:
         return (endpoint, path)
-    return (None, u'/' + path)
+    return (None, '/' + path)
 
 
 def make_page_title(url):
@@ -99,7 +99,7 @@ def get_page_meta(page, local_only=False):
     else:
         meta = dict(page.getMeta() or {})
     meta['title'] = page.title
-    meta['url'] = urllib.quote(page.url.encode('utf-8'))
+    meta['url'] = urllib.parse.quote(page.url.encode('utf-8'))
     for name in COERCE_META:
         if name in meta:
             meta[name] = COERCE_META[name](meta[name])
@@ -110,7 +110,7 @@ def get_category_meta(category):
     result = []
     for item in category:
         result.append({
-            'url': u'category:/' + urllib.quote(item.encode('utf-8')),
+            'url': 'category:/' + urllib.parse.quote(item.encode('utf-8')),
             'name': item
             })
     return result

@@ -2,7 +2,7 @@ import os
 import os.path
 import re
 import logging
-from formatter import PageFormatter, FormattingContext
+from .formatter import PageFormatter, FormattingContext
 
 
 logger = logging.getLogger(__name__)

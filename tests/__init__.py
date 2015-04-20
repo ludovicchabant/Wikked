@@ -1,11 +1,11 @@
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import shutil
 import unittest
 from wikked.wiki import Wiki
 from wikked.db.sql import SQLDatabase
-from mock import MockWikiParameters, MockFileSystem
+from .mock import MockWikiParameters, MockFileSystem
 
 
 class MockWikiParametersWithStructure(MockWikiParameters):
@@ -26,7 +26,7 @@ class WikkedTest(unittest.TestCase):
 
     def tearDown(self):
         if hasattr(self, 'wiki') and self.wiki is not None:
-            self.wiki.db.close(False, None)
+            self.wiki.db.close(None)
 
         if os.path.isdir(self.test_data_dir):
             shutil.rmtree(self.test_data_dir)
@@ -68,7 +68,7 @@ def format_link(title, url, missing=False, mod=None):
     res = '<a class=\"wiki-link'
     if missing:
         res += ' missing'
-    url = urllib.quote(url)
+    url = urllib.parse.quote(url)
     res += '\" data-wiki-url=\"' + url + '\"'
     if mod:
         res += ' data-wiki-mod=\"' + mod + '\"'

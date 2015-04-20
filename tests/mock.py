@@ -3,10 +3,10 @@ import os.path
 import types
 import codecs
 import logging
-import StringIO
+import io
 from collections import deque
 from contextlib import closing
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 from wikked.fs import FileSystem
 from wikked.db.base import Database
 from wikked.indexer.base import WikiIndex
@@ -63,7 +63,7 @@ class MockWikiParameters(WikiParameters):
         config.readfp(open(default_config_path))
         config.set('wiki', 'root', '/fake/root')
         if self.config_text:
-            with closing(StringIO.StringIO(self.config_text)) as conf:
+            with closing(io.StringIO(self.config_text)) as conf:
                 config.readfp(conf)
 
         return config
@@ -77,7 +77,7 @@ def mock_os_walk(root_dir, root_node):
 
         dirnames = []
         filenames = []
-        for name, child in cur_node.iteritems():
+        for name, child in cur_node.items():
             if isinstance(child, dict):
                 dirnames.append(name)
             else:
@@ -147,7 +147,7 @@ class MockFileSystem(FileSystem):
     @staticmethod
     def flat_to_nested(flat):
         nested = {}
-        for k, v in flat.iteritems():
+        for k, v in flat.items():
             bits = k.lstrip('/').split('/')
             cur = nested
             for i, b in enumerate(bits):
@@ -166,7 +166,7 @@ class MockFileSystem(FileSystem):
             os.makedirs(path)
         for node in structure:
             node_path = os.path.join(path, node)
-            if isinstance(structure[node], types.StringTypes):
+            if isinstance(structure[node], str):
                 with codecs.open(node_path, 'w', encoding='utf-8') as f:
                     f.write(structure[node])
             else:

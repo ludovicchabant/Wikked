@@ -23,7 +23,7 @@ class User(object):
         return False
 
     def get_id(self):
-        return unicode(self.username)
+        return str(self.username)
 
     def is_admin(self):
         return 'administrators' in self.groups

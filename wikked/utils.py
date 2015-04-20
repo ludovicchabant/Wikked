@@ -1,7 +1,7 @@
 import re
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from xml.sax.saxutils import escape, unescape
 
 
@@ -68,7 +68,7 @@ def get_absolute_url(base_url, url, quote=False):
         raw_abs_url = os.path.join(urldir, url)
         abs_url = os.path.normpath(raw_abs_url).replace('\\', '/')
     if quote:
-        abs_url = urllib.quote(abs_url.encode('utf-8'))
+        abs_url = urllib.parse.quote(abs_url.encode('utf-8'))
     if endpoint:
         return '%s:%s' % (endpoint, abs_url)
     return abs_url
@@ -78,8 +78,8 @@ def split_page_url(url):
     m = endpoint_regex.match(url)
     if m is None:
         return (None, url)
-    endpoint = unicode(m.group(1))
-    path = unicode(m.group(2))
+    endpoint = m.group(1)
+    path = m.group(2)
     return (endpoint, path)
 
 
@@ -100,7 +100,7 @@ def get_meta_name_and_modifiers(name):
 
 
 def flatten_single_metas(meta):
-    items = list(meta.iteritems())
+    items = list(meta.items())
     for k, v in items:
         if isinstance(v, list):
             l = len(v)
@@ -112,7 +112,7 @@ def flatten_single_metas(meta):
 
 
 html_escape_table = {'"': "&quot;", "'": "&apos;"}
-html_unescape_table = {v: k for k, v in html_escape_table.items()}
+html_unescape_table = {v: k for k, v in list(html_escape_table.items())}
 
 def html_escape(text):
     return escape(text, html_escape_table)

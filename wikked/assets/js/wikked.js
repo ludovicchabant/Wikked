@@ -4,7 +4,7 @@
  * We need to alias/shim some of the libraries.
  */
 require.config({
-    urlArgs: "bust=" + (new Date()).getTime(),
+    //urlArgs: "bust=" + (new Date()).getTime(),
     paths: {
         jquery: 'js/jquery-1.8.3.min',
         jquery_validate: 'js/jquery/jquery.validate.min',

@@ -43,7 +43,7 @@ def api_special_orphans():
                 rev_links[abs_l] = cnt + 1
 
         or_pages = []
-        for tgt, cnt in rev_links.iteritems():
+        for tgt, cnt in rev_links.items():
             if cnt == 0:
                 or_pages.append(pages[tgt])
         return or_pages
@@ -93,7 +93,7 @@ def api_special_double_redirects():
                 redirs[p.url] = target
 
         dr_pages = []
-        for src, tgt in redirs.iteritems():
+        for src, tgt in redirs.items():
             if tgt in redirs:
                 dr_pages.append(pages[src])
         return dr_pages

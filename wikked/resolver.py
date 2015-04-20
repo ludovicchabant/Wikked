@@ -1,5 +1,5 @@
 import re
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import os.path
 import logging
 import jinja2
@@ -83,7 +83,7 @@ class ResolveOutput(object):
             self.meta = dict(page.getLocalMeta())
 
     def add(self, other):
-        for original_key, val in other.meta.iteritems():
+        for original_key, val in other.meta.items():
             # Ignore internal properties. Strip include-only properties
             # from their prefix.
             key, mod = get_meta_name_and_modifiers(original_key)
@@ -135,9 +135,9 @@ class PageResolver(object):
             return self._unsafeRun()
         except Exception as e:
             logger.error("Error resolving page '%s':" % self.page.url)
-            logger.exception(unicode(e.message))
+            logger.exception(e.message)
             self.output = ResolveOutput(self.page)
-            self.output.text = u'<div class="error">%s</div>' % e
+            self.output.text = '<div class="error">%s</div>' % e
             return self.output
 
     def _getPage(self, url):
@@ -173,15 +173,15 @@ class PageResolver(object):
 
         # Resolve queries, includes, etc.
         def repl2(m):
-            meta_name = unicode(m.group('name'))
-            meta_value = unicode(m.group('value'))
+            meta_name = m.group('name')
+            meta_value = m.group('value')
             meta_opts = {}
             if m.group('opts'):
                 for c in re.finditer(
                         r'data-wiki-(?P<name>[a-z]+)="(?P<value>[^"]+)"',
-                        unicode(m.group('opts'))):
-                    opt_name = unicode(c.group('name'))
-                    opt_value = unicode(c.group('value'))
+                        m.group('opts')):
+                    opt_name = c.group('name')
+                    opt_value = c.group('value')
                     meta_opts[opt_name] = opt_value
 
             resolver = self.resolvers.get(meta_name)
@@ -207,10 +207,10 @@ class PageResolver(object):
 
             # Resolve link states.
             def repl1(m):
-                raw_url = unicode(m.group('url'))
+                raw_url = m.group('url')
                 url = self.ctx.getAbsoluteUrl(raw_url)
                 self.output.out_links.append(url)
-                quoted_url = urllib.quote(url.encode('utf-8'))
+                quoted_url = urllib.parse.quote(url.encode('utf-8'))
                 if self.wiki.pageExists(url):
                     return '<a class="wiki-link" data-wiki-url="%s">' % quoted_url
                 return '<a class="wiki-link missing" data-wiki-url="%s">' % quoted_url
@@ -261,12 +261,12 @@ class PageResolver(object):
             # root page.
             arg_pattern = r'<div class="wiki-param" data-name="(?P<name>\w[\w\d]*)?">(?P<value>.*?)</div>'
             for i, m in enumerate(re.finditer(arg_pattern, args)):
-                value = unicode(m.group('value')).strip()
+                value = m.group('value').strip()
                 value = html_unescape(value)
                 value = self._renderTemplate(value, self.parameters,
                                              error_url=self.page.url)
                 if m.group('name'):
-                    key = unicode(m.group('name')).lower()
+                    key = m.group('name').lower()
                     parameters[key] = value
                 else:
                     parameters['__xargs'].append(value)
@@ -306,9 +306,9 @@ class PageResolver(object):
         for m in re.finditer(arg_pattern, query):
             key = m.group('name').lower()
             if key in parameters:
-                parameters[key] = unicode(m.group('value'))
+                parameters[key] = m.group('value')
             else:
-                meta_query[key] = unicode(m.group('value'))
+                meta_query[key] = m.group('value')
 
         # Find pages that match the query, excluding any page
         # that is in the URL trail.
@@ -317,13 +317,13 @@ class PageResolver(object):
         for p in self.pages_meta_getter():
             if p.url in self.ctx.url_trail:
                 continue
-            for key, value in meta_query.iteritems():
+            for key, value in meta_query.items():
                 try:
                     if self._isPageMatch(p, key, value):
                         matched_pages.append(p)
                 except Exception as e:
                     logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
-                    logger.exception(unicode(e.message))
+                    logger.exception(e.message)
 
         # We'll have to format things...
         fmt_ctx = FormattingContext(self.page.url)
@@ -440,7 +440,7 @@ class PageResolver(object):
 
     def _getFormatter(self, extension):
         known_exts = []
-        for k, v in self.page.wiki.formatters.iteritems():
+        for k, v in self.page.wiki.formatters.items():
             if extension in v:
                 return k
             known_exts += v

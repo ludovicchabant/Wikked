@@ -1,7 +1,7 @@
 import os
 import os.path
 import logging
-from base import WikiIndex, HitResult
+from .base import WikiIndex, HitResult
 from whoosh.analysis import (StandardAnalyzer, StemmingAnalyzer,
         CharsetFilter, NgramFilter)
 from whoosh.fields import Schema, ID, TEXT, STORED
@@ -119,10 +119,10 @@ class WhooshWikiIndex(WikiIndex):
     def _indexPage(self, writer, page):
         logger.debug("Indexing '%s'." % page.url)
         writer.add_document(
-            url=unicode(page.url),
-            title_preview=unicode(page.title),
-            title=unicode(page.title),
-            text=unicode(page.text),
+            url=page.url,
+            title_preview=page.title,
+            title=page.title,
+            text=page.text,
             path=page.path,
             time=os.path.getmtime(page.path)
             )

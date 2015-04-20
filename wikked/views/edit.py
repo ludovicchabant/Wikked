@@ -1,4 +1,4 @@
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from flask import g, abort, request, jsonify
 from flask.ext.login import current_user
 from wikked.page import Page, PageData
@@ -43,7 +43,7 @@ def get_edit_page(url, default_title=None, custom_data=None):
     if page is None:
         result = {
                 'meta': {
-                    'url': urllib.quote(url.encode('utf-8')),
+                    'url': urllib.parse.quote(url.encode('utf-8')),
                     'title': default_title or make_page_title(url)
                     },
                 'text': ''
@@ -108,8 +108,8 @@ def api_edit_page(url):
         default_title = None
         custom_data = None
         if endpoint is not None:
-            url = u'%s:%s' % (endpoint, path)
-            default_title = u'%s: %s' % (endpoint, path)
+            url = '%s:%s' % (endpoint, path)
+            default_title = '%s: %s' % (endpoint, path)
             custom_data = {
                     'meta_query': endpoint,
                     'meta_value': path.lstrip('/')
@@ -121,10 +121,10 @@ def api_edit_page(url):
                 custom_data=custom_data)
 
     url = path
-    default_message = u'Edited ' + url
+    default_message = 'Edited ' + url
     if endpoint is not None:
-        url = u'%s:%s' % (endpoint, path)
-        default_message = u'Edited %s %s' % (endpoint, path.lstrip('/'))
+        url = '%s:%s' % (endpoint, path)
+        default_message = 'Edited %s %s' % (endpoint, path.lstrip('/'))
     return do_edit_page(url, default_message)
 
 

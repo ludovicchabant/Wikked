@@ -109,7 +109,7 @@ def main():
 
     # Setup the command parsers.
     subparsers = parser.add_subparsers()
-    commands = map(lambda cls: cls(), command_classes)
+    commands = [cls() for cls in command_classes]
     logger.debug("Got %d commands." % len(commands))
     for c in commands:
         cp = subparsers.add_parser(c.name, help=c.description)
@@ -152,14 +152,14 @@ def main():
 
 def print_version():
     if os.path.isdir(os.path.join(os.path.dirname(__file__), '..', '.hg')):
-        print "Wikked (development version)"
+        print("Wikked (development version)")
         return 0
     try:
         from wikked.__version__ import version
     except ImportError:
-        print "Can't find version information."
+        print("Can't find version information.")
         return 1
-    print "Wikked %s" % version
+    print("Wikked %s" % version)
     return 0
 
 

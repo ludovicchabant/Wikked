@@ -3,7 +3,7 @@ import logging
 import datetime
 import threading
 import jinja2
-from Queue import Queue, Empty
+from queue import Queue, Empty
 from repoze.lru import LRUCache
 from wikked.resolver import PageResolver, ResolveOutput, CircularIncludeError
 

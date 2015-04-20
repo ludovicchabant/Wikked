@@ -1,5 +1,5 @@
 import logging
-from flask.ext.script import prompt_pass
+import getpass
 from wikked.bcryptfallback import generate_password_hash
 from wikked.commands.base import WikkedCommand, register_command
 
@@ -37,6 +37,6 @@ class NewUserCommand(WikkedCommand):
 
     def run(self, ctx):
         username = ctx.args.username
-        password = ctx.args.password or prompt_pass('Password: ')
+        password = ctx.args.password or getpass.getpass('Password: ')
         password = generate_password_hash(password)
         logger.info("%s = %s" % (username[0], password))

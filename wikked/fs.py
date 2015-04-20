@@ -1,12 +1,11 @@
 import os
 import os.path
 import re
-import string
 import codecs
 import fnmatch
 import logging
 import itertools
-from utils import (PageNotFoundError, NamespaceNotFoundError,
+from .utils import (PageNotFoundError, NamespaceNotFoundError,
         split_page_url)
 
 
@@ -39,7 +38,7 @@ class FileSystem(object):
         to list existing pages.
     """
     def __init__(self, root, config):
-        self.root = unicode(root)
+        self.root = root
 
         self.excluded = None
         self.page_extensions = None
@@ -47,7 +46,7 @@ class FileSystem(object):
 
     def start(self, wiki):
         self.page_extensions = list(set(
-            itertools.chain(*wiki.formatters.itervalues())))
+            itertools.chain(*wiki.formatters.values())))
 
         excluded = []
         excluded += wiki.getSpecialFilenames()
@@ -84,8 +83,6 @@ class FileSystem(object):
 
     def getPageInfo(self, path):
         logger.debug("Reading page info from: %s" % path)
-        if not isinstance(path, unicode):
-            path = unicode(path)
         for e in self.excluded:
             if fnmatch.fnmatch(path, e):
                 return None
@@ -101,7 +98,7 @@ class FileSystem(object):
         logger.debug("Saving page '%s' to: %s" % (url, path))
         dirname = os.path.dirname(path)
         if not os.path.isdir(dirname):
-            os.makedirs(dirname, 0775)
+            os.makedirs(dirname, 0o775)
         with codecs.open(path, 'w', encoding='utf-8') as f:
             f.write(content)
         return PageInfo(url, path)
@@ -137,14 +134,14 @@ class FileSystem(object):
 
         url = '/' + name
         if meta:
-            url = u"%s:/%s" % (meta.lower(), name)
+            url = "%s:/%s" % (meta.lower(), name)
         return PageInfo(url, abs_path)
 
     def _getPhysicalPath(self, url, is_file=True, make_new=False):
         endpoint, url = split_page_url(url)
         if url[0] != '/':
             raise ValueError("Page URLs need to be absolute: " + url)
-        if string.find(url, '..') >= 0:
+        if '..' in url:
             raise ValueError("Page URLs can't contain '..': " + url)
 
         # Find the root directory in which we'll be searching for the

@@ -2,7 +2,7 @@ import os
 import os.path
 import logging
 import subprocess
-from base import (
+from .base import (
         SourceControl,
         STATE_NEW, STATE_MODIFIED, STATE_COMMITTED)
 

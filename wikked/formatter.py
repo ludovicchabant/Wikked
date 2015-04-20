@@ -3,8 +3,8 @@ import os.path
 import re
 import logging
 import jinja2
-from StringIO import StringIO
-from utils import get_meta_name_and_modifiers, html_escape
+from io import StringIO
+from .utils import get_meta_name_and_modifiers, html_escape
 
 
 FILE_FORMAT_REGEX = re.compile(r'\r\n?', re.MULTILINE)
@@ -61,8 +61,8 @@ class PageFormatter(object):
 
     def _processWikiMeta(self, ctx, text):
         def repl(m):
-            meta_name = unicode(m.group('name')).lower()
-            meta_value = unicode(m.group('value'))
+            meta_name = str(m.group('name')).lower()
+            meta_value = str(m.group('value'))
 
             if meta_value is None or meta_value == '':
                 # No value provided: this is a "flag" meta.
@@ -163,8 +163,8 @@ class PageFormatter(object):
             value = p
             m = re.match('\s*(?P<name>\w[\w\d]*)\s*=(?P<value>.*)', value)
             if m:
-                name = unicode(m.group('name'))
-                value = unicode(m.group('value'))
+                name = str(m.group('name'))
+                value = str(m.group('value'))
             value = html_escape(value.strip())
             parameters += '<div class="wiki-param" data-name="%s">%s</div>' % (name, value)
 
@@ -182,8 +182,8 @@ class PageFormatter(object):
         arg_pattern = r"(\A|\|)\s*(?P<name>(__)?[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
             r"(?P<value>[^\|]+)"
         for m in re.finditer(arg_pattern, query, re.MULTILINE):
-            name = unicode(m.group('name')).strip()
-            value = unicode(m.group('value')).strip()
+            name = str(m.group('name')).strip()
+            value = str(m.group('value')).strip()
             processed_args.append('%s=%s' % (name, value))
 
         mod_attr = ''
@@ -230,7 +230,7 @@ class PageFormatter(object):
         urls = []
         pattern = r"<a class=\"[^\"]*\" data-wiki-url=\"(?P<url>[^\"]+)\">"
         for m in re.finditer(pattern, text):
-            urls.append(unicode(m.group('url')))
+            urls.append(str(m.group('url')))
         return urls
 
     LEXER_STATE_NORMAL = 0

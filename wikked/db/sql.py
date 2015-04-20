@@ -422,7 +422,7 @@ class SQLDatabase(Database):
         q = self.session.query(SQLPage)
         if meta_query:
             q = q.join(SQLReadyMeta)
-            for name, values in meta_query.iteritems():
+            for name, values in meta_query.items():
                 for v in values:
                     q = q.filter(and_(SQLReadyMeta.name == name,
                         SQLReadyMeta.value == v))
@@ -462,10 +462,10 @@ class SQLDatabase(Database):
         db_obj.needs_invalidate = False
 
         del db_obj.ready_meta[:]
-        for name, value in page._data.ext_meta.iteritems():
+        for name, value in page._data.ext_meta.items():
             if isinstance(value, bool):
                 value = ""
-            if isinstance(value, types.StringTypes):
+            if isinstance(value, str):
                 db_obj.ready_meta.append(SQLReadyMeta(name, value))
             else:
                 for v in value:
@@ -579,10 +579,10 @@ class SQLDatabase(Database):
         po.ready_text = None
         po.is_ready = False
 
-        for name, value in page.getLocalMeta().iteritems():
+        for name, value in page.getLocalMeta().items():
             if isinstance(value, bool):
                 value = ""
-            if isinstance(value, types.StringTypes):
+            if isinstance(value, str):
                 po.meta.append(SQLMeta(name, value))
             else:
                 for v in value:

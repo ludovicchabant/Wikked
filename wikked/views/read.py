@@ -1,5 +1,5 @@
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 from flask import (render_template, request, g, jsonify, make_response,
                    abort)
 from flask.ext.login import current_user
@@ -17,15 +17,15 @@ def home():
     tpl_name = 'index.html'
     if app.config['WIKI_DEV_ASSETS']:
         tpl_name = 'index-dev.html'
-    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()))
 
 
 @app.route('/read/<path:url>')
-def read():
+def read(url):
     tpl_name = 'index.html'
     if app.config['WIKI_DEV_ASSETS']:
         tpl_name = 'index-dev.html'
-    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()))
 
 
 @app.route('/search')
@@ -33,7 +33,7 @@ def search():
     tpl_name = 'index.html'
     if app.config['WIKI_DEV_ASSETS']:
         tpl_name = 'index-dev.html'
-    return render_template(tpl_name, cache_bust=('?%d' % time.time()));
+    return render_template(tpl_name, cache_bust=('?%d' % time.time()))
 
 
 @app.route('/api/list')
@@ -44,7 +44,7 @@ def api_list_all_pages():
 @app.route('/api/list/<path:url>')
 def api_list_pages(url):
     wiki = get_wiki()
-    pages = filter(is_page_readable, wiki.getPages(url_from_viewarg(url)))
+    pages = list(filter(is_page_readable, wiki.getPages(url_from_viewarg(url))))
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
     return jsonify(result)
@@ -140,7 +140,7 @@ def api_read_page(url):
             'name': endpoint,
             'url': meta_page_url,
             'value': value,
-            'safe_value': urllib.quote(value.encode('utf-8')),
+            'safe_value': urllib.parse.quote(value.encode('utf-8')),
             'pages': [get_page_meta(p) for p in pages]
             # TODO: skip pages that are forbidden for the current user
         }
@@ -156,7 +156,7 @@ def api_read_page(url):
             'meta_value': value,
             'query': query,
             'meta': {
-                    'url': urllib.quote(meta_page_url.encode('utf-8')),
+                    'url': urllib.parse.quote(meta_page_url.encode('utf-8')),
                     'title': value
                 },
             'text': text

@@ -3,7 +3,7 @@ import os.path
 import time
 import logging
 import importlib
-from ConfigParser import SafeConfigParser, NoOptionError
+from configparser import SafeConfigParser, NoOptionError
 from wikked.page import FileSystemPage
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
@@ -426,5 +426,5 @@ def reloader_stat_loop(wiki, interval=1):
                 mtimes[path] = mtime
                 continue
             elif mtime > old_time:
-                print "Change detected in '%s'." % path
+                print("Change detected in '%s'." % path)
         time.sleep(interval)
