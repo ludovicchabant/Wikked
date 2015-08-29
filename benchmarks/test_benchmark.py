@@ -1,5 +1,5 @@
 import re
-import urllib
+import urllib.parse
 import random
 import unittest
 from funkload.FunkLoadTestCase import FunkLoadTestCase
@@ -27,7 +27,7 @@ class Benchmark(FunkLoadTestCase):
         names = self.conf_get('test_benchmark', 'page_names').split(';')
         for i in range(nb_times):
             r = random.randint(0, len(names) - 1)
-            url = server_url + '/api/read/' + urllib.quote(names[r])
+            url = server_url + '/api/read/' + urllib.parse.quote(names[r])
             self.get(url, description='Getting %s' % names[r])
 
 
