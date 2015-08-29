@@ -1,6 +1,5 @@
 import os
 import os.path
-import types
 import codecs
 import logging
 import io
@@ -57,7 +56,8 @@ class MockWikiParameters(WikiParameters):
 
     def _loadConfig(self):
         default_config_path = os.path.join(
-            os.path.dirname(__file__), '..', 'wikked', 'resources', 'defaults.cfg')
+            os.path.dirname(__file__), '..',
+            'wikked', 'resources', 'defaults.cfg')
 
         config = SafeConfigParser()
         config.readfp(open(default_config_path))
@@ -158,7 +158,6 @@ class MockFileSystem(FileSystem):
                 else:
                     cur[b] = v
         return nested
-
 
     @staticmethod
     def save_structure(path, structure):
