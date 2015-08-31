@@ -119,6 +119,11 @@ def main():
     # Parse!
     result = parser.parse_args()
 
+    # Print the help if no command was specified.
+    if not hasattr(result, 'func'):
+        parser.print_help()
+        return 0
+
     # Create the wiki.
     root = find_wiki_root(result.root)
     if root:
