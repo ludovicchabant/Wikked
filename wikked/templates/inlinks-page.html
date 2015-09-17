@@ -1,0 +1,27 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{meta.title}}</h1>
+        <div class="decorator">Incoming Links</div>
+    </header>
+    <section>
+        {%if in_links%}
+        <p>The following pages link to <a href="{{get_read_url(meta.url)}}">{{meta.title}}</a>:</p>
+        <ul>
+        {%for l in in_links%}
+            <li>
+                {%if l.missing%}
+                <a class="wiki-link missing" href="{{get_edit_url(l.url)}}">{{l.url}}</a>
+                {%else%}
+                <a class="wiki-link" href="{{get_read_url(l.url)}}">{{l.title}}</a>
+                {%endif%}
+            </li>
+        {%endfor%}
+        </ul>
+        {%else%}
+        <p>No pages link to <a href="{{get_read_url(meta.url)}}">{{meta.title}}</a>.</p>
+        {%endif%}
+    </section>
+</article>
+{% endblock %}

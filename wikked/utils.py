@@ -7,7 +7,7 @@ from xml.sax.saxutils import escape, unescape
 
 re_terminal_path = re.compile(r'[/\\]|(\w\:)')
 endpoint_regex = re.compile(r'(\w[\w\d]*)\:(.*)')
-strip_endpoint_regex = re.compile(r'^(\w[\w\d]+)\:')
+endpoint_prefix_regex = re.compile(r'^(\w[\w\d]+)\:')
 
 
 class PageNotFoundError(Exception):
@@ -72,6 +72,10 @@ def get_absolute_url(base_url, url, quote=False):
     if endpoint:
         return '%s:%s' % (endpoint, abs_url)
     return abs_url
+
+
+def is_endpoint_url(url):
+    return endpoint_prefix_regex.match(url) is not None
 
 
 def split_page_url(url):

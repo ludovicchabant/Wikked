@@ -1,6 +1,6 @@
 import re
-import urllib.request, urllib.parse, urllib.error
 import os.path
+import urllib.parse
 import logging
 import jinja2
 from wikked.formatter import PageFormatter, FormattingContext
@@ -120,7 +120,7 @@ class PageResolver(object):
         self.resolvers = {
                 'query': self._runQuery,
                 'include': self._runInclude
-            }
+                }
 
     @property
     def wiki(self):
@@ -153,7 +153,8 @@ class PageResolver(object):
         # Create default parameters.
         if not self.parameters:
             urldir = os.path.dirname(self.page.url)
-            full_title = os.path.join(urldir, self.page.title).replace('\\', '/')
+            full_title = os.path.join(
+                    urldir, self.page.title).replace('\\', '/')
             self.parameters = {
                 '__page': {
                     'url': self.page.url,
@@ -202,21 +203,30 @@ class PageResolver(object):
         if self.is_root:
             # Resolve any `{{foo}}` variable references.
             parameters = dict(self.parameters)
-            parameters.update(flatten_single_metas(dict(self.page.getLocalMeta())))
-            final_text = self._renderTemplate(final_text, parameters, error_url=self.page.url)
+            parameters.update(
+                    flatten_single_metas(dict(self.page.getLocalMeta())))
+            final_text = self._renderTemplate(
+                    final_text, parameters, error_url=self.page.url)
 
             # Resolve link states.
             def repl1(m):
                 raw_url = m.group('url')
+                is_edit = bool(m.group('isedit'))
                 url = self.ctx.getAbsoluteUrl(raw_url)
                 self.output.out_links.append(url)
+                action = 'edit' if is_edit else 'read'
                 quoted_url = urllib.parse.quote(url.encode('utf-8'))
                 if self.wiki.pageExists(url):
-                    return '<a class="wiki-link" data-wiki-url="%s">' % quoted_url
-                return '<a class="wiki-link missing" data-wiki-url="%s">' % quoted_url
+                    actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
+                    return ('<a class="wiki-link" data-wiki-url="%s" '
+                            'href="%s"' % (quoted_url, actual_url))
+                actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
+                return ('<a class="wiki-link missing" data-wiki-url="%s" '
+                        'href="%s"' % (quoted_url, actual_url))
 
             final_text = re.sub(
-                    r'<a class="wiki-link" data-wiki-url="(?P<url>[^"]+)">',
+                    r'<a class="wiki-link(?P<isedit>-edit)?" '
+                    r'data-wiki-url="(?P<url>[^"]+)"',
                     repl1,
                     final_text)
 
@@ -249,7 +259,8 @@ class PageResolver(object):
 
         # Check for circular includes.
         if include_url in self.ctx.url_trail:
-            raise CircularIncludeError(include_url, self.page.url, self.ctx.url_trail)
+            raise CircularIncludeError(include_url, self.page.url,
+                                       self.ctx.url_trail)
 
         # Parse the templating parameters.
         parameters = dict(self.parameters)
@@ -259,7 +270,9 @@ class PageResolver(object):
             # We do not, however, run them through the formatting -- this
             # will be done in one pass when everything is gathered on the
             # root page.
-            arg_pattern = r'<div class="wiki-param" data-name="(?P<name>\w[\w\d]*)?">(?P<value>.*?)</div>'
+            arg_pattern = (r'<div class="wiki-param" '
+                           r'data-name="(?P<name>\w[\w\d]*)?">'
+                           r'(?P<value>.*?)</div>')
             for i, m in enumerate(re.finditer(arg_pattern, args)):
                 value = m.group('value').strip()
                 value = html_unescape(value)
@@ -322,7 +335,8 @@ class PageResolver(object):
                     if self._isPageMatch(p, key, value):
                         matched_pages.append(p)
                 except Exception as e:
-                    logger.error("Can't query page '%s' for '%s':" % (p.url, self.page.url))
+                    logger.error("Can't query page '%s' for '%s':" % (
+                            p.url, self.page.url))
                     logger.exception(e.message)
 
         # We'll have to format things...
@@ -341,7 +355,8 @@ class PageResolver(object):
                 fmt_ctx, self._valueOrPageText(parameters['__header']))
         tpl_footer = fmt.formatText(
                 fmt_ctx, self._valueOrPageText(parameters['__footer']))
-        item_url, tpl_item = self._valueOrPageText(parameters['__item'], with_url=True)
+        item_url, tpl_item = self._valueOrPageText(parameters['__item'],
+                                                   with_url=True)
         tpl_item = fmt.formatText(fmt_ctx, tpl_item)
 
         text = tpl_header
@@ -368,7 +383,8 @@ class PageResolver(object):
             try:
                 page = self.page_getter(include_url)
             except PageNotFoundError:
-                raise IncludeError(include_url, self.page.url, "Page not found")
+                raise IncludeError(include_url, self.page.url,
+                                   "Page not found")
             if with_url:
                 return (page.url, page.text)
             return page.text
@@ -394,7 +410,7 @@ class PageResolver(object):
             actual = page.getLocalMeta().get(key)
             if (actual is not None and
                     ((type(actual) is list and value in actual) or
-                    (actual == value))):
+                        (actual == value))):
                 return True
 
         # Gather included pages' URLs.
@@ -445,7 +461,8 @@ class PageResolver(object):
                 return k
             known_exts += v
         raise FormatterNotFound(
-            "No formatter mapped to file extension '%s' (known extensions: %s)" %
+            "No formatter mapped to file extension '%s' "
+            "(known extensions: %s)" %
             (extension, known_exts))
 
     def _renderTemplate(self, text, parameters, error_url=None):
@@ -454,7 +471,8 @@ class PageResolver(object):
             template = env.from_string(text)
             return template.render(parameters)
         except jinja2.TemplateSyntaxError as tse:
-            raise Exception("Error in '%s': %s\n%s" % (error_url or 'Unknown URL', tse, text))
+            raise Exception("Error in '%s': %s\n%s" % (
+                    error_url or 'Unknown URL', tse, text))
 
     def _getJinjaEnvironment(self):
         if self.env is None:
@@ -467,10 +485,13 @@ class PageResolver(object):
 def generate_read_url(value, title=None):
     if title is None:
         title = value
-    return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (value, title)
+    return ('<a class="wiki-link" data-wiki-url="%s">%s</a>' %
+            (value, title))
+
 
 def generate_edit_url(value, title=None):
     if title is None:
         title = value
-    return '<a class="wiki-link" data-wiki-url="%s" data-action="edit">%s</a>' % (value, title)
+    return ('<a class="wiki-link-edit" data-wiki-url="%s">%s</a>' %
+            (value, title))
 

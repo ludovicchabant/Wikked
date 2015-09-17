@@ -1,0 +1,11 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Not Found</h1>
+    </header>
+    <section>
+        <p>The page you're trying to access does not exist. You can <a href="{{get_edit_url(path)}}">create it</a>.</p>
+    </section>
+</article>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'index.html' %}
+{% block nav %}{% include 'special-nav.html' %}{% endblock %}
+{% block content %}
+<article>
+    <header>
+        <h1>Special Pages</h1>
+    </header>
+    <section>
+        <div class="pure-g">
+            {%for s in sections%}
+            <div class="pure-u-1-3">
+                <h2>{{s.title}}</h2>
+                {%for p in s.pages%}
+                <h3><a href="{{p.url}}">{{p.title}}</a></h3>
+                {%if p.description%}
+                <p>{{p.description}}</p>
+                {%endif%}
+                {%endfor%}
+            </div>
+            {%endfor%}
+        </div>
+    </section>
+</article>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'index.html' %}
+{% block nav %}{% include 'special-nav.html' %}{% endblock %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{title}}</h1>
+    </header>
+    <section>
+        {%block message %}{% endblock%}
+        {%if pages%}
+        <ul>
+        {%for p in pages%}
+            <li><a href="{{get_read_url(p.url)}}{{url_suffix}}">{{p.title}}</a></li>
+        {%endfor%}
+        </ul>
+        {%else%}
+        {%block empty%}{%endblock%}
+        {%endif%}
+    </section>
+</article>
+{% endblock %}

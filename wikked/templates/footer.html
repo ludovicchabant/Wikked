@@ -1,0 +1,11 @@
+<footer role="navigation">
+    <ul>
+        <li><span class="wiki-icon"></span> Powered by <a href="http://bolt80.com/wikked/">Wikked</a></li>
+        {% if nav %}
+        {% for e in nav.footers %}
+        <li>{% if e.icon %}<span class="fa fa-{{e.icon}}"></span> {% endif %}<a href="{{e.url}}">{{e.title}}</a></li>
+        {% endfor %}
+        {% endif %}
+        <!-- TODO: last modified, etc. -->
+    </ul>
+</footer>

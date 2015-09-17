@@ -1,172 +1,63 @@
-import urllib.request, urllib.parse, urllib.error
-from flask import g, abort, request, jsonify
+from flask import redirect, url_for, request, render_template
 from flask.ext.login import current_user
-from wikked.page import Page, PageData
-from wikked.formatter import PageFormatter, FormattingContext
-from wikked.resolver import PageResolver
-from wikked.views import (make_page_title, get_page_or_none,
-        is_page_writable, get_page_meta, url_from_viewarg,
-        split_url_from_viewarg)
+from wikked.views import (
+        add_auth_data, add_navigation_data)
 from wikked.web import app, get_wiki
+from wikked.webimpl import url_from_viewarg
+from wikked.webimpl.edit import get_edit_page, do_edit_page
 
 
-class DummyPage(Page):
-    """ A dummy page for previewing in-progress editing.
-    """
-    def __init__(self, wiki, url, text):
-        data = self._loadData(wiki, url, text)
-        super(DummyPage, self).__init__(wiki, data)
-
-    def _loadData(self, wiki, url, text):
-        data = PageData()
-        extension = wiki.fs.default_extension
-        data.url = url
-        data.path = '__preview__.' + extension
-        data.raw_text = text
-
-        ctx = FormattingContext(url)
-        f = PageFormatter()
-        data.formatted_text = f.formatText(ctx, data.raw_text)
-        data.local_meta = ctx.meta
-        data.local_links = ctx.out_links
-
-        data.title = (data.local_meta.get('title') or
-                make_page_title(url))
-        if isinstance(data.title, list):
-            data.title = data.title[0]
-
-        return data
+@app.route('/create/')
+def create_page_at_root():
+    return create_page('/')
 
 
-def get_edit_page(url, default_title=None, custom_data=None):
-    page = get_page_or_none(url, convert_url=False)
-    if page is None:
-        result = {
-                'meta': {
-                    'url': urllib.parse.quote(url.encode('utf-8')),
-                    'title': default_title or make_page_title(url)
-                    },
-                'text': ''
-                }
-    else:
-        if not is_page_writable(page):
-            abort(401)
-        result = {
-                'meta': get_page_meta(page, True),
-                'text': page.raw_text
-                }
-    result['commit_meta'] = {
-            'author': request.remote_addr,
-            'desc': 'Editing ' + result['meta']['title']
+@app.route('/create/<path:url>')
+def create_page(url):
+    data = {
+            'is_new': True,
+            'create_in': url.lstrip('/'),
+            'text': '',
+            'commit_meta': {
+                'author': current_user.get_id() or request.remote_addr,
+                'desc': 'Editing ' + url
+                },
+            'post_back': '/edit'
             }
-    if custom_data:
-        result.update(custom_data)
-    return jsonify(result)
+    add_auth_data(data)
+    add_navigation_data(url, data)
+    return render_template('edit-page.html', **data)
 
 
-def do_edit_page(url, default_message):
-    page = get_page_or_none(url, convert_url=False)
-    if page and not is_page_writable(page):
-        app.logger.error("Page '%s' is not writable for user '%s'." % (
-            url, current_user.get_id()))
-        abort(401)
+@app.route('/edit', methods=['POST'])
+def edit_new_page():
+    url = request.form['title']
+    return edit_page(url)
 
-    if not 'text' in request.form:
-        abort(400)
-    text = request.form['text']
-    author = request.remote_addr
-    if 'author' in request.form and len(request.form['author']) > 0:
-        author = request.form['author']
-    message = 'Edited ' + url
-    if 'message' in request.form and len(request.form['message']) > 0:
-        message = request.form['message']
 
-    page_fields = {
-            'text': text,
-            'author': author,
-            'message': message
-            }
+@app.route('/edit/<path:url>', methods=['GET', 'POST'])
+def edit_page(url):
     wiki = get_wiki()
-    wiki.setPage(url, page_fields)
-
-    result = {'saved': 1}
-    return jsonify(result)
-
-
-@app.route('/api/edit/', methods=['GET', 'POST'])
-def api_edit_main_page():
-    wiki = get_wiki()
-    return api_edit_page(wiki.main_page_url.lstrip('/'))
-
-
-@app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
-def api_edit_page(url):
-    endpoint, path = split_url_from_viewarg(url)
+    user = current_user.get_id()
+    url = url_from_viewarg(url)
 
     if request.method == 'GET':
-        url = path
-        default_title = None
-        custom_data = None
-        if endpoint is not None:
-            url = '%s:%s' % (endpoint, path)
-            default_title = '%s: %s' % (endpoint, path)
-            custom_data = {
-                    'meta_query': endpoint,
-                    'meta_value': path.lstrip('/')
-                    }
+        author = user or request.remote_addr
+        custom_data = {'post_back': '/edit/' + url.lstrip('/')}
+        data = get_edit_page(wiki, user, url,
+                             author=author, custom_data=custom_data)
+        add_auth_data(data)
+        add_navigation_data(
+                url, data,
+                read=True, history=True, inlinks=True,
+                raw_url='/api/edit/' + url.lstrip('/'))
+        return render_template('edit-page.html', **data)
 
-        return get_edit_page(
-                url,
-                default_title=default_title,
-                custom_data=custom_data)
-
-    url = path
-    default_message = 'Edited ' + url
-    if endpoint is not None:
-        url = '%s:%s' % (endpoint, path)
-        default_message = 'Edited %s %s' % (endpoint, path.lstrip('/'))
-    return do_edit_page(url, default_message)
-
-
-@app.route('/api/preview', methods=['POST'])
-def api_preview():
-    url = request.form.get('url')
-    url = url_from_viewarg(url)
-    text = request.form.get('text')
-    wiki = get_wiki()
-    dummy = DummyPage(wiki, url, text)
-
-    resolver = PageResolver(dummy)
-    dummy._setExtendedData(resolver.run())
-
-    result = {'text': dummy.text}
-    return jsonify(result)
-
-
-@app.route('/api/rename/<path:url>', methods=['POST'])
-def api_rename_page(url):
-    pass
-
-
-@app.route('/api/delete/<path:url>', methods=['POST'])
-def api_delete_page(url):
-    pass
-
-
-@app.route('/api/validate/newpage', methods=['GET', 'POST'])
-def api_validate_newpage():
-    path = request.form.get('title')
-    if path is None:
-        abort(400)
-    path = url_from_viewarg(path)
-    try:
-        # Check that there's no page with that name already, and that
-        # the name can be correctly mapped to a filename.
-        wiki = get_wiki()
-        if wiki.pageExists(path):
-            raise Exception("Page '%s' already exists" % path)
-        wiki.fs.getPhysicalPagePath(path, make_new=True)
-    except Exception:
-        return '"This page name is invalid or unavailable"'
-    return '"true"'
+    if request.method == 'POST':
+        text = request.form['text']
+        author = user or request.form['author'] or request.remote_addr
+        message = request.form['message'] or 'Editing ' + url
+        do_edit_page(wiki, user, url, text,
+                     author=author, message=message)
+        return redirect(url_for('read', url=url.lstrip('/')))
 

@@ -4,18 +4,10 @@
  * We need to alias/shim some of the libraries.
  */
 require.config({
-    //urlArgs: "bust=" + (new Date()).getTime(),
     paths: {
-        jquery: 'js/jquery-1.8.3.min',
-        jquery_validate: 'js/jquery/jquery.validate.min',
-        underscore: 'js/underscore-min',
-        backbone: 'js/backbone-min',
-        handlebars: 'js/handlebars-1.0.rc.1',
-        moment: 'js/moment.min',
-        text: 'js/text',
-        pagedown_converter: 'js/pagedown/Markdown.Converter',
-        pagedown_editor: 'js/pagedown/Markdown.Editor',
-        pagedown_sanitizer: 'js/pagedown/Markdown.Sanitizer'
+        jquery: 'jquery-1.8.3.min',
+        jquery_validate: 'jquery/jquery.validate.min',
+        underscore: 'underscore-min',
     },
     shim: {
         'jquery': {
@@ -26,44 +18,7 @@ require.config({
         },
         'underscore': {
             exports: '_'
-        },
-        'backbone': {
-            deps: ['underscore', 'jquery'],
-            exports: 'Backbone'
-        },
-        'handlebars': {
-            exports: 'Handlebars'
-        },
-        'pagedown_converter': {
-            exports: 'Markdown'
-        },
-        'pagedown_editor': {
-            deps: ['pagedown_converter']
-        },
-        'pagedown_sanitizer': {
-            deps: ['pagedown_editor']
         }
     }
-});
-
-//-------------------------------------------------------------//
-
-/**
- * Entry point: run Backbone!
- *
- * We also import scripts like `handlebars` that are not used directly
- * by anybody, but need to be evaluated.
- */
-require([
-        'js/wikked/app',
-        'js/wikked/handlebars',
-        'backbone',
-        'text'
-        ],
-    function(app, hb, Backbone, textExtension) {
-
-    var router = new app.Router();
-    Backbone.history.start();//{ pushState: true });
-
 });
 

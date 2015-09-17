@@ -1,3 +1,7 @@
+/*global module:false*/
+'use strict';
+
+
 module.exports = function(grunt) {
 
   // Project configuration.
@@ -26,19 +30,37 @@ module.exports = function(grunt) {
       development: {
         options: {
           optimize: "none",
-          baseUrl: "wikked/assets",
+          baseUrl: "wikked/assets/js",
           mainConfigFile: "wikked/assets/js/wikked.js",
-          name: "js/wikked",
-          out: "wikked/static/js/wikked.min.js"
+          dir: "wikked/static/js",
+          modules: [
+          {
+              name: "wikked.app",
+              include: ["require.js"]
+          },
+          {
+              name: "wikked.edit",
+              exclude: ["wikked.app"]
+          }
+          ]
         }
       },
       production: {
         options: {
           optimize: "uglify",
-          baseUrl: "wikked/assets",
+          baseUrl: "wikked/assets/js",
           mainConfigFile: "wikked/assets/js/wikked.js",
-          name: "js/wikked",
-          out: "wikked/static/js/wikked.min.js"
+          dir: "wikked/static/js",
+          modules: [
+          {
+              name: "wikked.app",
+              include: ["require.js"]
+          },
+          {
+              name: "wikked.edit",
+              exclude: ["wikked.app"]
+          }
+          ]
         }
       }
     },
@@ -56,21 +78,12 @@ module.exports = function(grunt) {
       development: {
         files: [
           //{expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['img/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['json/**']},
           {expand: true, cwd: 'wikked/assets/font-awesome', dest: 'wikked/static/', src: ['fonts/**']}
         ]
       },
       dev_scripts: {
         files: [
           {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['js/wikked.js', 'js/wikked/**']}
-        ]
-      },
-      dev_templates: {
-        files: [
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['tpl/**']},
-          {expand: true, cwd: 'wikked/assets/', dest: 'wikked/static/', src: ['json/**']}
         ]
       },
       production: {
@@ -88,10 +101,6 @@ module.exports = function(grunt) {
       scripts: {
         files: ['wikked/assets/js/wikked.js', 'wikked/assets/js/wikked/**'],
         tasks: ['jshint:all', 'copy:dev_scripts']
-      },
-      templates: {
-        files: ['wikked/assets/tpl/**/*.html', 'wikked/assets/json/**/*.json'],
-        tasks: ['copy:dev_templates']
       },
       styles: {
         files: ['wikked/assets/css/**/*.less'],
@@ -116,6 +125,6 @@ module.exports = function(grunt) {
   grunt.registerTask('default', ['jshint', 'less:production', 'requirejs:production', 'imagemin:all', 'copy:production']);
 
   // Other tasks.
-  grunt.registerTask('dev', ['less:development', 'copy:production', 'copy:development']);
+  grunt.registerTask('dev', ['less:development', 'requirejs:development', 'copy:production', 'copy:development']);
 };
 

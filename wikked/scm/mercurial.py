@@ -312,9 +312,9 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
 
     def diff(self, path, rev1, rev2):
         if rev2 is None:
-            return _s(self.client.diff(files=_b([path]), change=_b(rev1),
+            return _s(self.client.diff(files=_b([path]), change=rev1,
                                        git=True))
-        return _s(self.client.diff(files=_b([path]), revs=_b([rev1, rev2]),
+        return _s(self.client.diff(files=_b([path]), revs=[rev1, rev2],
                                    git=True))
 
     def commit(self, paths, op_meta):
@@ -334,7 +334,8 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
                     **kwargs)
             self.client.rawcommand(args)
         except CommandError as e:
-            raise SourceControlError('commit', e.out, e.args, e.out)
+            raise SourceControlError('commit', _s(e.out), _s(e.args),
+                                     _s(e.out))
 
     def revert(self, paths=None):
         if paths is not None:

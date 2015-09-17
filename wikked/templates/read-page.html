@@ -1,0 +1,53 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    {% if not meta.notitle %}
+    <header>
+        <h1>{{meta.title}}</h1>
+        {% if endpoint %}
+        <div class="decorator">{{endpoint}}</div>
+        {% endif %}
+        {% if redirected_from %}
+        <div class="decorator"><small>Redirected from 
+            {% for r in redirected_from %}
+            {% if not loop.first %} | {% endif %}
+            <a href="{{get_read_url(r)}}?no_redirect">{{r}}</a>
+            {% endfor %}
+        </small></div>
+        {% endif %}
+        {% if meta.redirect %}
+        <div class="decorator"><small>Redirects to
+                <a href="{{get_read_url(redirects_to)}}">{{redirects_to}}</a>
+        </small></div>
+        {% endif %}
+    </header>
+    {% endif %}
+    <section class="content">
+        {{text|safe}}
+        {% if is_query %}
+        {% if not text %}
+        <p>No additional information is available for this page.
+           You can <a href="{{get_edit_url(meta.url)}}">write some right now</a>.</p>
+        {% endif %}
+        <h3>Pages in {{meta_query}} "{{meta_value}}"</h3>
+        <ul>
+            {% for p in query_results %}
+            <li><a class="wiki-link" data-wiki-url="{{p.url}}"
+                   href="{{get_read_url(p.url)}}">{{p.title}}</a></li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </section>
+    {% if meta.category %}
+    <section class="info">
+        {% if meta.category %}
+        <span class="info-categories">Categories: </span>
+        {% for c in meta.category %}
+        {% if not loop.first %} | {% endif %}
+        <span><a href="{{get_read_url(c.url)}}">{{c.name}}</a></span>
+        {% endfor %}
+        {% endif %}
+    </section>
+    {% endif %}
+</article>
+{% endblock %}

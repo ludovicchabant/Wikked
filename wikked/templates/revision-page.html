@@ -1,0 +1,20 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{meta.title}}</h1>
+        <div class="decorator">Revision: <span class="rev_id">{{disp_rev}}</span></div>
+    </header>
+    <section>
+        <pre class="raw">{{text}}</pre>
+        <form id="page-revert" class="page-revert">
+            <input type="hidden" name="rev" value="{{rev}}"/>
+            <div class="form-group">
+                <button type="submit" id="revert-page" class="pure-button pure-button-warning">Revert</button>
+                <label class="small" for="revert-page">Revert the page to this revision</span>
+            </div>
+        </form>
+    </section>
+</div>
+</article>
+{% endblock %}

@@ -1,0 +1,36 @@
+<a id="wiki-menu-shortcut" class="wiki-logo">
+    <span>W</span>
+</a>
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
+    <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
+        <span class="fa fa-lock"></span>
+    </div>
+    <ul class="">
+        <li><a href="/"><span class="fa fa-home"></span> Home</a></li>
+        <li><a href="/create/"><span class="fa fa-file"></span> New Page</a></li>
+        {%if nav.url_read%}<li><a href="{{nav.url_read}}"><span class="fa fa-book"></span> Read</a></li>{%endif%}
+        {%if nav.url_edit%}<li><a href="{{nav.url_edit}}"><span class="fa fa-edit"></span> Edit</a></li>{%endif%}
+        {%if nav.url_hist%}<li><a href="{{nav.url_hist}}"><span class="fa fa-road"></span> History</a></li>{%endif%}
+    </ul>
+    <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider" action="/search">
+        <fieldset>
+            <input type="text" name="q" id="search-query" class="pure-input-1" placeholder="Search..." autocomplete="off"></input>
+            <ul id="search-preview"></ul>
+        </fieldset>
+    </form>
+    {%if nav.extras%}
+    <ul class="pure-menu-divider">
+    {%for e in nav.extras%}
+        <li><a href="{{e.url}}">{%if e.icon%}<span class="fa fa-{{e.icon}}"></span> {%endif%}{{e.title}}</a></li>
+    {%endfor%}
+    </ul>
+    {%endif%}
+    <ul class="pure-menu-divider">
+        {%if auth.is_logged_in%}
+        <li><a href="{{auth.url_profile}}"><span class="fa fa-cog"></span> {{auth.username}}</a></li>
+        <li><a href="{{auth.url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
+        {%else%}
+        <li><a href="{{auth.url_login}}"><span class="fa fa-log-in"></span> Login</a></li>
+        {%endif%}
+    </ul>
+</nav>

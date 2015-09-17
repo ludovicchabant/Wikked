@@ -3,48 +3,14 @@
  */
 define([
         'jquery',
-        'jquery_validate',
-        'underscore',
-        'backbone',
-        'handlebars',
-        'pagedown_converter',
-        'pagedown_editor',
-        'pagedown_sanitizer',
-        'js/wikked/client',
-        'js/wikked/models',
-        'js/wikked/util',
-        'text!tpl/read-page.html',
-        'text!tpl/meta-page.html',
-        'text!tpl/edit-page.html',
-        'text!tpl/history-page.html',
-        'text!tpl/revision-page.html',
-        'text!tpl/diff-page.html',
-        'text!tpl/inlinks-page.html',
-        'text!tpl/nav.html',
-        'text!tpl/footer.html',
-        'text!tpl/search-results.html',
-        'text!tpl/login.html',
-        'text!tpl/error-unauthorized.html',
-        'text!tpl/error-not-found.html',
-        'text!tpl/error-unauthorized-edit.html',
-        'text!tpl/state-warning.html',
-        'text!tpl/special-nav.html',
-        'text!tpl/special-pages.html',
-        'text!tpl/special-changes.html',
-        'text!tpl/special-pagelist.html'
+        'underscore'
         ],
-    function($, JQueryValidate, _, Backbone, Handlebars,
-        PageDownConverter, PageDownEditor, PageDownSanitizer,
-        Client, Models, Util,
-        tplReadPage, tplMetaPage, tplEditPage, tplHistoryPage, tplRevisionPage, tplDiffPage, tplInLinksPage,
-        tplNav, tplFooter, tplSearchResults, tplLogin,
-        tplErrorNotAuthorized, tplErrorNotFound, tplErrorUnauthorizedEdit, tplStateWarning,
-        tplSpecialNav, tplSpecialPages, tplSpecialChanges, tplSpecialPageList) {
+    function($, _) {
 
     var exports = {};
 
     // JQuery feature for watching size changes in a DOM element.
-    jQuery.fn.watch = function(id, fn) {
+    /*jQuery.fn.watch = function(id, fn) {
         return this.each(function() {
             var self = this;
             var oldVal = self[id];
@@ -66,11 +32,11 @@ define([
         return this.each(function() {
             clearInterval($(this).data('watch_timer'));
         });
-    };
+    };*/
 
     // Override JQuery-validation plugin's way of highlighting errors
     // with something that works with Bootstrap.
-    $.validator.setDefaults({
+    /*$.validator.setDefaults({
         highlight: function(element) {
             $(element).closest('.form-group')
                 .addClass('has-error')
@@ -90,376 +56,9 @@ define([
                 error.insertAfter(element);
             }
         }
-    });
+    });*/
 
-    // Utility function to make wiki links into usable links for
-    // this UI frontend.
-    var processWikiLinks = function(el) {
-        $('a.wiki-link', el).each(function(i) {
-            var jel = $(this);
-            var wiki_url = jel.attr('data-wiki-url').replace(/^\//, '');
-            if (jel.hasClass('missing') || jel.attr('data-action') == 'edit')
-                jel.attr('href', '/#/edit/' + wiki_url);
-            else
-                jel.attr('href', '/#/read/' + wiki_url);
-        });
-    };
-
-    var PageView = exports.PageView = Backbone.View.extend({
-        tagName: 'div',
-        className: 'wrapper',
-        isMainPage: true,
-        initialize: function() {
-            PageView.__super__.initialize.apply(this, arguments);
-            if (this.model)
-                this.model.on("change", this._onModelChange, this);
-            return this;
-        },
-        dispose: function() {
-            this.remove();
-            this.unbind();
-            if (this.model) {
-                this.model.unbind();
-            }
-            if (this._onDispose) {
-                this._onDispose();
-            }
-        },
-        render: function(view) {
-            if (this.template === undefined && this.templateSource !== undefined) {
-                this.template = Handlebars.compile(_.result(this, 'templateSource'));
-            }
-            if (this.template !== undefined) {
-                var markup = this.renderTemplate(this.template);
-                var $markup = $(markup);
-                if (this.preRenderCallback !== undefined) {
-                    this.preRenderCallback($markup);
-                }
-                this.$el.empty().append($markup);
-                if (this.renderCallback !== undefined) {
-                    this.renderCallback();
-                }
-            }
-            if (this.isMainPage) {
-                this.renderTitle(this.titleFormat);
-            }
-            return this;
-        },
-        renderTemplate: function(tpl) {
-            var ctx = this.renderContext();
-            return tpl(ctx);
-        },
-        renderContext: function() {
-            return this.model.toJSON();
-        },
-        renderTitle: function(formatter) {
-            var title = _.result(this.model, 'title');
-            if (formatter !== undefined) {
-                title = formatter.call(this, title);
-            }
-            document.title = title;
-        },
-        _onModelChange: function() {
-            this.render();
-        }
-    });
-    _.extend(PageView, Backbone.Events);
-
-    var NavigationView = exports.NavigationView = PageView.extend({
-        className: 'nav-wrapper',
-        templateSource: tplNav,
-        isMainPage: false,
-        initialize: function() {
-            NavigationView.__super__.initialize.apply(this, arguments);
-            return this;
-        },
-        renderContext: function() {
-            var ctx = NavigationView.__super__.renderContext.apply(this, arguments);
-            var ima = localStorage.getItem('wikked.nav.isMenuActive');
-            if (ima == 'true') ctx.showMenu = true;
-            return ctx;
-        },
-        renderCallback: function() {
-            // Hide the drop-down for the search results.
-            this.searchPreviewList = this.$('#search-preview');
-            this.searchPreviewList.hide();
-            this.activeResultIndex = -1;
-
-            // Cache some stuff for handling the menu.
-            this.wikiMenu = this.$('#wiki-menu');
-            this.wrapperAndWikiMenu = $([this.parentEl, this.$('#wiki-menu')]);
-            this.isMenuActive = (this.wikiMenu.css('left') == '0px');
-            this.isMenuActiveLocked = false;
-        },
-        events: {
-            "click #wiki-menu-shortcut": "_onMenuShortcutClick",
-            "click #wiki-menu-pin": "_onMenuShortcutClick",
-            "mouseenter #wiki-menu-shortcut": "_onMenuShortcutHover",
-            "mouseleave #wiki-menu-shortcut": "_onMenuShortcutLeave",
-            "mouseenter #wiki-menu": "_onMenuHover",
-            "mouseleave #wiki-menu": "_onMenuLeave",
-            "submit #search": "_submitSearch",
-            "submit #newpage": "_submitNewPage",
-            "input #search-query": "_previewSearch",
-            "keyup #search-query": "_searchQueryChanged",
-            "focus #search-query": "_searchQueryFocused",
-            "blur #search-query": "_searchQueryBlurred"
-        },
-        _onMenuShortcutClick: function(e) {
-            this.isMenuActive = !this.isMenuActive;
-            localStorage.setItem('wikked.nav.isMenuActive', this.isMenuActive);
-        },
-        _onMenuShortcutHover: function(e) {
-            if (!this.isMenuActive && !this.isMenuActiveLocked)
-                this._toggleWikiMenu(true);
-        },
-        _onMenuShortcutLeave: function(e) {
-            if (!this.isMenuActive && !this.isMenuActiveLocked)
-                this._toggleWikiMenu(false);
-        },
-        _onMenuHover: function(e) {
-            if (!this.isMenuActive && !this.isMenuActiveLocked)
-                this._toggleWikiMenu(true);
-        },
-        _onMenuLeave: function(e) {
-            if (!this.isMenuActive && !this.isMenuActiveLocked)
-                this._toggleWikiMenu(false);
-        },
-        _toggleWikiMenu: function(onOff) {
-            if (onOff) {
-                this.wrapperAndWikiMenu.toggleClass('wiki-menu-inactive', false);
-                this.wrapperAndWikiMenu.toggleClass('wiki-menu-active', true);
-            } else {
-                this.wrapperAndWikiMenu.toggleClass('wiki-menu-active', false);
-                this.wrapperAndWikiMenu.toggleClass('wiki-menu-inactive', true);
-            }
-        },
-        _submitSearch: function(e) {
-            e.preventDefault();
-            if (this.activeResultIndex >= 0) {
-                var entries = this.searchPreviewList.children();
-                var choice = $('a', entries[this.activeResultIndex]);
-                this.model.doGoToSearchResult(choice.attr('href'));
-            } else {
-                this.model.doSearch(e.currentTarget);
-            }
-            return false;
-        },
-        _submitNewPage: function(e) {
-            e.preventDefault();
-            this.model.doNewPage(e.currentTarget);
-            return false;
-        },
-        _previewSearch: function(e) {
-            var query = $(e.currentTarget).val();
-            if (query && query.length >= 1) {
-                var $view = this;
-                this.model.doPreviewSearch(query, function(data) {
-                    var resultStr = '';
-                    for (var i = 0; i < data.hits.length; ++i) {
-                        var hitUrl = data.hits[i].url.replace(/^\//, '');
-                        resultStr += '<li>' +
-                            '<a href="/#read/' + hitUrl + '">' +
-                            data.hits[i].title +
-                            '</a>' +
-                            '</li>';
-                    }
-                    $view.searchPreviewList.html(resultStr);
-                    if (!$view.searchPreviewList.is(':visible'))
-                        $view.searchPreviewList.slideDown(200);
-                });
-            } else if(!query || query.length === 0) {
-                this.searchPreviewList.slideUp(200);
-            }
-        },
-        _searchQueryChanged: function(e) {
-            if (e.keyCode == 27) {
-                // Clear search on `Esc`.
-                $(e.currentTarget).val('').trigger('input');
-            } else if (e.keyCode == 38) {
-                // Up arrow.
-                e.preventDefault();
-                if (this.activeResultIndex >= 0) {
-                    this.activeResultIndex--;
-                    this._updateActiveResult();
-                }
-            } else if (e.keyCode == 40) {
-                // Down arrow.
-                e.preventDefault();
-                if (this.activeResultIndex < 
-                        this.searchPreviewList.children().length - 1) {
-                    this.activeResultIndex++;
-                    this._updateActiveResult();
-                }
-            }
-        },
-        _updateActiveResult: function() {
-            var entries = this.searchPreviewList.children();
-            entries.toggleClass('search-result-hover', false);
-            if (this.activeResultIndex >= 0)
-                $(entries[this.activeResultIndex]).toggleClass('search-result-hover', true);
-        },
-        _searchQueryFocused: function(e) {
-            this.isMenuActiveLocked = true;
-            this.wikiMenu.toggleClass('wiki-menu-ext', true);
-        },
-        _searchQueryBlurred: function(e) {
-            $(e.currentTarget).val('').trigger('input');
-            this.wikiMenu.toggleClass('wiki-menu-ext', false);
-            this.isMenuActiveLocked = false;
-            if ($(document.activeElement).parents('#wiki-menu').length === 0)
-                this._onMenuLeave(e);
-        }
-    });
-
-    var FooterView = exports.FooterView = PageView.extend({
-        className: 'footer-wrapper',
-        templateSource: tplFooter,
-        isMainPage: false,
-        initialize: function() {
-            FooterView.__super__.initialize.apply(this, arguments);
-            return this;
-        },
-        render: function() {
-            FooterView.__super__.render.apply(this, arguments);
-            return this;
-        }
-    });
-
-    var LoginView = exports.LoginView = PageView.extend({
-        templateSource: tplLogin,
-        events: {
-            "submit #login": "_submitLogin"
-        },
-        _submitLogin: function(e) {
-            e.preventDefault();
-            this.model.doLogin(e.currentTarget);
-            return false;
-        }
-    });
-
-    var MasterPageView = exports.MasterPageView = PageView.extend({
-        className: function() {
-            var cls = 'wrapper';
-
-            // HACK-ish: we need to know if the menu needs to be shown 
-            //           on init or not. Can't do it later otherwise
-            //           we'll get the CSS animation to play right away.
-            var ima = localStorage.getItem('wikked.nav.isMenuActive');
-            if (ima == 'true') cls += ' wiki-menu-active';
-
-            return cls;
-        },
-        initialize: function() {
-            MasterPageView.__super__.initialize.apply(this, arguments);
-            this.nav = this._createNavigation(this.model.nav);
-            this.nav.parentEl = this.el;
-            this.footer = this._createFooter(this.model.footer);
-            return this;
-        },
-        dispose: function() {
-            if (this.footer) this.footer.dispose();
-            if (this.nav) this.nav.dispose();
-            MasterPageView.__super__.dispose.apply(this, arguments);
-        },
-        renderCallback: function() {
-            if (this.nav) {
-                this.nav.render();
-                this.$el.prepend(this.nav.el);
-            }
-            if (this.footer) {
-                this.footer.render();
-                this.$el.append(this.footer.el);
-            }
-            this.isError = (this.model.get('error_code') !== undefined);
-        },
-        templateSource: function() {
-            switch (this.model.get('error_code')) {
-                case 401:
-                    return tplErrorNotAuthorized;
-                case 404:
-                    return tplErrorNotFound;
-                default:
-                    return _.result(this, 'defaultTemplateSource');
-            }
-        },
-        _createNavigation: function(model) {
-            return new NavigationView({ model: model });
-        },
-        _createFooter: function(model) {
-            return new FooterView({ model: model });
-        }
-    });
-
-    var PageReadView = exports.PageReadView = MasterPageView.extend({
-        defaultTemplateSource: tplReadPage,
-        initialize: function() {
-            PageReadView.__super__.initialize.apply(this, arguments);
-            this.warningTemplate = Handlebars.compile(tplStateWarning);
-            return this;
-        },
-        renderCallback: function() {
-            PageReadView.__super__.renderCallback.apply(this, arguments);
-            if (this.isError) {
-                return;
-            }
-
-            processWikiLinks(this.$el);
-
-            // If we've already rendered the content, see if we need to display a
-            // warning about the page's state.
-            if (this.model.get('content')) {
-                if (this._pageState === undefined) {
-                    if (!this._isCheckingPageState)
-                        this._checkPageState();
-                } else {
-                    this._showPageStateWarning();
-                }
-            }
-        },
-        _showPageStateWarning: function() {
-            if (this._pageState === undefined)
-                return;
-
-            var state = this._pageState.get('state');
-            if (state == 'new' || state == 'modified') {
-                var article = $('.wrapper>article');
-                var warning = $(this.warningTemplate(this._pageState.toJSON()));
-                $('[rel="tooltip"]', warning).tooltip({container:'body'});
-                //warning.css('display', 'none');
-                warning.prependTo(article);
-                //warning.slideDown();
-                $('.dismiss', warning).click(function() {
-                    //warning.slideUp();
-                    warning.remove();
-                    return false;
-                });
-            }
-        },
-        _enableStateCheck: false,
-        _isCheckingPageState: false,
-        _checkPageState: function() {
-            if (!this._enableStateCheck)
-                return;
-            this._isCheckingPageState = true;
-            var $view = this;
-            var statePath = this.model.checkStatePath();
-            if (!statePath)
-                return;
-            var stateModel = new Models.PageStateModel({ path: statePath });
-            stateModel.fetch({
-                success: function(model, response, options) {
-                    $view._pageState = model;
-                    $view._isCheckingPageState = false;
-                    if ($view.model && $view.model.get('content')) {
-                        $view._showPageStateWarning();
-                    }
-                }
-            });
-        }
-    });
-
-    var PageEditView = exports.PageEditView = MasterPageView.extend({
+    /*var PageEditView = exports.PageEditView = MasterPageView.extend({
         defaultTemplateSource: tplEditPage,
         dispose: function() {
             PageEditView.__super__.dispose.apply(this, arguments);
@@ -560,71 +159,9 @@ define([
         titleFormat: function(title) {
             return 'Editing: ' + title;
         }
-    });
+    });*/
 
-    var PageHistoryView = exports.PageHistoryView = MasterPageView.extend({
-        defaultTemplateSource: tplHistoryPage,
-        events: {
-            "submit #diff-page": "_submitDiffPage"
-        },
-        _submitDiffPage: function(e) {
-            e.preventDefault();
-            this.model.doDiff(e.currentTarget);
-            return false;
-        },
-        titleFormat: function(title) {
-            return 'History: ' + title;
-        }
-    });
-
-    var PageRevisionView = exports.PageRevisionView = MasterPageView.extend({
-        defaultTemplateSource: tplRevisionPage,
-        titleFormat: function(title) {
-            return title + ' [' + this.model.get('rev') + ']';
-        },
-        events: {
-            "submit #revert-page": "_submitPageRevert"
-        },
-        _submitPageRevert: function(e) {
-            e.preventDefault();
-            this.model.doRevert(e.currentTarget);
-            return false;
-        }
-    });
-
-    var PageDiffView = exports.PageDiffView = MasterPageView.extend({
-        defaultTemplateSource: tplDiffPage,
-        titleFormat: function(title) {
-            return title + ' [' + this.model.get('rev1') + '-' + this.model.get('rev2') + ']';
-        }
-    });
-
-    var IncomingLinksView = exports.IncomingLinksView = MasterPageView.extend({
-        defaultTemplateSource: tplInLinksPage,
-        titleFormat: function(title) {
-            return 'Incoming Links: ' + title;
-        }
-    });
-
-    var WikiSearchView = exports.WikiSearchView = MasterPageView.extend({
-        defaultTemplateSource: tplSearchResults
-    });
-
-    var SpecialMasterPageView = exports.SpecialMasterPageView = MasterPageView.extend({
-        className: function() {
-            var cls = 'wrapper special';
-            // See comment for `MasterPageView`.
-            var ima = localStorage.getItem('wikked.nav.isMenuActive');
-            if (ima == 'true') cls += ' wiki-menu-active';
-            return cls;
-        }
-    });
-
-    var SpecialPagesView = exports.SpecialPagesView = SpecialMasterPageView.extend({
-        defaultTemplateSource: tplSpecialPages
-    });
-
-    var SpecialChangesView = exports.SpecialChangesView = SpecialMasterPageView.extend({
+    /*var SpecialChangesView = exports.SpecialChangesView = SpecialMasterPageView.extend({
         defaultTemplateSource: tplSpecialChanges,
         renderCallback: function() {
             SpecialChangesView.__super__.renderCallback.apply(this, arguments);
@@ -650,11 +187,7 @@ define([
                 e.preventDefault();
             });
         }
-    });
-
-    var SpecialPageListView = exports.SpecialPageListView = SpecialMasterPageView.extend({
-        defaultTemplateSource: tplSpecialPageList
-    });
+    });*/
 
     return exports;
 });

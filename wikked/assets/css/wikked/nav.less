@@ -24,6 +24,13 @@
     text-decoration: none;
 }
 
+#wiki-menu-shortcut {
+    &:hover {
+        color: @color-gray-light;
+        text-shadow: #EEE 0 0 1em;
+    }
+}
+
 #wiki-menu-pin {
     height: @wiki-shortcut-height;
     padding: 0 1.5em 0 @wiki-shortcut-width;
@@ -33,11 +40,15 @@
 
     &:hover {
         color: @color-gray-light;
+        text-shadow: #EEE 0 0 1em;
     }
 
     span {
         line-height: @wiki-shortcut-height;
     }
+}
+#wiki-menu-pin.wiki-menu-pin-active {
+    color: @color-gray-light;
 }
 
 #wiki-menu {

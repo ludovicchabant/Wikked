@@ -1,0 +1,25 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Search Results</h1>
+    </header>
+    <section>
+        {%if is_instant%}
+        <p><small>Press <code>Escape</code> to cancel.</small></p>
+        {%endif%}
+        {%if hits%}
+        <ul class="search-results">
+            {%for h in hits%}
+            <li>
+            <h3><a href="{{get_read_url(h.url)}}">{{h.title|safe}}</a></h3>
+            <div class="highlighted">{{h.text|safe}}</div>
+            </li>
+            {%endfor%}
+        </ul>
+        {%else%}
+        <p>No matches found.</p>
+        {%endif%}
+    </section>
+</article>
+{% endblock %}

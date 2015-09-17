@@ -1,0 +1,46 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{meta.title}}</h1>
+        <div class="decorator">History</div>
+    </header>
+    <section>
+        {%if history%}
+        <p>Here's the revision log for <a href="{{nav.url_read}}">{{meta.title}}</a>.</p>
+        <form id="diff-page" action="{{get_diff_url(meta.url)}}" method="GET">
+            <table class="pure-table pure-table-bordered">
+                <thead>
+                    <tr>
+                        <th>Revision</th>
+                        <th>Date</th>
+                        <th>Author</th>
+                        <th>Comment</th>
+                        <th><button id="diff-revs" class="pure-button">Show Diff.</button></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in history %}
+                    <tr>
+                        <td><a href="{{get_rev_url(meta.url, e.rev_id)}}">{{e.rev_name}}</a></td>
+                        <td>{{e.datetime}}</td>
+                        <td>{{e.author}}</td>
+                        <td>{{e.description}}</td>
+                        <td>
+                            <input type="radio" name="rev1" value="{{e.rev_id}}" {% if loop.index == 0 %}checked="true" {% endif %}/>
+                            <input type="radio" name="rev2" value="{{e.rev_id}}" {% if loop.index == 1 %}checked="true" {% endif %}/>
+                            <small><a href="{{get_diff_url(meta.url, e.rev_id)}}">with previous</a></small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+        {%else%}
+        <p><i class="icon-warning-sign large big"></i>
+            This page has not been committed to the repository yet.
+            <a href="{{nav.url_edit}}">Edit it</a> to do that now.</p>
+        {%endif%}
+    </section>
+</article>
+{% endblock %}

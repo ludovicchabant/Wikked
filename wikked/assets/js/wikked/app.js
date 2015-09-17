@@ -1,240 +1,198 @@
-/**
- * The main Wikked app/router.
- */
+
 define([
         'jquery',
         'underscore',
-        'backbone',
-        'js/wikked/views',
-        'js/wikked/models'
         ],
-    function($, _, Backbone, Views, Models) {
+    function($, _) {
 
     var exports = {};
 
-    /**
-     * View manager.
-     */
-    var ViewManager = exports.ViewManager = function(el) {
+    // Main app method.
+    var run = exports.run = function() {
+        var nav = new NavigationView();
+        window.wikkedNav = nav;
+    };
+
+    // Navigation menu view.
+    var NavigationView = exports.NavigationView = function() {
         this.initialize.apply(this, arguments);
     };
-    _.extend(ViewManager.prototype, {
-        initialize: function(el) {
-            this.el = el;
-        },
-        _currentView: false,
-        switchView: function(view, autoFetch) {
-            if (this._currentView) {
-                this._currentView.dispose();
-                this._currentView = false;
+    _.extend(NavigationView.prototype, {
+        initialize: function() {
+            // Hide the drop-down for the search results.
+            this.searchPreviewList = $('#search-preview');
+            this.searchPreviewList.hide();
+            this.activeResultIndex = -1;
+
+            // Cache some stuff for handling the menu.
+            this.wikiMenu = $('#wiki-menu');
+            this.isMenuActive = (this.wikiMenu.css('left') == '0px');
+            this.isMenuActiveLocked = false;
+
+            // Apply local settings.
+            var ima = localStorage.getItem('wikked.nav.isMenuActive');
+            if (ima == 'true') {
+                this.wikiMenu.addClass('wiki-menu-active');
+                this.isMenuActive = true;
+                this._toggleWikiMenuPin(true);
             }
 
-            if (view) {
-                this._currentView = view;
-                if (autoFetch || autoFetch === undefined) {
-                    view.model.fetch();
-                } else {
-                    view.render();
-                }
-                this.el.empty().append(view.el);
+            // Hookup events.
+            this.listen("#wiki-menu-shortcut", 'click', '_onMenuShortcutClick');
+            this.listen("#wiki-menu-pin", 'click', '_onMenuShortcutClick');
+            this.listen("#wiki-menu-shortcut", 'mouseenter', '_onMenuShortcutHover');
+            this.listen("#wiki-menu-shortcut", 'mouseleave', '_onMenuShortcutLeave');
+            this.listen("#wiki-menu", 'mouseenter', '_onMenuHover');
+            this.listen("#wiki-menu", 'mouseleave', '_onMenuLeave');
+            this.listen("#search-query", 'focus', '_searchQueryFocused');
+            this.listen("#search-query", 'input', '_previewSearch');
+            this.listen("#search-query", 'keyup', '_searchQueryChanged');
+            this.listen("#search-query", 'blur', '_searchQueryBlurred');
+            this.listen("#search", 'submit', '_submitSearch');
+        },
+        listen: function(sel, evt, callback) {
+            var _t = this;
+            $(sel).on(evt, function(e) {
+                _t[callback](e);
+            });
+        },
+        _onMenuShortcutClick: function(e) {
+            this.isMenuActive = !this.isMenuActive;
+            localStorage.setItem('wikked.nav.isMenuActive', this.isMenuActive);
+            this._toggleWikiMenuPin(this.isMenuActive);
+        },
+        _onMenuShortcutHover: function(e) {
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(true);
+        },
+        _onMenuShortcutLeave: function(e) {
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(false);
+        },
+        _onMenuHover: function(e) {
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(true);
+        },
+        _onMenuLeave: function(e) {
+            if (!this.isMenuActive && !this.isMenuActiveLocked)
+                this._toggleWikiMenu(false);
+        },
+        _toggleWikiMenu: function(onOff) {
+            if (onOff) {
+                this.wikiMenu.toggleClass('wiki-menu-inactive', false);
+                this.wikiMenu.toggleClass('wiki-menu-active', true);
+            } else {
+                this.wikiMenu.toggleClass('wiki-menu-active', false);
+                this.wikiMenu.toggleClass('wiki-menu-inactive', true);
             }
-
-            return this;
-        }
-    });
-
-    /**
-     * Main router.
-     */
-    var AppRouter = Backbone.Router.extend({
-        initialize: function(options) {
-            this.viewManager = options ? options.viewManager : undefined;
-            if (!this.viewManager) {
-                this.viewManager = new ViewManager($('#app'));
+        },
+        _toggleWikiMenuPin: function(onOff) {
+            $('#wiki-menu-pin').toggleClass('wiki-menu-pin-active', onOff);
+        },
+        _searchQueryFocused: function(e) {
+            this.isMenuActiveLocked = true;
+            this.wikiMenu.toggleClass('wiki-menu-ext', true);
+        },
+        _searchQueryBlurred: function(e) {
+            $(e.currentTarget).val('').trigger('input');
+            this.wikiMenu.toggleClass('wiki-menu-ext', false);
+            this.isMenuActiveLocked = false;
+            if ($(document.activeElement).parents('#wiki-menu').length === 0)
+                this._onMenuLeave(e);
+        },
+        _submitSearch: function(e) {
+            if (this.activeResultIndex >= 0) {
+                var entries = this.searchPreviewList.children();
+                var choice = $('a', entries[this.activeResultIndex]);
+                var url = choice.attr('href') + "?no_redirect";
+                window.location.href = url;
+                e.preventDefault();
+                return false;
             }
-
-            var $router = this;
-            Backbone.View.prototype.navigate = function(url, options) {
-                $router.navigate(url, options);
-            };
-            Backbone.Model.prototype.navigate = function(url, options) {
-                $router.navigate(url, options);
-            };
+            return true;
         },
-        routes: {
-            'read/*path':           "readPage",
-            '':                     "readMainPage",
-            'create/*path':         "createPage",
-            'edit/*path':           "editPage",
-            'changes/*path':        "showPageHistory",
-            'inlinks/*path':        "showIncomingLinks",
-            'revision/*path/:rev':  "readPageRevision",
-            'diff/c/*path/:rev':    "showDiffWithPrevious",
-            'diff/r/*path/:rev1/:rev2':"showDiff",
-            'search/:query':         "showSearchResults",
-            'login':                 "showLogin",
-            'logout':                "doLogout",
-            'special':               "showSpecialPages",
-            'special/changes':       "showSiteChanges",
-            'special/changes/:rev':  "showSiteChangesAfterRev",
-            'special/list/:name':    "showPageList"
-        },
-        readPage: function(path) {
-            var path_clean = this.stripQuery(path);
-            var no_redirect = this.getQueryVariable('no_redirect', path);
-            var model_attrs = { path: path_clean };
-            if (no_redirect) model_attrs.no_redirect = true;
-
-            var view = new Views.PageReadView({
-                model: new Models.PageReadModel(model_attrs)
-            });
-
-            this.viewManager.switchView(view);
-            this.navigate('/read/' + path);
-        },
-        readMainPage: function() {
-            this.readPage('');
-        },
-        createPage: function(path) {
-            var view = new Views.PageEditView({
-                model: new Models.PageEditModel({ is_new: true, create_in: path })
-            });
-            this.viewManager.switchView(view, false);
-            this.navigate('/create/' + path);
-        },
-        editPage: function(path) {
-            var view = new Views.PageEditView({
-                model: new Models.PageEditModel({ path: path })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/edit/' + path);
-        },
-        showPageHistory: function(path) {
-            var view = new Views.PageHistoryView({
-                model: new Models.PageHistoryModel({ path: path })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/changes/' + path);
-        },
-        showIncomingLinks: function(path) {
-            var view = new Views.IncomingLinksView({
-                model: new Models.IncomingLinksModel({ path: path })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/inlinks/' + path);
-        },
-        readPageRevision: function(path, rev) {
-            var view = new Views.PageRevisionView({
-                rev: rev,
-                model: new Models.PageRevisionModel({ path: path, rev: rev })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/revision/' + path + '/' + rev);
-        },
-        showDiffWithPrevious: function(path, rev) {
-            var view = new Views.PageDiffView({
-                rev1: rev,
-                model: new Models.PageDiffModel({ path: path, rev1: rev })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/diff/c/' + path + '/' + rev);
-        },
-        showDiff: function(path, rev1, rev2) {
-            var view = new Views.PageDiffView({
-                rev1: rev1,
-                rev2: rev2,
-                model: new Models.PageDiffModel({ path: path, rev1: rev1, rev2: rev2 })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/diff/r/' + path + '/' + rev1 + '/' + rev2);
-        },
-        showSearchResults: function(query) {
-            if (query === '') {
-                query = this.getQueryVariable('q');
+        _previewSearch: function(e) {
+            var query = $(e.currentTarget).val();
+            if (query && query.length >= 1) {
+                var $view = this;
+                this._doPreviewSearch(query, function(data) {
+                    var resultStr = '';
+                    for (var i = 0; i < data.hits.length; ++i) {
+                        var hitUrl = data.hits[i].url.replace(/^\//, '');
+                        resultStr += '<li>' +
+                            '<a href="/read/' + hitUrl + '">' +
+                            data.hits[i].title +
+                            '</a>' +
+                            '</li>';
+                    }
+                    $view.searchPreviewList.html(resultStr);
+                    if (!$view.searchPreviewList.is(':visible'))
+                        $view.searchPreviewList.slideDown(200);
+                });
+            } else if(!query || query.length === 0) {
+                this.searchPreviewList.slideUp(200);
             }
-            var view = new Views.WikiSearchView({
-                model: new Models.WikiSearchModel({ query: query })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/search/' + query);
         },
-        showLogin: function() {
-            var view = new Views.LoginView({
-                model: new Models.LoginModel()
-            });
-            this.viewManager.switchView(view, false);
-            this.navigate('/login');
-        },
-        doLogout: function() {
-            var $app = this;
-            $.post('/api/user/logout')
-                .success(function(data) {
-                    $app.navigate('/', { trigger: true });
+        _isSearching: false,
+        _pendingQuery: null,
+        _pendingCallback: null,
+        _doPreviewSearch: function(query, callback) {
+            if (this._isSearching) {
+                this._pendingQuery = query;
+                this._pendingCallback = callback;
+                return;
+            }
+            this._isSearching = true;
+            var $view = this;
+            $.getJSON('/api/searchpreview', { q: query })
+                .done(function (data) {
+                    $view._isSearching = false;
+                    callback(data);
+                    $view._flushPendingQuery();
                 })
-                .error(function() {
-                    alert("Error logging out!");
+                .fail(function() {
+                    $view._isSearching = false;
+                    $view._flushPendingQuery();
                 });
         },
-        showSpecialPages: function() {
-            var view = new Views.SpecialPagesView({
-                model: new Models.SpecialPagesModel()
-            });
-            this.viewManager.switchView(view, false);
-            this.navigate('/special');
-        },
-        showSiteChanges: function() {
-            var view = new Views.SpecialChangesView({
-                model: new Models.SpecialChangesModel()
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/special/changes');
-        },
-        showSiteChangesAfterRev: function(rev) {
-            var view = new Views.SpecialChangesView({
-                model: new Models.SpecialChangesModel({ after_rev: rev })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/special/changes/' + rev);
-        },
-        showPageList: function(name) {
-            var view = new Views.SpecialPageListView({
-                model: new Models.SpecialPageListModel({ name: name })
-            });
-            this.viewManager.switchView(view);
-            this.navigate('/special/list/' + name);
-        },
-        stripQuery: function(url) {
-            q = url.indexOf("?");
-            if (q < 0)
-                return url;
-            return url.substring(0, q);
-        },
-        getQueryVariable: function(variable, url) {
-            if (url === undefined) {
-                url = window.location.search.substring(1);
-            } else {
-                q = url.indexOf("?");
-                if (q < 0)
-                    return false;
-                url = url.substring(q + 1);
+        _flushPendingQuery: function() {
+            if (this._pendingQuery && this._pendingCallback) {
+                var q = this._pendingQuery;
+                var c = this._pendingCallback;
+                this._pendingQuery = null;
+                this._pendingCallback = null;
+                this._doPreviewSearch(q, c);
             }
-            var vars = url.split("&");
-            for (var i = 0; i < vars.length; i++) {
-                var pair = vars[i].split("=");
-                if (pair[0] == variable) {
-                    if (pair.length > 1) {
-                        return unescape(pair[1]);
-                    } else {
-                        return true;
-                    }
+        },
+        _searchQueryChanged: function(e) {
+            if (e.keyCode == 27) {
+                // Clear search on `Esc`.
+                $(e.currentTarget).val('').trigger('input');
+            } else if (e.keyCode == 38) {
+                // Up arrow.
+                e.preventDefault();
+                if (this.activeResultIndex >= 0) {
+                    this.activeResultIndex--;
+                    this._updateActiveResult();
+                }
+            } else if (e.keyCode == 40) {
+                // Down arrow.
+                e.preventDefault();
+                if (this.activeResultIndex < 
+                        this.searchPreviewList.children().length - 1) {
+                    this.activeResultIndex++;
+                    this._updateActiveResult();
                 }
             }
-            return false;
+        },
+        _updateActiveResult: function() {
+            var entries = this.searchPreviewList.children();
+            entries.toggleClass('search-result-hover', false);
+            if (this.activeResultIndex >= 0)
+                $(entries[this.activeResultIndex]).toggleClass('search-result-hover', true);
         }
     });
 
-    return {
-        Router: AppRouter
-    };
+    return exports;
 });
 

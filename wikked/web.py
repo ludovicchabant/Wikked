@@ -1,6 +1,7 @@
 import os
 import os.path
 import logging
+import urllib.parse
 from werkzeug import SharedDataMiddleware
 from flask import Flask, abort, g
 from wikked.wiki import Wiki, WikiParameters
@@ -25,7 +26,8 @@ app.config.setdefault('WIKI_UPDATE_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('WIKI_ASYNC_UPDATE', False)
 app.config.setdefault('WIKI_SERVE_FILES', False)
-app.config.setdefault('WIKI_BROKER_URL', 'sqla+sqlite:///%(root)s/.wiki/broker.db')
+app.config.setdefault('WIKI_BROKER_URL',
+                      'sqla+sqlite:///%(root)s/.wiki/broker.db')
 app.config.setdefault('WIKI_NO_FLASK_LOGGER', False)
 app.config.setdefault('PROFILE', False)
 app.config.setdefault('PROFILE_DIR', None)
@@ -55,9 +57,11 @@ if os.path.isfile(config_path):
 
 # Make the app serve static content and wiki assets in DEBUG mode.
 if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
-    app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-        '/files': os.path.join(wiki_root, '_files')
-    })
+    app.wsgi_app = SharedDataMiddleware(
+            app.wsgi_app,
+            {
+                '/files': os.path.join(wiki_root, '_files')},
+            cache=False)
 
 
 # In DEBUG mode, also serve raw assets instead of static ones.
@@ -113,6 +117,40 @@ def user_loader(username):
     return wiki.auth.getUser(username)
 
 
+# Setup the Jinja environment.
+def get_read_url(url):
+    return '/read/' + url.lstrip('/')
+
+
+def get_edit_url(url):
+    return '/edit/' + url.lstrip('/')
+
+
+def get_rev_url(url, rev):
+    return '/rev/%s?%s' % (url.lstrip('/'),
+                           urllib.parse.urlencode({'rev': rev}))
+
+
+def get_diff_url(url, rev1=None, rev2=None):
+    args = {}
+    if rev1 is not None:
+        args['rev1'] = rev1
+    if rev2 is not None:
+        args['rev2'] = rev2
+    if len(args) > 0:
+        return '/diff/%s?%s' % (url.lstrip('/'),
+                                urllib.parse.urlencode(args))
+    return '/diff/%s' % url.lstrip('/')
+
+
+app.jinja_env.globals.update({
+    'get_read_url': get_read_url,
+    'get_edit_url': get_edit_url,
+    'get_rev_url': get_rev_url,
+    'get_diff_url': get_diff_url
+    })
+
+
 from flask.ext.login import LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -128,12 +166,17 @@ app.bcrypt = Bcrypt(app)
 # Import the views.
 # (this creates a PyLint warning but it's OK)
 # pylint: disable=unused-import
-import wikked.views.error
-import wikked.views.read
-import wikked.views.edit
-import wikked.views.history
-import wikked.views.special
+import wikked.api.admin
+import wikked.api.edit
+import wikked.api.history
+import wikked.api.read
+import wikked.api.special
 import wikked.views.admin
+import wikked.views.edit
+import wikked.views.error
+import wikked.views.history
+import wikked.views.read
+import wikked.views.special
 
 
 # Async wiki update.

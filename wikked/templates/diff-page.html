@@ -1,0 +1,18 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{meta.title}}</h1>
+        <div class="decorator">Diff
+            {%if disp_rev2%}
+            <span class="rev_id">{{disp_rev1}}</span> to <span class="rev_id">{{disp_rev2}}</span>
+            {%else%}
+            change <span class="rev_id">{{disp_rev1}}</span>
+            {%endif%}
+        </div>
+    </header>
+    <section>
+        <pre><code>{{diff|safe}}</code></pre>
+    </section>
+</article>
+{% endblock %}

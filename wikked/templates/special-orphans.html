@@ -1,0 +1,10 @@
+{% extends "special-pagelist.html" %}
+{% block message %}
+<p>Here is a list of pages that don't have any pages linking to them. This means user will only be able to find them by searching for them, or by getting a direct link.</p>
+<aside>
+    <p>The main page usually shows up here but that's OK since it's the page everyone sees first.</p>
+</aside>
+{% endblock %}
+{% block empty %}
+<p>No orphaned pages!</p>
+{% endblock %}

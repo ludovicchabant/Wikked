@@ -1,0 +1,67 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Wiki History</h1>
+    </header>
+    <section>
+        <p>Here are the recent changes on this wiki.</p>
+        <form>
+            <table class="pure-table pure-table-bordered wiki-history">
+                <thead>
+                    <tr>
+                        <th>Revision</th>
+                        <th>Information</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%for e in history%}
+                    <tr class='wiki-history-entry'>
+                        <td><code>{{e.rev_name}}</code></td>
+                        <td>
+                            <dl class="pure-dl-horizontal">
+                                <dt>Date</dt>
+                                <dd>{{e.datetime}}</dd>
+                                <dt>Author</dt>
+                                <dd>{{e.author}}</dd>
+                                <dt>Pages ({{e.num_pages}})</dt>
+                                <dd>
+                                {%if collapsed%}}
+                                    <button class="pure-button wiki-history-entry-collapser" data-index="{{loop.index}}">
+                                        <span class="fa fa-chevron-down"></span>
+                                        <small>Show</small>
+                                    </button>
+                                    <div class="wiki-history-entry-details wiki-history-entry-details-{{loop.index}}">
+                                {%endif%}
+                                    <ul class="pure-ul-unstyled">
+                                        {%for p in e.pages%}
+                                        <li>
+                                            <a href="/revision{{p.url}}/{{e.rev_id}}">{{p.url}}</a>
+                                            {{p.action_label}}
+                                        </li>
+                                        {%endfor%}
+                                    </ul>
+                                {%if collapsed%}
+                                    </div>
+                                {%endif%}
+                                </dd>
+                                <dt>Comment</dt>
+                                <dd>{{e.description}}</dd>
+                            </dl>
+                        </td>
+                    </tr>
+                    {%endfor%}
+                </tbody>
+            </table>
+            <div class="wiki-history-pagination pure-g">
+                <div class="pure-u-1-2">
+                    <a href="{{first_page}}">First page</a>
+                </div>
+                <div class="pure-u-1-2">
+                    <a href="{{next_page}}">Next page</a>
+                </div>
+            </div>
+        </form>
+    </section>
+</article>
+{% endblock %}

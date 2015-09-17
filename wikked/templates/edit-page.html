@@ -1,0 +1,69 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <form id="page-edit" class="pure-form" action="{{post_back}}" method="POST">
+        <fieldset>
+            <div class="header-wrapper">
+                <header>
+                    {%if is_new%}
+                    <div class="pure-control-group pure-control-addon">
+                        <label for="title" class="">Title</label>
+                        <input type="text" name="title" placeholder="New Page" required="true" class="" value="{{create_in}}"></input>
+                    </div>
+                    <div class="pure-form-help">
+                        <span for="title">You can put this page in a folder by entering a title like <code>Folder/Page Title</code>.</span>
+                    </div>
+                    {%else%}
+                    <h1>{{meta.title}}</h1>
+                    <div class="decorator">Editing</div>
+                    {%endif%}
+                </header>
+            </div>
+            <div class="editing-wrapper">
+                <div class="editing">
+                    {%if error%}
+                    <section class="editing-error alert alert-danger">
+                        <p><strong>Error:</strong> <span class="editing-error-message">{{error}}</span></p>
+                    </section>
+                    {%endif%}
+                    <section class="editing-input">
+                        <textarea id="editing-input-area" name="text" placeholder="Your page's contents go here...">{{text}}</textarea>
+                        <div id="editing-input-grip"></div>
+                    </section>
+                    <section class="editing-preview">
+                    </section>
+                    <section class="editing-meta">
+                        <div class="pure-control-group pure-control-addon">
+                            <label for="author">Author</label>
+                            <input type="text" name="author" class="form-control" placeholder="{{commit_meta.author}}"></input>
+                        </div>
+                        <div class="pure-control-group pure-control-addon">
+                            <label for="message">Description</label>
+                            <input type="text" name="message" class="form-control" placeholder="{{commit_meta.desc}}" minlength="3"></input>
+                        </div>
+                    </section>
+                    <section class="editing-submit">
+                        <div class="pure-control-group">
+                            <button type="submit" class="pure-button pure-button-primary"><span class="fa fa-check"></span> Save</button>
+                            <button id="editing-preview-button" type="submit" class="pure-button" data-wiki-url="{{meta.url}}"><span class="fa fa-eye"></span> <span class="editing-preview-button-label">Preview</span></button>
+                            <button id="editing-cancel-button" type="submit" class="pure-button"><span class="fa fa-remove"></span> Cancel</button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </fieldset>
+    </form>
+</article>
+{% endblock %}
+{% block scripts %}
+{% if is_dev %}
+<script data-main="/dev-assets/js/wikked.js" src="/dev-assets/js/require.js"></script>
+<script>
+require(['wikked.app', 'wikked.edit'], function(app, edit) {});
+</script>
+{% else %}
+<script src="/static/js/require.js"></script>
+<script src="/static/js/wikked.app.js"></script>
+<script src="/static/js/wikked.edit.js"></script>
+{% endif %}
+{% endblock %}

@@ -37,10 +37,13 @@ class RunServerCommand(WikkedCommand):
                      "uncompressed scripts and stylesheets), along with using "
                      "code reloading and debugging.",
                 action='store_true')
-        parser.add_argument('--noupdate',
+        parser.add_argument('--no-update',
                 help="Don't auto-update the wiki if a page file has been "
                      "touched (which means you can refresh a locally modified "
                      "page with F5)",
+                action='store_true')
+        parser.add_argument('--no-startup-update',
+                help="Don't update the wiki before starting the server.",
                 action='store_true')
         parser.add_argument('-c', '--config',
                 help="Pass some configuration value to the Flask application. "
@@ -75,7 +78,7 @@ class RunServerCommand(WikkedCommand):
         wikked.settings.WIKI_SERVE_FILES = True
         if ctx.args.dev:
             wikked.settings.WIKI_DEV_ASSETS = True
-        if not ctx.args.noupdate:
+        if not ctx.args.no_update:
             wikked.settings.WIKI_AUTO_RELOAD = True
             ctx.params.wiki_updater = autoreload_wiki_updater
 
@@ -85,7 +88,8 @@ class RunServerCommand(WikkedCommand):
         ctx.wiki.db.hookupWebApp(app)
 
         # Update if needed.
-        if bool(app.config.get('WIKI_UPDATE_ON_START')):
+        if (bool(app.config.get('WIKI_UPDATE_ON_START')) and
+                not ctx.args.no_startup_update):
             ctx.wiki.updateAll()
 
         # Run!

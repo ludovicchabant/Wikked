@@ -1,15 +1,33 @@
 <!doctype html>
 <html>
     <head>
-        <title>Wikked</title>
+    <title>{%if page_title%}{{page_title}} &ndash; {%endif%}Wikked</title>
         <meta charset="utf-8"></meta>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" type="text/css" href="/static/css/wikked.min.css" />
     </head>
     <body>
         <div id="app">
+            <div class="nav-wrapper">
+                {% block nav %}{% include 'nav.html' %}{% endblock %}
+            </div>
+            <div class="wrapper{%if is_special_page%} special{%endif%}">
+                {% block content %}{% endblock %}
+            </div>
+            <div class="footer-wrapper">
+                {% block footer %}{% include 'footer.html' %}{% endblock %}
+            </div>
         </div>
+        {% block scripts %}
+        {% if is_dev %}
+        <script data-main="/dev-assets/js/wikked.js" src="/dev-assets/js/require.js"></script>
+        <script>
+        require(['wikked.app'], function(edit) {});
+        </script>
+        {% else %}
         <script src="/static/js/require.js"></script>
-        <script src="/static/js/wikked.min.js"></script>
+        <script src="/static/js/wikked.app.js"></script>
+        {% endif %}
+        {% endblock %}
     </body>
 </html>
