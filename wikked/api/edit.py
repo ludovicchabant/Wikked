@@ -47,7 +47,9 @@ def api_edit_page(url):
 @app.route('/api/preview', methods=['POST'])
 def api_preview():
     url = request.form.get('url')
-    url = url_from_viewarg(url)
+    if url == '' or not url[0] == '/':
+        abort(400)
+
     text = request.form.get('text')
     wiki = get_wiki()
     preview = preview_edited_page(wiki, url, text)
