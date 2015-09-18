@@ -15,6 +15,9 @@ def site_history():
     user = current_user.get_id()
     after_rev = request.args.get('rev')
     data = get_site_history(wiki, user, after_rev=after_rev)
+    last_rev = data['history'][-1]['rev_id']
+    data['first_page'] = '/special/history'
+    data['next_page'] = '/special/history?rev=%s' % last_rev
     add_auth_data(data)
     add_navigation_data(
             '', data,
