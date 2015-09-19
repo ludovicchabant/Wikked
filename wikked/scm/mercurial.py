@@ -311,6 +311,8 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
         return _s(self.client.cat(_b([path]), rev=_b(rev)))
 
     def diff(self, path, rev1, rev2):
+        if path is None:
+            return _s(self.client.diff(change=rev1, git=True))
         if rev2 is None:
             return _s(self.client.diff(files=_b([path]), change=rev1,
                                        git=True))
