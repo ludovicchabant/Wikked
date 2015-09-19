@@ -17,7 +17,10 @@
                 <tbody>
                     {%for e in history%}
                     <tr class='wiki-history-entry'>
-                        <td><code>{{e.rev_name}}</code></td>
+                        <td>
+                            <p><code>{{e.rev_name}}</code></p>
+                            <p><a href="/diff_rev/{{e.rev_id}}">Show Diff.</a></p>
+                        </td>
                         <td>
                             <dl class="pure-dl-horizontal">
                                 <dt>Date</dt>

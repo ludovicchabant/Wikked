@@ -6,7 +6,7 @@ from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
 from wikked.webimpl.history import (
         get_site_history, get_page_history,
-        read_page_rev, diff_page_revs)
+        read_page_rev, diff_revs, diff_page_revs)
 
 
 @app.route('/special/history')
@@ -86,4 +86,15 @@ def diff_page(url):
                 url.lstrip('/'),
                 urllib.parse.urlencode(raw_url_args)))
     return render_template('diff-page.html', **data)
+
+
+@app.route('/diff_rev/<rev>')
+def diff_revision(rev):
+    wiki = get_wiki()
+    user = current_user.get_id()
+    data = diff_revs(wiki, user, rev)
+    add_auth_data(data)
+    add_navigation_data(
+            '', data)
+    return render_template('diff-rev.html', **data)
 

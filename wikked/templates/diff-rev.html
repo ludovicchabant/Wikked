@@ -1,0 +1,15 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Change Overview</h1>
+        <div class="decorator">
+            Diff change <span class="rev_id">{{disp_rev}}</span>
+        </div>
+    </header>
+    <section>
+        <pre><code>{{diff|safe}}</code></pre>
+    </section>
+</article>
+{% endblock %}
+

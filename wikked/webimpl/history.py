@@ -91,6 +91,15 @@ def diff_page_revs(wiki, user, url, rev1, rev2=None, raw=False):
     return result
 
 
+def diff_revs(wiki, user, rev, raw=False):
+    diff = wiki.scm.diff(path=None, rev1=rev, rev2=None)
+    if not raw:
+        lexer = get_lexer_by_name('diff')
+        formatter = get_formatter_by_name('html')
+        diff = highlight(diff, lexer, formatter)
+    return {'diff': diff, 'disp_rev': rev}
+
+
 def revert_page(wiki, user, url, rev, message=None):
     message = message or 'Reverted %s to revision %s' % (url, rev)
     page_fields = {
