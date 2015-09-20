@@ -59,16 +59,16 @@ if os.path.isfile(config_path):
 if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
     app.wsgi_app = SharedDataMiddleware(
             app.wsgi_app,
-            {
-                '/files': os.path.join(wiki_root, '_files')},
-            cache=False)
+            {'/files': os.path.join(wiki_root, '_files')})
 
 
 # In DEBUG mode, also serve raw assets instead of static ones.
 if app.config['WIKI_DEV_ASSETS']:
     assets_folder = os.path.join(os.path.dirname(__file__), 'assets')
-    app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
-        '/dev-assets': assets_folder})
+    app.wsgi_app = SharedDataMiddleware(
+            app.wsgi_app,
+            {'/dev-assets': assets_folder},
+            cache=False)  # Etag/caching seems broken
 
 
 # Profiling
