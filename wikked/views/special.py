@@ -91,8 +91,15 @@ def call_api(page_name, api_func, *args, **kwargs):
     wiki = get_wiki()
     user = current_user.get_id()
     info = special_pages[page_name]
+
+    raw_url = None
+    if 'raw_url' in kwargs:
+        raw_url = kwargs['raw_url']
+        del kwargs['raw_url']
+
     data = api_func(wiki, user, *args, **kwargs)
     add_auth_data(data)
+    add_navigation_data(None, data, raw_url=raw_url)
     data['title'] = info['title']
     data['is_special_page'] = True
     return render_template(info['template'], **data)
@@ -100,20 +107,24 @@ def call_api(page_name, api_func, *args, **kwargs):
 
 @app.route('/special/list/orphans')
 def special_list_orphans():
-    return call_api('orphans', get_orphans)
+    return call_api('orphans', get_orphans,
+                    raw_url='/api/orphans')
 
 
 @app.route('/special/list/broken-redirects')
 def special_list_broken_redirects():
-    return call_api('broken-redirects', get_broken_redirects)
+    return call_api('broken-redirects', get_broken_redirects,
+                    raw_url='/api/broken-redirects')
 
 
 @app.route('/special/list/double-redirects')
 def special_list_double_redirects():
-    return call_api('double-redirects', get_double_redirects)
+    return call_api('double-redirects', get_double_redirects,
+                    raw_url='/api/double-redirects')
 
 
 @app.route('/special/list/dead-ends')
 def special_list_dead_ends():
-    return call_api('dead-ends', get_dead_ends)
+    return call_api('dead-ends', get_dead_ends,
+                    raw_url='/api/dead-ends')
 
