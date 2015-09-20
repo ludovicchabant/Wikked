@@ -1,3 +1,4 @@
+from flask import request
 from flask.ext.login import current_user
 from wikked.web import app
 
@@ -30,6 +31,10 @@ def add_navigation_data(
         raise Exception("Default navigation entries require a valid URL.")
 
     nav = {'home': '/', 'extras': [], 'footers': []}
+
+    nav['is_menu_active'] = (
+            request.cookies.get('wiki-menu-active') == '1')
+
     if read:
         nav['url_read'] = '/read/%s' % url
     if edit:

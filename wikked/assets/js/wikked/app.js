@@ -30,14 +30,6 @@ define([
             this.isMenuActive = (this.wikiMenu.css('left') == '0px');
             this.isMenuActiveLocked = false;
 
-            // Apply local settings.
-            var ima = localStorage.getItem('wikked.nav.isMenuActive');
-            if (ima == 'true') {
-                this.wikiMenuAndWrapper.addClass('wiki-menu-active');
-                this.isMenuActive = true;
-                this._toggleWikiMenuPin(true);
-            }
-
             // Hookup events.
             this.listen("#wiki-menu-shortcut", 'click', '_onMenuShortcutClick');
             this.listen("#wiki-menu-pin", 'click', '_onMenuShortcutClick');
@@ -59,7 +51,10 @@ define([
         },
         _onMenuShortcutClick: function(e) {
             this.isMenuActive = !this.isMenuActive;
-            localStorage.setItem('wikked.nav.isMenuActive', this.isMenuActive);
+            var val = this.isMenuActive ? "1" : "0";
+            document.cookie = (
+                    "wiki-menu-active=" + val + "; " +
+                    "path=/; expires=31 Dec 2100 UTC");
             this._toggleWikiMenuPin(this.isMenuActive);
         },
         _onMenuShortcutHover: function(e) {

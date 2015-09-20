@@ -11,7 +11,7 @@
             <div class="nav-wrapper">
                 {% block nav %}{% include 'nav.html' %}{% endblock %}
             </div>
-            <div class="wrapper{%if is_special_page%} special{%endif%}">
+            <div class="wrapper{%if nav.is_menu_active%} wiki-menu-active{%endif%}{%if is_special_page%} special{%endif%}">
                 {% block content %}{% endblock %}
             </div>
             <div class="footer-wrapper">
