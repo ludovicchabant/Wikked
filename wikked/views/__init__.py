@@ -3,14 +3,15 @@ from wikked.web import app
 
 
 def add_auth_data(data):
+    username = current_user.get_id()
     if current_user.is_authenticated():
-        user_page_url = 'user:/%s' % current_user.get_id()
+        user_page_url = 'user:/%s' % username.title()
         data['auth'] = {
                 'is_logged_in': True,
-                'username': current_user.username,
+                'username': username,
                 'is_admin': current_user.is_admin(),
                 'url_logout': '/logout',
-                'url_profile': '/read/' % user_page_url
+                'url_profile': '/read/%s' % user_page_url
                 }
     else:
         data['auth'] = {

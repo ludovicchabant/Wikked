@@ -1,0 +1,22 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Logout</h1>
+    </header>
+    <section>
+        <form id="login" class="pure-form pure-form-stacked" role="form" action="/logout" method="POST">
+            {%if already_logged_in%}
+            <p>You're already logged in as <a href="{{auth.url_profile}}">{{auth.username}}</a>.
+               If you want to log in as someone else, you can log out first.</p>
+            {%else%}
+            <p>Hi <a href="{{auth.url_profile}}">{{auth.username}}</a>, you can log out here.</p>
+            {%endif%}
+            <fieldset>
+                <button class="pure-button pure-button-primary" type="submit">Log out</button>
+            </fieldset>
+        </form>
+    </section>
+</article>
+{% endblock %}
+

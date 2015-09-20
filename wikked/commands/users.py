@@ -28,8 +28,9 @@ class NewUserCommand(WikkedCommand):
     def __init__(self):
         super(NewUserCommand, self).__init__()
         self.name = 'newuser'
-        self.description = ("Generates the entry for a new user so you can "
-               "copy/paste it in your `.wikirc`.")
+        self.description = (
+                "Generates the entry for a new user so you can "
+                "copy/paste it in your `.wikirc`.")
 
     def setupParser(self, parser):
         parser.add_argument('username', nargs=1)
@@ -40,3 +41,4 @@ class NewUserCommand(WikkedCommand):
         password = ctx.args.password or getpass.getpass('Password: ')
         password = generate_password_hash(password)
         logger.info("%s = %s" % (username[0], password))
+
