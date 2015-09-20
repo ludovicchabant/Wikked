@@ -1,6 +1,6 @@
 from flask import render_template
 from flask.ext.login import current_user
-from wikked.views import add_auth_data
+from wikked.views import add_auth_data, add_navigation_data
 from wikked.web import app, get_wiki
 from wikked.webimpl.special import (
         get_orphans, get_broken_redirects, get_double_redirects,
@@ -71,7 +71,9 @@ special_pages = {
 
 @app.route('/special')
 def special_pages_dashboard():
-    data = {'sections': []}
+    data = {
+            'is_special_page': True,
+            'sections': []}
     for info in special_sections:
         sec = {'title': info['title'], 'pages': []}
         for k, p in special_pages.items():
@@ -81,6 +83,7 @@ def special_pages_dashboard():
         data['sections'].append(sec)
 
     add_auth_data(data)
+    add_navigation_data(None, data)
     return render_template('special-pages.html', **data)
 
 
