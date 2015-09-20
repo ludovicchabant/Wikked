@@ -64,7 +64,7 @@ class ResolverTest(WikkedTest):
             })
         foo = wiki.getPage('/foo')
         self.assertEqual(
-            'Hello here.\nHere is <a class="wiki-link" data-wiki-url="/foo">foo</a>!',
+            'Hello here.\nHere is <a class="wiki-link" data-wiki-url="/foo" href="/read/foo">foo</a>!',
             foo.text
             )
 

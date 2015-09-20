@@ -72,6 +72,7 @@ def format_link(title, url, missing=False, mod=None):
     res += '\" data-wiki-url=\"' + url + '\"'
     if mod:
         res += ' data-wiki-mod=\"' + mod + '\"'
+    res += ' href="/read' + url + '"'
     res += '>' + title + '</a>'
     return res
 
