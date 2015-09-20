@@ -17,7 +17,7 @@
         </fieldset>
     </form>
     <ul class="pure-menu-divider">
-        {%if auth%}
+        {%if auth.is_logged_in%}
         <li><a href="{{auth.url_profile}}"><span class="fa fa-cog"></span> {{auth.username}}</a></li>
         <li><a href="{{auth.url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
         {%else%}
