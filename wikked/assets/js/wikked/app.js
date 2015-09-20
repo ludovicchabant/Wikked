@@ -26,13 +26,14 @@ define([
 
             // Cache some stuff for handling the menu.
             this.wikiMenu = $('#wiki-menu');
+            this.wikiMenuAndWrapper = $.merge(this.wikiMenu, $('#app .wrapper'));
             this.isMenuActive = (this.wikiMenu.css('left') == '0px');
             this.isMenuActiveLocked = false;
 
             // Apply local settings.
             var ima = localStorage.getItem('wikked.nav.isMenuActive');
             if (ima == 'true') {
-                this.wikiMenu.addClass('wiki-menu-active');
+                this.wikiMenuAndWrapper.addClass('wiki-menu-active');
                 this.isMenuActive = true;
                 this._toggleWikiMenuPin(true);
             }
@@ -79,11 +80,11 @@ define([
         },
         _toggleWikiMenu: function(onOff) {
             if (onOff) {
-                this.wikiMenu.toggleClass('wiki-menu-inactive', false);
-                this.wikiMenu.toggleClass('wiki-menu-active', true);
+                this.wikiMenuAndWrapper.toggleClass('wiki-menu-inactive', false);
+                this.wikiMenuAndWrapper.toggleClass('wiki-menu-active', true);
             } else {
-                this.wikiMenu.toggleClass('wiki-menu-active', false);
-                this.wikiMenu.toggleClass('wiki-menu-inactive', true);
+                this.wikiMenuAndWrapper.toggleClass('wiki-menu-active', false);
+                this.wikiMenuAndWrapper.toggleClass('wiki-menu-inactive', true);
             }
         },
         _toggleWikiMenuPin: function(onOff) {
