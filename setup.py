@@ -8,6 +8,10 @@ def read(fname):
         return fp.read()
 
 
+install_requires = read('requirements.txt').splitlines()
+tests_require = read('dev-requirements.txt').splitlines()
+
+
 setup(
         name='Wikked',
         description=("A wiki engine entirely managed with text files "
@@ -21,22 +25,8 @@ setup(
         setup_requires=['setuptools_scm'],
         use_scm_version={
             'write_to': 'wikked/__version__.py'},
-        install_requires=[
-            'Flask==0.10.1',
-            'Flask-Bcrypt==0.5.2',
-            'Flask-Login==0.2.10',
-            'Flask-Script==0.5.1',
-            'Jinja2==2.7.2',
-            'Markdown==2.2.1',
-            'Pygments==1.6',
-            'SQLAlchemy==0.9.3',
-            'Whoosh==2.5.5',
-            'colorama==0.2.7',
-            'py-bcrypt==0.4',
-            'pysqlite==2.6.3',
-            'pytest==2.5.2',
-            'repoze.lru==0.6',
-            'python-hglib'],
+        install_requires=install_requires,
+        tests_require=tests_require,
         include_package_data=True,
         zip_safe=False,
         classifiers=[
