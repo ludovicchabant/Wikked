@@ -45,8 +45,8 @@
                     <section class="editing-submit">
                         <div class="pure-control-group">
                             <button type="submit" class="pure-button pure-button-primary"><span class="fa fa-check"></span> Save</button>
-                            <button id="editing-preview-button" type="submit" class="pure-button" data-wiki-url="{{meta.url}}"><span class="fa fa-eye"></span> <span class="editing-preview-button-label">Preview</span></button>
-                            <a id="editing-cancel-button" class="pure-button" href="{{get_read_url(meta.url)}}"><span class="fa fa-remove"></span> Cancel</a>
+                            <button id="editing-preview-button" type="submit" class="pure-button"><span class="fa fa-eye"></span> <span class="editing-preview-button-label">Preview</span></button>
+                            <a id="editing-cancel-button" class="pure-button" href="{%if is_new%}/{%else%}{{get_read_url(meta.url)}}{%endif%}"><span class="fa fa-remove"></span> Cancel</a>
                         </div>
                     </section>
                 </div>
