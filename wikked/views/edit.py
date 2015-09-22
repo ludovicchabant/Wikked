@@ -1,6 +1,7 @@
 from flask import redirect, url_for, request, render_template
 from flask.ext.login import current_user
 from wikked.views import (
+        errorhandling_ui2, show_unauthorized_error,
         add_auth_data, add_navigation_data)
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
@@ -14,6 +15,11 @@ def create_page_at_root():
 
 @app.route('/create/<path:url>')
 def create_page(url):
+    wiki = get_wiki()
+    if not wiki.auth.hasPermission('writers', current_user.get_id()):
+        return show_unauthorized_error(
+                error="You're not authorized to create new pages.")
+
     data = {
             'is_new': True,
             'create_in': url.lstrip('/'),
@@ -30,12 +36,14 @@ def create_page(url):
 
 
 @app.route('/edit', methods=['POST'])
+@errorhandling_ui2('error-unauthorized-edit.html')
 def edit_new_page():
     url = request.form['title']
     return edit_page(url)
 
 
 @app.route('/edit/<path:url>', methods=['GET', 'POST'])
+@errorhandling_ui2('error-unauthorized-edit.html')
 def edit_page(url):
     wiki = get_wiki()
     user = current_user.get_id()

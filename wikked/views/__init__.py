@@ -1,6 +1,56 @@
-from flask import request
+import functools
+from flask import request, render_template
 from flask.ext.login import current_user
-from wikked.web import app
+from wikked.web import app, get_wiki
+from wikked.webimpl import PermissionError
+
+
+def show_unauthorized_error(error=None, error_details=None, tpl_name=None):
+    if error is not None:
+        error = str(error)
+
+    data = {}
+    if error:
+        data['error'] = error
+    if error_details:
+        data['error_details'] = error_details
+
+    add_auth_data(data)
+    add_navigation_data(None, data)
+    tpl_name = tpl_name or 'error-unauthorized.html'
+    return render_template(tpl_name, **data)
+
+
+def errorhandling_ui(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except PermissionError as ex:
+            return show_unauthorized_error(ex)
+    return wrapper
+
+
+def errorhandling_ui2(tpl_name):
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except PermissionError as ex:
+                return show_unauthorized_error(ex, tpl_name=tpl_name)
+        return wrapper
+    return decorator
+
+
+def requires_reader_auth(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        wiki = get_wiki()
+        if not wiki.auth.hasPermission('readers', current_user.get_id()):
+            return show_unauthorized_error()
+        return f(*args, **kwargs)
+    return wrapper
 
 
 def add_auth_data(data):

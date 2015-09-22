@@ -1,6 +1,8 @@
 from flask import render_template
 from flask.ext.login import current_user
-from wikked.views import add_auth_data, add_navigation_data
+from wikked.views import (
+        requires_reader_auth,
+        add_auth_data, add_navigation_data)
 from wikked.web import app, get_wiki
 from wikked.webimpl.special import (
         get_orphans, get_broken_redirects, get_double_redirects,
@@ -70,6 +72,7 @@ special_pages = {
 
 
 @app.route('/special')
+@requires_reader_auth
 def special_pages_dashboard():
     data = {
             'is_special_page': True,
@@ -106,24 +109,28 @@ def call_api(page_name, api_func, *args, **kwargs):
 
 
 @app.route('/special/list/orphans')
+@requires_reader_auth
 def special_list_orphans():
     return call_api('orphans', get_orphans,
                     raw_url='/api/orphans')
 
 
 @app.route('/special/list/broken-redirects')
+@requires_reader_auth
 def special_list_broken_redirects():
     return call_api('broken-redirects', get_broken_redirects,
                     raw_url='/api/broken-redirects')
 
 
 @app.route('/special/list/double-redirects')
+@requires_reader_auth
 def special_list_double_redirects():
     return call_api('double-redirects', get_double_redirects,
                     raw_url='/api/double-redirects')
 
 
 @app.route('/special/list/dead-ends')
+@requires_reader_auth
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')

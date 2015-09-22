@@ -1,7 +1,9 @@
 import urllib.parse
 from flask import request, abort, render_template
 from flask.ext.login import current_user
-from wikked.views import add_auth_data, add_navigation_data
+from wikked.views import (
+        errorhandling_ui, requires_reader_auth,
+        add_auth_data, add_navigation_data)
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
 from wikked.webimpl.history import (
@@ -10,6 +12,7 @@ from wikked.webimpl.history import (
 
 
 @app.route('/special/history')
+@requires_reader_auth
 def site_history():
     wiki = get_wiki()
     user = current_user.get_id()
@@ -26,6 +29,7 @@ def site_history():
 
 
 @app.route('/hist/<path:url>')
+@errorhandling_ui
 def page_history(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -40,6 +44,7 @@ def page_history(url):
 
 
 @app.route('/rev/<path:url>')
+@errorhandling_ui
 def page_rev(url):
     rev = request.args.get('rev')
     if rev is None:
@@ -62,6 +67,7 @@ def page_rev(url):
 
 
 @app.route('/diff/<path:url>')
+@errorhandling_ui
 def diff_page(url):
     rev1 = request.args.get('rev1')
     rev2 = request.args.get('rev2')
@@ -89,6 +95,7 @@ def diff_page(url):
 
 
 @app.route('/diff_rev/<rev>')
+@errorhandling_ui
 def diff_revision(rev):
     wiki = get_wiki()
     user = current_user.get_id()

@@ -61,6 +61,19 @@ class UserManager(object):
     def isPageWritable(self, page, username):
         return self._isAllowedForMeta(page, 'writers', username)
 
+    def hasPermission(self, meta_name, username):
+        perm = self._permissions.get(meta_name)
+        if perm is not None:
+            # Permissions are declared at the wiki level.
+            if username is None and 'anonymous' in perm:
+                return True
+            if username is not None and (
+                    '*' in perm or username in perm):
+                return True
+            return False
+
+        return True
+
     def _isAllowedForMeta(self, page, meta_name, username):
         perm = page.getMeta(meta_name)
         if perm is not None:
@@ -77,17 +90,7 @@ class UserManager(object):
 
             return False
 
-        perm = self._permissions.get(meta_name)
-        if perm is not None:
-            # Permissions are declared at the wiki level.
-            if username is None and 'anonymous' in perm:
-                return True
-            if username is not None and (
-                    '*' in perm or username in perm):
-                return True
-            return False
-
-        return True
+        return self.hasPermission(meta_name, username)
 
     def _updatePermissions(self, config):
         self._permissions = {

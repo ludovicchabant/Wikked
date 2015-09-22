@@ -23,7 +23,7 @@ def handle_permission_error(error):
     resp = {
             'error': {
                 'type': 'permission',
-                'message': error.message
+                'message': str(error)
                 }
             }
     return jsonify(resp), 403
