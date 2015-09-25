@@ -1,9 +1,16 @@
 import logging
-from celery import Celery
 from wikked.wiki import Wiki, WikiParameters, BACKGROUND_CONTEXT
 
 
 logger = logging.getLogger(__name__)
+
+
+try:
+    from celery import Celery
+except ImportError:
+    logger.error("Celery is needed to run background tasks.")
+    logger.error("Install it with: pip install celery")
+    raise
 
 
 logger.debug("Creating Celery application...")
