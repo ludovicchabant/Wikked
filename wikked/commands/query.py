@@ -34,24 +34,28 @@ class GetCommand(WikkedCommand):
         self.description = "Gets a page that matches the given URL."
 
     def setupParser(self, parser):
-        parser.add_argument('url',
+        parser.add_argument(
+                'url',
                 help="The URL of the page to get",
                 nargs=1)
-        parser.add_argument('--resolve',
-                help="Re-resolve the page's content",
+        parser.add_argument(
+                '--raw',
+                help="Get the raw text of the page.",
                 action='store_true')
-        parser.add_argument('--rev',
+        parser.add_argument(
+                '--rev',
                 help="The revision to get",
                 nargs=1)
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url)
-        if ctx.args.force_resolve:
-            page._force_resolve = True
+        page = ctx.wiki.getPage(ctx.args.url[0])
         if ctx.args.rev is not None:
             logger.info(page.getRevision(ctx.args.rev))
             return
-        logger.info(page.text)
+        if ctx.args.raw:
+            logger.info(page.raw_text)
+        else:
+            logger.info(page.text)
 
 
 @register_command
