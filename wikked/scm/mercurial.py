@@ -185,7 +185,8 @@ class MercurialSourceControl(MercurialBaseSourceControl):
         exe.append(cmd)
         exe += args
         logger.debug("Running Mercurial: " + str(exe))
-        return subprocess.check_output(exe)
+        out = subprocess.check_output(exe)
+        return _s(out)
 
 
 hg_client = None
