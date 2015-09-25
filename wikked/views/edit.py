@@ -51,7 +51,9 @@ def edit_page(url):
 
     if request.method == 'GET':
         author = user or request.remote_addr
-        custom_data = {'post_back': '/edit/' + url.lstrip('/')}
+        custom_data = {
+                'post_back': '/edit/' + url.lstrip('/'),
+                'preview_url': url}
         data = get_edit_page(wiki, user, url,
                              author=author, custom_data=custom_data)
         add_auth_data(data)
