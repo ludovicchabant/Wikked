@@ -5,7 +5,7 @@ from .base import WikiIndex, HitResult
 from whoosh.analysis import (StandardAnalyzer, StemmingAnalyzer,
         CharsetFilter, NgramFilter)
 from whoosh.fields import Schema, ID, TEXT, STORED
-from whoosh.highlight import WholeFragmenter
+from whoosh.highlight import WholeFragmenter, UppercaseFormatter
 from whoosh.index import create_in, open_dir
 from whoosh.qparser import QueryParser
 from whoosh.support.charset import accent_map
@@ -86,12 +86,14 @@ class WhooshWikiIndex(WikiIndex):
                 hits.append(hit)
             return hits
 
-    def search(self, query):
+    def search(self, query, highlight=True):
         with self.ix.searcher() as searcher:
             title_qp = QueryParser("title", self.ix.schema).parse(query)
             text_qp = QueryParser("text", self.ix.schema).parse(query)
             comp_query = title_qp | text_qp
             results = searcher.search(comp_query)
+            if not highlight:
+                results.formatter = UppercaseFormatter()
 
             hits = []
             for result in results:

@@ -66,14 +66,19 @@ class SearchCommand(WikkedCommand):
         self.description = "Searches the wiki."
 
     def setupParser(self, parser):
-        parser.add_argument('query',
+        parser.add_argument(
+                'query',
                 help="The search query",
                 nargs='+')
 
     def run(self, ctx):
         query = ' '.join(ctx.args.query)
-        hits = ctx.wiki.index.search(query)
-        logger.info(hits)
+        hits = ctx.wiki.index.search(query, highlight=False)
+        if not hits:
+            logger.info("No pages found.")
+        else:
+            for h in hits:
+                logger.info("[[%s]]: %s" % (h.url, h.hl_text))
 
 
 @register_command

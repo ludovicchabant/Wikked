@@ -189,7 +189,7 @@ class ElasticWikiIndex(WikiIndex):
         for h in res['hits']['hits']:
             yield HitResult(h['fields']['url'], h['highlight']['title_preview'])
 
-    def search(self, query):
+    def search(self, query, highlight=False):
         body = {
                 'fields': ['url', 'title', 'text'],
                 'query': {
@@ -214,8 +214,9 @@ class ElasticWikiIndex(WikiIndex):
                 doc_type='page',
                 body=body)
         for h in res['hits']['hits']:
-            yield HitResult(h['fields']['url'], h['fields']['title'],
-                    h['highlight']['text'])
+            yield HitResult(h['fields']['url'],
+                            h['fields']['title'],
+                            h['highlight']['text'])
 
     def _get_body(self, page):
         return {
