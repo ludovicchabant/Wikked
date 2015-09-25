@@ -41,4 +41,6 @@ class NewUserCommand(WikkedCommand):
         password = ctx.args.password or getpass.getpass('Password: ')
         password = generate_password_hash(password)
         logger.info("%s = %s" % (username[0], password))
+        logger.info("")
+        logger.info("(copy this into your .wikirc file)")
 
