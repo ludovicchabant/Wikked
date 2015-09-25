@@ -13,7 +13,8 @@ class ListCommand(WikkedCommand):
         self.description = "Lists page names in the wiki."
 
     def setupParser(self, parser):
-        parser.add_argument('--fs',
+        parser.add_argument(
+                '--fs',
                 help="Lists pages by scanning the file-system directly",
                 action='store_true')
 
@@ -89,12 +90,13 @@ class LinksFromCommand(WikkedCommand):
         self.description = "Gets the links going out from a given page."
 
     def setupParser(self, parser):
-        parser.add_argument('url',
+        parser.add_argument(
+                'url',
                 help="The page from which the links come from",
                 nargs=1)
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url)
+        page = ctx.wiki.getPage(ctx.args.url[0])
         for l in page.links:
             logger.info(l)
 
@@ -107,12 +109,13 @@ class LinksToCommand(WikkedCommand):
         self.description = "Gets the links going to a given page."
 
     def setupParser(self, parser):
-        parser.add_argument('url',
+        parser.add_argument(
+                'url',
                 help="The page to which the links go to",
                 nargs=1)
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url)
+        page = ctx.wiki.getPage(ctx.args.url[0])
         for l in page.getIncomingLinks():
             logger.info(l)
 
