@@ -3,7 +3,7 @@ import os.path
 import shutil
 import logging
 from wikked.commands.base import WikkedCommand, register_command
-from wikked.wiki import Wiki, WikiParameters, INIT_CONTEXT
+from wikked.wiki import INIT_CONTEXT
 
 
 logger = logging.getLogger(__name__)
@@ -18,15 +18,19 @@ class InitCommand(WikkedCommand):
         self.requires_wiki = False
 
     def setupParser(self, parser):
-        parser.add_argument('destination',
+        parser.add_argument(
+                'destination',
                 help="The destination directory to create the wiki")
-        parser.add_argument('--hg',
+        parser.add_argument(
+                '--hg',
                 help="Use Mercurial as a revision system (default)",
                 action='store_true')
-        parser.add_argument('--git',
+        parser.add_argument(
+                '--git',
                 help="Use Git as a revision system",
                 action='store_true')
-        parser.add_argument('--bare',
+        parser.add_argument(
+                '--bare',
                 help="Don't create the default pages",
                 action='store_true')
 
@@ -88,7 +92,8 @@ class UpdateCommand(WikkedCommand):
     def __init__(self):
         super(UpdateCommand, self).__init__()
         self.name = 'update'
-        self.description = ("Updates the database and the full-text-search "
+        self.description = (
+                "Updates the database and the full-text-search "
                 "index with any changed/new files.")
 
     def setupParser(self, parser):
@@ -131,14 +136,17 @@ class ResolveCommand(WikkedCommand):
     def __init__(self):
         super(ResolveCommand, self).__init__()
         self.name = 'resolve'
-        self.description = ("Makes sure that the final page text is resolved "
+        self.description = (
+                "Makes sure that the final page text is resolved "
                 "for all pages.")
 
     def setupParser(self, parser):
-        parser.add_argument('-f', '--force',
+        parser.add_argument(
+                '-f', '--force',
                 help="Force resolve all pages",
                 action='store_true')
-        parser.add_argument('--parallel',
+        parser.add_argument(
+                '--parallel',
                 help="Run the operation with multiple workers in parallel",
                 action='store_true')
 
