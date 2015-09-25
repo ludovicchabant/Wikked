@@ -173,9 +173,10 @@ class _SQLStateBase(object):
         running. This makes it possible to reuse the same engine and
         session factory.
     """
-    def __init__(self, engine_url, scopefunc=None):
+    def __init__(self, engine_url, scopefunc=None, connect_args=None):
         logger.debug("Creating SQL state.")
         self.engine_url = engine_url
+        self.connect_args = connect_args or {}
         self._engine = None
         self._engine_lock = threading.Lock()
         self.session = scoped_session(
@@ -191,8 +192,10 @@ class _SQLStateBase(object):
                 if self._engine is None:
                     logger.debug("Creating SQL engine with URL: %s" %
                                  self.engine_url)
-                    self._engine = create_engine(self.engine_url,
-                                                 convert_unicode=True)
+                    self._engine = create_engine(
+                            self.engine_url,
+                            connect_args=self.connect_args,
+                            convert_unicode=True)
         return self._engine
 
     def close(self, exception=None):
@@ -222,13 +225,14 @@ class _EmbeddedSQLState(_SQLStateBase):
     """ The embedded state, used by default in command line wikis.
     """
     def __init__(self, engine_url):
-        super(_EmbeddedSQLState, self).__init__(engine_url)
+        super(_EmbeddedSQLState, self).__init__(
+                engine_url, connect_args={'check_same_thread': False})
 
 
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 7
+    schema_version = 8
 
     def __init__(self, config):
         Database.__init__(self)
@@ -269,7 +273,8 @@ class SQLDatabase(Database):
     def _getState(self):
         """ If no state has been specified yet, use the default
             embedded one (which means no sharing of engines or session
-            factories with any other wikis. """
+            factories with any other wiki instances).
+        """
         if self._state is not None:
             return self._state
         with self._state_lock:

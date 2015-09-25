@@ -25,6 +25,7 @@ class ResolveScheduler(object):
         self._pages_meta = None
 
         self._queue = None
+        self._results = None
         self._pool = None
         self._done = False
 
@@ -45,15 +46,22 @@ class ResolveScheduler(object):
         return self._pages_meta
 
     def run(self, num_workers=1):
-        logger.info("Running resolve scheduler "
-                     "(%d workers)" % num_workers)
+        logger.info("Running resolve scheduler (%d workers)" % num_workers)
 
         if num_workers > 1:
             # Multi-threaded resolving.
+            logger.debug("Main thread is %d" % threading.get_ident())
+
             self._done = False
             self._queue = Queue()
+            self._results = Queue()
+
+            self.getPagesMeta()
+
+            job_count = 0
             for url in self.page_urls:
                 self._queue.put_nowait(JobDesc(url))
+                job_count += 1
 
             self._pool = []
             for i in range(num_workers):
@@ -62,7 +70,22 @@ class ResolveScheduler(object):
 
             for thread in self._pool:
                 thread.start()
-            self._queue.join()
+
+            while job_count > 0:
+                try:
+                    url, page, exc = self._results.get(True, 10)
+                except Empty:
+                    logger.error("Resolve workers timed out, still have %d "
+                                 "jobs to go." % job_count)
+                    return
+
+                job_count -= 1
+                if page:
+                    self.wiki.db.cachePage(page)
+                if exc:
+                    logger.error("Error resolving page: %s" % url)
+                    logger.exception(exc)
+
             logger.debug("Queue is empty... terminating workers.")
             self._done = True
 
@@ -73,8 +96,10 @@ class ResolveScheduler(object):
             # Single-threaded resolving.
             for url in self.page_urls:
                 page = self.getPage(url)
-                r = PageResolver(page, page_getter=self.getPage,
-                                 pages_meta_getter=self.getPagesMeta)
+                r = PageResolver(
+                        page,
+                        page_getter=self.getPage,
+                        pages_meta_getter=self.getPagesMeta)
                 runner = PageResolverRunner(page, r)
                 runner.run(raise_on_failure=True)
                 self.wiki.db.cachePage(page)
@@ -128,40 +153,28 @@ class JobContext(object):
     def isDone(self):
         return self.scheduler._done
 
-    def getPage(self, url):
-        return self.scheduler.getPage(url)
-
-    def getPagesMeta(self):
-        return self.scheduler.getPagesMeta()
-
     def getJob(self):
         return self.scheduler._queue.get(True, 0.5)
 
-    def cachePage(self, page):
-        self.scheduler.wiki.db.cachePage(page)
-
-    def finishJob(self, exception=None):
-        self.scheduler.wiki.db.close(commit=True, exception=exception)
+    def sendResult(self, url, page, exception):
+        res = (url, page, exception)
+        self.scheduler._results.put_nowait(res)
         self.scheduler._queue.task_done()
-
-    def finishWorker(self):
-        self.scheduler.wiki.db.close(commit=True, exception=None)
 
 
 class JobWorker(threading.Thread):
     def __init__(self, wid, ctx):
-        super(JobWorker, self).__init__()
+        super(JobWorker, self).__init__(daemon=True)
         self.wid = wid
         self.ctx = ctx
 
     def run(self):
+        logger.debug("Starting worker on thread %d" % threading.get_ident())
         try:
             self._unsafeRun()
         except Exception as ex:
             logger.exception(ex)
             logger.critical("Aborting resolver worker.")
-        finally:
-            self.ctx.finishWorker()
 
     def _unsafeRun(self):
         while True:
@@ -175,20 +188,22 @@ class JobWorker(threading.Thread):
             before = datetime.datetime.now()
 
             try:
-                page = self.ctx.getPage(job.url)
-                r = PageResolver(page, page_getter=self.ctx.getPage,
-                                 pages_meta_getter=self.ctx.getPagesMeta)
+                page = self.ctx.scheduler.getPage(job.url)
+                r = PageResolver(
+                        page,
+                        page_getter=self.ctx.scheduler.getPage,
+                        pages_meta_getter=self.ctx.scheduler.getPagesMeta)
                 runner = PageResolverRunner(page, r)
                 runner.run(raise_on_failure=self.ctx.abort_on_failure)
-                self.ctx.cachePage(page)
+                self.ctx.sendResult(job.url, page, None)
             except Exception as ex:
                 logger.exception(ex)
                 logger.error("Error resolving page: %s" % job.url)
-                self.ctx.finishJob(exception=ex)
+                self.ctx.sendResult(job.url, None, ex)
                 return
 
-            self.ctx.finishJob()
             after = datetime.datetime.now()
             delta = after - before
-            logger.debug("[%d] %s done in %fs" % (self.wid, job.url,
-                    delta.total_seconds()))
+            logger.debug("[%d] %s done in %fs" % (
+                    self.wid, job.url, delta.total_seconds()))
+

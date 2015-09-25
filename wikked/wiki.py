@@ -3,6 +3,7 @@ import os.path
 import time
 import logging
 import importlib
+import multiprocessing
 from configparser import SafeConfigParser, NoOptionError
 from wikked.page import FileSystemPage
 from wikked.fs import FileSystem
@@ -242,13 +243,13 @@ class Wiki(object):
         """
         self.db.close(exception)
 
-    def reset(self):
+    def reset(self, parallel=False):
         """ Clears all the cached data and rebuilds it from scratch.
         """
         logger.info("Resetting wiki data...")
         page_infos = self.fs.getPageInfos()
         self.db.reset(page_infos)
-        self.resolve(force=True)
+        self.resolve(force=True, parallel=parallel)
         self.index.reset(self.getPages())
 
     def resolve(self, only_urls=None, force=False, parallel=False):
@@ -261,7 +262,7 @@ class Wiki(object):
         else:
             page_urls = self.db.getPageUrls(uncached_only=(not force))
 
-        num_workers = 4 if parallel else 1
+        num_workers = multiprocessing.cpu_count() if parallel else 1
         s = ResolveScheduler(self, page_urls)
         s.run(num_workers)
 
@@ -282,7 +283,7 @@ class Wiki(object):
             page_info.url,
             fields=['url', 'path', 'title', 'text']))
 
-    def updateAll(self):
+    def updateAll(self, parallel=False):
         """ Completely updates all pages, i.e. read them from the file-system
             and have them fully resolved and cached in the DB.
             This function will check for timestamps to only update pages that
@@ -291,7 +292,7 @@ class Wiki(object):
         logger.info("Updating all pages...")
         page_infos = self.fs.getPageInfos()
         self.db.updateAll(page_infos)
-        self.resolve()
+        self.resolve(parallel=parallel)
         self.index.updateAll(self.db.getPages(
             fields=['url', 'path', 'title', 'text']))
 

@@ -63,18 +63,24 @@ class ResetCommand(WikkedCommand):
         super(ResetCommand, self).__init__()
         self.name = 'reset'
         self.description = ("Re-generates the database and the full-text "
-                "search index.")
+                            "search index.")
 
     def setupParser(self, parser):
-        parser.add_argument('--indexonly',
+        parser.add_argument(
+                '--single-threaded',
+                help="Run in single-threaded mode",
+                action='store_true')
+        parser.add_argument(
+                '--index-only',
                 help="Only reset the full-text search index",
                 action='store_true')
 
     def run(self, ctx):
-        if ctx.args.indexonly:
+        parallel = not ctx.args.single_threaded
+        if ctx.args.index_only:
             ctx.wiki.index.reset(ctx.wiki.getPages())
         else:
-            ctx.wiki.reset()
+            ctx.wiki.reset(parallel=parallel)
 
 
 @register_command
@@ -86,15 +92,21 @@ class UpdateCommand(WikkedCommand):
                 "index with any changed/new files.")
 
     def setupParser(self, parser):
-        parser.add_argument('path',
+        parser.add_argument(
+                'path',
                 help="The path to a page to update specifically",
                 nargs='?')
+        parser.add_argument(
+                '--single-threaded',
+                help="Run in single-threaded mode",
+                action='store_true')
 
     def run(self, ctx):
         if ctx.args.path:
             ctx.wiki.updatePage(path=ctx.args.path)
         else:
-            ctx.wiki.updateAll()
+            parallel = not ctx.args.single_threaded
+            ctx.wiki.updateAll(parallel=parallel)
 
         if ctx.args.debug and ctx.args.path:
             page_info = ctx.wiki.fs.getPageInfo(ctx.args.path)
