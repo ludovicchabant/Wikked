@@ -95,6 +95,9 @@ define([
 
             if (this.previewSection.is(':visible')) {
                 // Hide the preview, restore the textbox.
+                this.inputCtrl.height(Math.max(
+                            this.inputCtrl.height(),
+                            this.previewSection.height() - 12));
                 this.inputSection.show();
                 this.previewSection.hide();
                 this.previewButtonLabel.html("Preview");
@@ -109,10 +112,18 @@ define([
                 url: previewBtn.attr('data-wiki-url'),
                 text: this.inputCtrl.val()
             };
+            this.previewSection.html("<p>Loading...</p>");
+            this.previewSection.height(this.inputSection.height());
+            this.previewSection.show();
+            this.inputSection.hide();
             $.post('/api/preview', previewData)
                 .success(function(data) {
                     var el = $view.previewSection;
+                    el.height('auto');
                     el.html(data.text);
+                    el.height(Math.max(
+                            el.height(),
+                            $view.inputSection.height()));
                     el.show();
                     $view.inputSection.hide();
                     $view.previewButtonLabel.html("Edit");
