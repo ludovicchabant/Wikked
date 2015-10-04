@@ -43,6 +43,10 @@ supported options:
   displayed when people visit the root URL of your wiki. Page names are case
   sensitive so watch out for the capitalization. 
 
+* `default_extension` (defaults to `md`): the file extension (and therefore
+  formatting engine) to use by default when creating a new page. The default
+  values is `md` for [Markdown][].
+
 * `templates_dir` (defaults to `Templates`): by default, the `include` statement
   (see the [syntax page][2]) will first look into a templates directory for
   a template of the given name. This is the name of that folder.
@@ -66,6 +70,7 @@ supported options:
  [SQLAlchemy]: http://sqlalchemy.org
  [whoosh]: https://bitbucket.org/mchaput/whoosh/wiki/Home
  [elastic]: http://www.elasticsearch.org/
+ [markdown]: http://daringfireball.net/projects/markdown/
 
 
 ## Permissions
@@ -108,4 +113,22 @@ previously mentioned private wiki by adding this to `Main page.md`:
     {%raw%}
     {{readers: *,anonymous}}
     {%endraw%}
+
+
+## Ignored files
+
+The optional `ignore` section lets you define files or folders for Wikked to
+ignore (_i.e._ files that are not pages, or folder that don't contain pages).
+
+Each item in this section should be `name = pattern`, where `name` is irrelevant,
+and `pattern` is a glob-like pattern:
+
+    [ignore]
+    venv = venv
+    temp = *~
+    temp2 = *.swp
+
+This will ignore a `venv` folder or file at the root, or any file or folder
+anywhere that ends with `~` or `.swp`.
+
 
