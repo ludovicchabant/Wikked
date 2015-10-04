@@ -1,0 +1,5 @@
+path_mode: absolute
+files:
+  - bower_components/jquery/dist/jquery.js
+  - assets/js/wikked/app.js
+

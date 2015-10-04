@@ -9,9 +9,14 @@ build
 *.pyo
 *.sublime-*
 MANIFEST
+.eggs/
 Wikked.egg-info
 benchmarks/Benchmark.conf
 benchmarks/logs
 benchmarks/logs-distributed
 benchmarks/results
+docs/_cache
+docs/_counter
+docs/bower_components
+docs/node_modules
 

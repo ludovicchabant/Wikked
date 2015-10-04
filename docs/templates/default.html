@@ -1,0 +1,51 @@
+{% import "google.html" as google %}
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="author" content="Ludovic Chabant">
+    <meta name="generator" content="PieCrust {{ piecrust.version }}" />
+    <meta name="description" content="Wikked, a source-control-based wiki engine" />
+
+    <title>{% if page.title %}{{ page.title }} &mdash; {% endif %}Wikked</title>
+    <link rel="stylesheet" href="{{ site.root }}css/wikked.css" type="text/css" />
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div id="app">
+        <div class="nav-wrapper">
+            {% include 'inc/nav.html' %}
+        </div>
+        <div class="wrapper wiki-docs">
+            {% block header %}
+            {% if page.header_bg %}
+            <header class="header-bg" style="background-image: url('/img/{{page.header_bg}}');">
+                <h1>{{page.title}}</h1>
+            </header>
+            {% else %}
+            <header>
+                <h1>{{ page.title }}</h1>
+            </header>
+            {% endif %}
+            {% endblock %}
+            {% block content %}
+            <article>
+                {{content|safe}}
+            </article>
+            {% endblock %}
+        </div>
+        <div class="footer-wrapper">
+            {% include 'inc/footer.html' %}
+        </div>
+    </div>
+    <script src="{{ site.root }}js/wikked.js"></script>
+    {{ piecrust.debug_info|safe }}
+    {% if baker and baker.is_baking %}
+    {{ google.analytics("UA-3426592-10") }}
+    {% endif %}
+</body>
+</html>

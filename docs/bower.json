@@ -1,0 +1,9 @@
+{
+  "name": "Wikked",
+  "version": "0.0.1",
+  "private": "true",
+  "dependencies": {
+    "pure": "~0.6.0",
+    "font-awesome": "~4.4.0"
+  }
+}

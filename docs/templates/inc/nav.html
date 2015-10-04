@@ -1,0 +1,17 @@
+<a id="wiki-menu-shortcut" class="wiki-logo">
+    <span>W</span>
+</a>
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
+    <ul class="pure-menu-list">
+        {% for p in family.root %}
+        <li class="pure-menu-item">
+        <a class="pure-menu-link" href="{{p.url}}">
+        {%- if p.icon %}<i class="fa fa-{{p.icon}} fa-fw"></i>{% endif %}
+        {{p.title}}</a>
+        </li>
+        {% endfor %}
+    </ul>
+    <ul class="pure-menu-divider">
+    </ul>
+</nav>
+

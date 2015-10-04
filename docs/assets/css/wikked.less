@@ -1,0 +1,125 @@
+// Import Pure.
+@import (less) "../../bower_components/pure/pure.css";
+
+// Import Font-Awesome.
+@import "../../bower_components/font-awesome/less/font-awesome.less";
+
+// Import stuff from the wikked package.
+@wikked-path: "../../../wikked/assets/css";
+
+// Import basic variables and mixins.
+@import "@{wikked-path}/wikked/base.less";
+
+// Now import our styles.
+@import "@{wikked-path}/wikked/nav.less";
+@import "@{wikked-path}/wikked/main.less";
+@import "@{wikked-path}/wikked/page.less";
+
+// Code sections.
+.highlight pre {
+    color: @code-color;
+    background: @code-bg;
+    padding: 1em 0.5em;
+}
+
+// Quotes with a nice icon.
+blockquote {
+    padding: 1em;
+    margin: 1em 0;
+    min-height: 220px;
+    color: lighten(@color-gray-dark, 3%);
+    background: darken(@color-gray-light, 5%);
+
+    p {
+        margin-left: 170px; // width/height of the "toto" image: 145x200
+    }
+    p:first-child::before {
+        content: " ";
+        background-image: url('../img/toto.png');
+        background-repeat: no-repeat;
+        background-position: left center;
+        display: block;
+        float: left;
+        margin-left: -170px;
+        margin-top: -1em;
+        width: 150px;
+        height: 220px;
+    }
+}
+
+// Make room for the home shortcut.
+// (it's different from the wiki shortcut)
+.wrapper.wiki-docs {
+    padding-top: @wiki-shortcut-width !important;
+    padding-left: 0 !important;
+}
+#wiki-menu ul:first-child {
+    margin-top: 3.8em;
+}
+
+// Collapse by default
+#wiki-menu {
+    left: -@wiki-menu-width !important;
+}
+
+// TODO: remove this by using the same version of PureCSS.
+#wiki-menu li a {
+    .wiki-menu-a();
+    display: block;
+    line-height: 1.5em;
+
+    &:hover {
+        .wiki-menu-a-hover();
+    }
+}
+
+// Docs want wider articles.
+.wiki-docs article,
+.wiki-docs header {
+    max-width: 1024px;
+    margin: 0 auto;
+    padding: 0 1em;
+}
+
+// Big headers.
+.wiki-docs header h1 {
+    font-size: 3em;
+}
+.wiki-docs header.header-bg {
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    margin-top: -@wiki-shortcut-width;
+    margin-bottom: 2em;
+    padding: 8em 2em 1em 3.5em;
+    max-width: 100%;
+
+    h1 {
+        color: #fff;
+    }
+}
+
+@media screen and (min-width: 48em) {
+    // Visible menu by default on big screens.
+    .wrapper.wiki-docs {
+        padding-top: 0 !important;
+        padding-left: @wiki-menu-width !important;
+    }
+    #wiki-menu {
+        left: 0 !important;
+    }
+
+    .wiki-docs article,
+    .wiki-docs header {
+        padding: 0 2em;
+    }
+
+    .wiki-docs header h1 {
+        font-size: 4em;
+    }
+
+    .wiki-docs header.header-bg {
+        padding-top: 10em;
+        padding-left: 4.5em;
+    }
+}
