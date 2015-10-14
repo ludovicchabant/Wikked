@@ -103,7 +103,7 @@ def do_edit_page(wiki, user, url, text, author=None, message=None):
     message = message or 'Edited ' + url
     page_fields = {
             'text': text,
-            'author': user,
+            'author': author,
             'message': message
             }
     wiki.setPage(url, page_fields)
