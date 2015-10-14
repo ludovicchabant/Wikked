@@ -337,7 +337,7 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
                     **kwargs)
             self.client.rawcommand(args)
         except CommandError as e:
-            raise SourceControlError('commit', _s(e.out), _s(e.args),
+            raise SourceControlError('commit', str(e), _s(e.args),
                                      _s(e.out))
 
     def revert(self, paths=None):
