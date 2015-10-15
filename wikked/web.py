@@ -108,14 +108,17 @@ def get_wiki():
 
 
 # Set the default wiki parameters.
-app.wiki_params = WikiParameters(wiki_root)
+app.wiki_params = app.config.get('WIKI_FACTORY_PARAMETERS', None)
+if app.wiki_params is None:
+    app.wiki_params = WikiParameters(wiki_root)
 
 
 # Just uncache pages when the user has edited one.
-def autoreload_wiki_updater(wiki, url):
+def uncaching_wiki_updater(wiki, url):
+    app.logger.debug("Uncaching all pages because %s was edited." % url)
     wiki.db.uncachePages(except_url=url, only_required=True)
 
-app.wiki_params.wiki_updater = autoreload_wiki_updater
+app.wiki_params.wiki_updater = uncaching_wiki_updater
 
 
 # Login extension.

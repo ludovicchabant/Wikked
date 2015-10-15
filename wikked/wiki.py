@@ -31,6 +31,8 @@ BACKGROUND_CONTEXT = 2
 
 
 def synchronous_wiki_updater(wiki, url):
+    logger.debug("Synchronous wiki update: update all pages because %s was "
+                 "edited." % url)
     wiki.updateAll()
 
 

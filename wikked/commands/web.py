@@ -84,9 +84,11 @@ class RunServerCommand(WikkedCommand):
         if not ctx.args.no_update:
             wikked.settings.WIKI_AUTO_RELOAD = True
 
+        # Start with the Witch wiki parameters.
+        wikked.settings.WIKI_FACTORY_PARAMETERS = ctx.params
+
         # Create/import the app.
         from wikked.web import app
-        app.wiki_params = ctx.params
         ctx.wiki.db.hookupWebApp(app)
 
         # Update if needed.
