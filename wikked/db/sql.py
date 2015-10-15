@@ -418,7 +418,7 @@ class SQLDatabase(Database):
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
         if uncached_only:
-            q = q.filter(SQLPage.is_ready is False)
+            q = q.filter(SQLPage.is_ready == False)  # NOQA
         for p in q.all():
             yield p.url
 
@@ -435,11 +435,11 @@ class SQLDatabase(Database):
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
         if uncached_only:
-            q = q.filter(SQLPage.is_ready is False)
+            q = q.filter(SQLPage.is_ready == False)  # NOQA
         if endpoint_only:
             q = q.filter(SQLPage.endpoint == endpoint_only)
         elif no_endpoint_only:
-            q = q.filter(SQLPage.endpoint is None)
+            q = q.filter(SQLPage.endpoint == None)  # NOQA
         q = self._addFieldOptions(q, fields)
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
@@ -496,10 +496,13 @@ class SQLDatabase(Database):
         if except_url:
             q = q.filter(SQLPage.url != except_url)
         if only_required:
-            q = q.filter(SQLPage.needs_invalidate is True)
+            q = q.filter(SQLPage.needs_invalidate == True)
 
+        uncached_urls = []
         for p in q.all():
+            uncached_urls.append(p.url)
             p.is_ready = False
+        logger.debug("Uncaching: %s" % ', '.join(uncached_urls))
         self.session.commit()
 
     def pageExists(self, url=None, path=None):
