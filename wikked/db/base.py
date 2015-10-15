@@ -3,7 +3,8 @@ from wikked.utils import PageNotFoundError
 
 class PageListNotFound(Exception):
     def __init__(self, list_name):
-        super(PageListNotFound, self).__init__("No such page list: %s" % list_name)
+        super(PageListNotFound, self).__init__(
+                "No such page list: %s" % list_name)
 
 
 class Database(object):

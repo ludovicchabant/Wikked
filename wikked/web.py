@@ -164,19 +164,18 @@ app.bcrypt = Bcrypt(app)
 
 
 # Import the views.
-# (this creates a PyLint warning but it's OK)
-# pylint: disable=unused-import
-import wikked.api.admin
-import wikked.api.edit
-import wikked.api.history
-import wikked.api.read
-import wikked.api.special
-import wikked.views.admin
-import wikked.views.edit
-import wikked.views.error
-import wikked.views.history
-import wikked.views.read
-import wikked.views.special
+# (this creates a PyFlakes warning but it's OK)
+import wikked.api.admin       # NOQA
+import wikked.api.edit        # NOQA
+import wikked.api.history     # NOQA
+import wikked.api.read        # NOQA
+import wikked.api.special     # NOQA
+import wikked.views.admin     # NOQA
+import wikked.views.edit      # NOQA
+import wikked.views.error     # NOQA
+import wikked.views.history   # NOQA
+import wikked.views.read      # NOQA
+import wikked.views.special   # NOQA
 
 
 # Async wiki update.
@@ -209,14 +208,17 @@ if app.config['INFLUXDB_HOST']:
     username = app.config['INFLUXDB_USERNAME']
     password = app.config['INFLUXDB_PASSWORD']
     database = app.config['INFLUXDB_DATABASE']
-    metrics_db = influxdb.InfluxDBClient(host, port, username, password, database)
+    metrics_db = influxdb.InfluxDBClient(host, port, username, password,
+                                         database)
     app.logger.info("Opening InfluxDB %s on %s:%s as %s." % (
         database, host, port, username))
 
     import time
-    from flask import g, request, request_started, request_tearing_down
+    from flask import request, request_started, request_tearing_down
+
     def on_request_started(sender, **extra):
         g.metrics_start_time = time.clock()
+
     def on_request_tearing_down(sender, **extra):
         duration = time.clock() - g.metrics_start_time
         data = [

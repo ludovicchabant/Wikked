@@ -5,7 +5,6 @@ import logging
 import importlib
 import multiprocessing
 from configparser import SafeConfigParser, NoOptionError
-from wikked.page import FileSystemPage
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
 from wikked.scheduler import ResolveScheduler
@@ -155,7 +154,8 @@ class WikiParameters(object):
 
             if scm_type == 'hg':
                 def impl():
-                    from wikked.scm.mercurial import MercurialCommandServerSourceControl
+                    from wikked.scm.mercurial import \
+                            MercurialCommandServerSourceControl
                     return MercurialCommandServerSourceControl(self.root)
                 self._scm_factory = impl
 
@@ -307,8 +307,11 @@ class Wiki(object):
                  endpoint_only=None, no_endpoint_only=False, fields=None):
         """ Gets all the pages in the wiki, or in the given sub-directory.
         """
-        for page in self.db.getPages(subdir=subdir, meta_query=meta_query,
-                endpoint_only=endpoint_only, no_endpoint_only=no_endpoint_only,
+        for page in self.db.getPages(
+                subdir=subdir,
+                meta_query=meta_query,
+                endpoint_only=endpoint_only,
+                no_endpoint_only=no_endpoint_only,
                 fields=fields):
             yield page
 

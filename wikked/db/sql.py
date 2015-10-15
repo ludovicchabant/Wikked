@@ -1,6 +1,5 @@
 import os
 import os.path
-import types
 import string
 import logging
 import datetime
@@ -12,7 +11,7 @@ from sqlalchemy import (
     String, Text, UnicodeText)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
-    scoped_session, sessionmaker,
+    scoped_session,
     relationship, backref, load_only, subqueryload, joinedload,
     Load)
 from sqlalchemy.orm.exc import NoResultFound
@@ -353,11 +352,12 @@ class SQLDatabase(Database):
         logger.debug("Updating SQL database for page: %s" % page_info.url)
 
         db_page = self.session.query(SQLPage).\
-                options(load_only('id', 'url')).\
-                filter(SQLPage.url == page_info.url).\
-                first()
+            options(load_only('id', 'url')).\
+            filter(SQLPage.url == page_info.url).\
+            first()
         if db_page:
-            logger.debug("Removing page '%s' [%d] from SQL database." %
+            logger.debug(
+                    "Removing page '%s' [%d] from SQL database." %
                     (db_page.url, db_page.id))
             self.session.delete(db_page)
             self.session.commit()
@@ -395,7 +395,7 @@ class SQLDatabase(Database):
                     to_update.add(p.path)
         for p in to_remove:
             logger.debug("Removing page '%s' [%d] from SQL database." %
-                (p.url, p.id))
+                         (p.url, p.id))
             self.session.delete(p)
 
         self.session.commit()
@@ -418,7 +418,7 @@ class SQLDatabase(Database):
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
         if uncached_only:
-            q = q.filter(SQLPage.is_ready == False)
+            q = q.filter(SQLPage.is_ready is False)
         for p in q.all():
             yield p.url
 
@@ -430,7 +430,7 @@ class SQLDatabase(Database):
             for name, values in meta_query.items():
                 for v in values:
                     q = q.filter(and_(SQLReadyMeta.name == name,
-                        SQLReadyMeta.value == v))
+                                      SQLReadyMeta.value == v))
         if subdir:
             subdir = string.rstrip(subdir, '/') + '/%'
             q = q.filter(SQLPage.url.like(subdir))
@@ -439,16 +439,19 @@ class SQLDatabase(Database):
         if endpoint_only:
             q = q.filter(SQLPage.endpoint == endpoint_only)
         elif no_endpoint_only:
-            q = q.filter(SQLPage.endpoint == None)
+            q = q.filter(SQLPage.endpoint is None)
         q = self._addFieldOptions(q, fields)
         for p in q.all():
             yield SQLDatabasePage(self, p, fields)
 
     def cachePage(self, page):
         if not hasattr(page, '_id') or not page._id:
-            raise Exception("Given page '%s' has no `_id` attribute set." % page.url)
+            raise Exception("Given page '%s' has no `_id` attribute set." %
+                            page.url)
 
-        logger.debug("Caching extended data for page '%s' [%d]." % (page.url, page._id))
+        logger.debug(
+                "Caching extended data for page '%s' [%d]." %
+                (page.url, page._id))
 
         try:
             db_obj = self.session.query(SQLPage).\
@@ -488,11 +491,12 @@ class SQLDatabase(Database):
 
     def uncachePages(self, except_url=None, only_required=False):
         q = self.session.query(SQLPage)\
-                .options(load_only('id', 'url', 'needs_invalidate', 'is_ready'))
+                .options(load_only('id', 'url', 'needs_invalidate',
+                                   'is_ready'))
         if except_url:
             q = q.filter(SQLPage.url != except_url)
         if only_required:
-            q = q.filter(SQLPage.needs_invalidate == True)
+            q = q.filter(SQLPage.needs_invalidate is True)
 
         for p in q.all():
             p.is_ready = False
@@ -530,7 +534,7 @@ class SQLDatabase(Database):
         return SQLDatabasePage(self, page, fields)
 
     def _addFieldOptions(self, query, fields, use_joined=True,
-            use_load_obj=False):
+                         use_load_obj=False):
         if fields is None:
             return query
 
@@ -608,11 +612,12 @@ class SQLDatabase(Database):
             # We may have a previous list marked as non-valid. Let's
             # revive it.
             if page_list.is_valid:
-                raise Exception("Page list already exists and is valid: %s" % list_name)
+                raise Exception("Page list already exists and is valid: %s" %
+                                list_name)
             logger.debug("Reviving page list '%s'." % list_name)
             self.session.query(SQLPageListItem)\
-                    .filter(SQLPageListItem.list_id == page_list.id)\
-                    .delete()
+                .filter(SQLPageListItem.list_id == page_list.id)\
+                .delete()
             page_list.is_valid = True
         else:
             logger.debug("Creating page list '%s'." % list_name)
