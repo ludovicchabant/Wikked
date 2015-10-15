@@ -4,6 +4,7 @@ import datetime
 import urllib.parse
 from wikked.utils import (
         get_absolute_url, PageNotFoundError, split_page_url, is_endpoint_url)
+from wikked.web import app
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +47,9 @@ def split_url_from_viewarg(url):
 
 
 def get_page_or_raise(wiki, url, fields=None,
-                      check_perms=None, auto_reload=False):
-    if auto_reload and fields is not None:
+                      check_perms=None):
+    auto_reload = app.config.get('WIKI_AUTO_RELOAD', False)
+    if auto_reload is True and fields is not None:
         if 'path' not in fields:
             fields.append('path')
         if 'cache_time' not in fields:

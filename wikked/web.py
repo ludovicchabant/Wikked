@@ -111,6 +111,13 @@ def get_wiki():
 app.wiki_params = WikiParameters(wiki_root)
 
 
+# Just uncache pages when the user has edited one.
+def autoreload_wiki_updater(wiki, url):
+    wiki.db.uncachePages(except_url=url, only_required=True)
+
+app.wiki_params.wiki_updater = autoreload_wiki_updater
+
+
 # Login extension.
 def user_loader(username):
     wiki = get_wiki()

@@ -8,10 +8,6 @@ from wikked.commands.base import WikkedCommand, register_command
 logger = logging.getLogger(__name__)
 
 
-def autoreload_wiki_updater(wiki, url):
-    wiki.db.uncachePages(except_url=url, only_required=True)
-
-
 @register_command
 class RunServerCommand(WikkedCommand):
     def __init__(self):
@@ -87,7 +83,6 @@ class RunServerCommand(WikkedCommand):
             wikked.settings.WIKI_DEV_ASSETS = True
         if not ctx.args.no_update:
             wikked.settings.WIKI_AUTO_RELOAD = True
-            ctx.params.wiki_updater = autoreload_wiki_updater
 
         # Create/import the app.
         from wikked.web import app
