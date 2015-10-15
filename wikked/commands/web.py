@@ -20,32 +20,39 @@ class RunServerCommand(WikkedCommand):
         self.description = ("Runs the wiki in a local web server.")
 
     def setupParser(self, parser):
-        parser.add_argument('--host',
+        parser.add_argument(
+                '--host',
                 help="The host to use",
                 default='127.0.0.1')
-        parser.add_argument('--port',
+        parser.add_argument(
+                '--port',
                 help="The port to use",
                 default=5000)
-        parser.add_argument('--usetasks',
+        parser.add_argument(
+                '--usetasks',
                 help="Use background tasks for updating the wiki after a "
                      "page has been edited. You will have to run "
                      "`wk runtasks` at the same time as `wk runserver`.",
                 action='store_true')
-        parser.add_argument('-d', '--dev',
+        parser.add_argument(
+                '-d', '--dev',
                 help="Use development mode. "
                      "This makes Wikked use development assets (separate and "
                      "uncompressed scripts and stylesheets), along with using "
                      "code reloading and debugging.",
                 action='store_true')
-        parser.add_argument('--no-update',
+        parser.add_argument(
+                '--no-update',
                 help="Don't auto-update the wiki if a page file has been "
                      "touched (which means you can refresh a locally modified "
                      "page with F5)",
                 action='store_true')
-        parser.add_argument('--no-startup-update',
+        parser.add_argument(
+                '--no-startup-update',
                 help="Don't update the wiki before starting the server.",
                 action='store_true')
-        parser.add_argument('-c', '--config',
+        parser.add_argument(
+                '-c', '--config',
                 help="Pass some configuration value to the Flask application. "
                      "This must be of the form: name=value",
                 nargs="*")
@@ -107,7 +114,8 @@ class RunTasksCommand(WikkedCommand):
     def __init__(self):
         super(RunTasksCommand, self).__init__()
         self.name = 'runtasks'
-        self.description = "Runs the tasks to update the wiki in the background."
+        self.description = ("Runs the tasks to update the wiki in the "
+                            "background.")
 
     def setupParser(self, parser):
         pass
@@ -117,13 +125,14 @@ class RunTasksCommand(WikkedCommand):
         # stuff as what the Flask app got.
         from wikked.tasks import celery_app
 
-        celery_app.conf.update(BROKER_URL='sqla+sqlite:///%(root)s/.wiki/broker.db')
+        celery_app.conf.update(
+                BROKER_URL='sqla+sqlite:///%(root)s/.wiki/broker.db')
         config_path = os.path.join(ctx.params.root, '.wiki', 'app.cfg')
         if os.path.isfile(config_path):
             obj = self._loadConfig(config_path)
             celery_app.conf.update(obj.__dict__)
         celery_app.conf.BROKER_URL = celery_app.conf.BROKER_URL % (
-                { 'root': ctx.params.root })
+                {'root': ctx.params.root})
 
         os.chdir(os.path.join(os.path.dirname(__file__), '..', '..'))
         argv = ['celery', 'worker', '-A', 'wikked.tasks']
@@ -138,6 +147,8 @@ class RunTasksCommand(WikkedCommand):
             with open(path) as config_file:
                 exec(compile(config_file.read(), path, 'exec'), d.__dict__)
         except IOError as e:
-            e.strerror = 'Unable to load Flask/Celery configuration file (%s)' % e.strerror
+            e.strerror = (
+                    'Unable to load Flask/Celery configuration file (%s)' %
+                    e.strerror)
             raise
         return d

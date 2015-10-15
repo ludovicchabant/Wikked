@@ -56,7 +56,8 @@ class GitBaseSourceControl(SourceControl):
 class GitLibSourceControl(GitBaseSourceControl):
     def __init__(self, root):
         if not SUPPORTS_GIT:
-            raise Exception("Can't support Git because pygit2 is not available.")
+            raise Exception(
+                    "Can't support Git because pygit2 is not available.")
         GitBaseSourceControl.__init__(self, root)
 
     def initRepo(self, wiki):
