@@ -54,6 +54,9 @@ def get_page_or_raise(wiki, url, fields=None,
             fields.append('path')
         if 'cache_time' not in fields:
             fields.append('cache_time')
+
+    async_update = app.config.get('WIKI_ASYNC_UPDATE', False)
+    if not async_update and fields is not None:
         if 'is_resolved' not in fields:
             fields.append('is_resolved')
 
@@ -66,7 +69,9 @@ def get_page_or_raise(wiki, url, fields=None,
             logger.info("Page '%s' has changed, reloading." % url)
             wiki.updatePage(path=page.path)
             page = wiki.getPage(url, fields=fields)
-        elif not page.is_resolved:
+
+    if not async_update:
+        if not page.is_resolved:
             logger.info("Page '%s' was not resolved, resolving now." % url)
             wiki.resolve(only_urls=[url])
             wiki.index.updatePage(wiki.db.getPage(
