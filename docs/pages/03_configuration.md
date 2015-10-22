@@ -1,6 +1,7 @@
 ---
 title: Configuration
 icon: cog
+header_img: soldier_monkey.png
 ---
 
 Wikked can be configured with a few files:

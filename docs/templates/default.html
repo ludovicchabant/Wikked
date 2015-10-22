@@ -23,8 +23,13 @@
         <div class="wrapper wiki-docs">
             {% block header %}
             {% if page.header_bg %}
-            <header class="header-bg" style="background-image: url('/img/{{page.header_bg}}');">
+            <header class="header-bg" style="background-image: url('{{site.root}}img/{{page.header_bg}}');">
                 <h1>{{page.title}}</h1>
+            </header>
+            {% elif page.header_img %}
+            <header class="header-img">
+                <h1>{{ page.title }}</h1>
+                <img src="{{ site.root }}img/{{ page.header_img }}" alt="" />
             </header>
             {% else %}
             <header>

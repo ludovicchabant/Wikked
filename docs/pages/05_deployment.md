@@ -1,6 +1,7 @@
 ---
 title: Deployment
 icon: server
+header_img: wizard.png
 ---
 
 Wikked runs by default with an "easy" configuration, _i.e._ something that will
@@ -27,12 +28,12 @@ some more advanced configurations for those with special requirements.
  [flaskdeploy]: http://flask.pocoo.org/docs/deploying/
     
 
-## Apache and WSGI
+## Public facing wiki
 
-A simple way to run Wikked on a production server is to use [Apache][] with
-[`mod_wsgi`][wsgi]. For a proper introduction to the matter, you can see
-[Flask's documentation on the subject][flask_wsgi]. Otherwise, you can probably
-reuse the following examples.
+A simple way to run Wikked on a production server (_i.e._ a server accessible
+from the internet) is to use [Apache][] with [`mod_wsgi`][wsgi]. For a proper
+introduction to the matter, you can see [Flask's documentation on the
+subject][flask_wsgi]. Otherwise, you can probably reuse the following examples.
 
  [apache]: https://httpd.apache.org/
  [wsgi]: http://code.google.com/p/modwsgi/
@@ -83,18 +84,23 @@ means your Apache configuration will look like this in the end:
 > `/path/to/your/wiki/venv/lib/python/site-packages/wikked/static`.
 
 
-## Background updates
+## Advanced configurations
 
-The second thing to do is to enable background wiki updates. Good news: they're
-already enabled if you used the `get_wsgi_app` function from the previous
-section (you can disable it by passing `async_update=False` if you really need
-to).
+### Background updates
+
+By default, when you edit a page, Wikked will invalidate any page with a query
+in it. That page will be re-computed the next time you visit it. But this may
+not work very well if you have a lot of queries. As an alternative, Wikked can
+run background updates.
+
+First you enable background updates in the `get_wsgi_app` function from the previous
+section. You just need to pass `async_update=True`.
 
 > If you want to use background updates locally, you can do `wk runserver
 > --usetasks`.
 
-However, you'll still need to run a separate process that, well, runs those
-updates in the background. To do this:
+Now, you'll need to run a separate process that, well, runs those updates in the
+background. To do this:
 
     cd /path/to/my/wiki
     wk runtasks
@@ -106,9 +112,7 @@ updates in the background. To do this:
  [celerysqlite]: http://docs.celeryproject.org/en/latest/getting-started/brokers/sqlalchemy.html
 
 
-## Backend options
-
-**This is for advanced use only**
+### Backend options
 
 If you want to use a different storage than SQLite, set the `database_url`
 setting in your `wikirc` to an [SQLAlchemy-supported database URL][SQLAlchemy].

@@ -1,6 +1,7 @@
 ---
 title: Installation
 icon: cloud-download
+header_img: monkey.png
 ---
 
 ## From the package index

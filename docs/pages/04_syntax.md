@@ -1,6 +1,7 @@
 ---
 title: Syntax
 icon: pencil
+header_img: melting.png
 ---
 
 ## Formatting

@@ -1,6 +1,7 @@
 ---
 title: Wikked
 icon: home
+header_img: dead_witch.png
 ---
 
 **Wikked** is a [wiki][] engine that stores its data in plain text files using

@@ -1,6 +1,7 @@
 ---
 title: Overview
 icon: book
+header_img: witch.png
 ---
 
 Wikked's data is entirely stored in text files on disk. All you ever need, or

@@ -23,15 +23,18 @@
 }
 
 // Quotes with a nice icon.
+@blockquote-img-width: 72px + 20px;
+@blockquote-img-height: 100px + 20px;
+
 blockquote {
     padding: 1em;
     margin: 1em 0;
-    min-height: 220px;
+    min-height: @blockquote-img-height;
     color: lighten(@color-gray-dark, 3%);
     background: darken(@color-gray-light, 5%);
 
     p {
-        margin-left: 170px; // width/height of the "toto" image: 145x200
+        margin-left: @blockquote-img-width; // width/height of the "toto" image: 72x100
     }
     p:first-child::before {
         content: " ";
@@ -40,10 +43,10 @@ blockquote {
         background-position: left center;
         display: block;
         float: left;
-        margin-left: -170px;
+        margin-left: -@blockquote-img-width;
         margin-top: -1em;
-        width: 150px;
-        height: 220px;
+        width: @blockquote-img-width;
+        height: @blockquote-img-height;
     }
 }
 
@@ -96,6 +99,16 @@ blockquote {
 
     h1 {
         color: #fff;
+    }
+}
+
+.wiki-docs header.header-img {
+    img { margin: 1em; float: right; }
+    h1 { float: left; }
+    &::after {
+        content: " ";
+        display: block;
+        clear: both;
     }
 }
 
