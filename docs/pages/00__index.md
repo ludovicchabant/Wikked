@@ -14,7 +14,7 @@ The source code is available on [Github][] and [BitBucket][].
 
 Install **Wikked** using Python 3.4 or later and `pip`:
 
-    pip install wikked
+    pip install --pre wikked
 
 Let's create a new wiki:
 

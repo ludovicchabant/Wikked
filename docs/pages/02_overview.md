@@ -1,7 +1,7 @@
 ---
 title: Overview
 icon: book
-header_img: witch.png
+header_img: melting.png
 ---
 
 Wikked's data is entirely stored in text files on disk. All you ever need, or
@@ -9,6 +9,24 @@ should really care about, are those text files, and the source control
 repository which contains their history. Wikked may create some other files --
 cache files, indices, etc. -- but they can always be safely deleted and
 re-created.
+
+
+## General features
+
+Wikked implements the usual [wiki][] concepts of being able to edit pages, look
+at their history, revert to previous revisions, or easily link to other pages.
+
+Wikked also supports the ability to include a page into another page, to assign
+metadata (like categories) to pages, and to query pages based on that metadata.
+So for example you can display a list of all pages under the category "_Witches
+of Oz_".
+
+Finally, because the wiki sits on top of a standard source controlled
+repository with text files in it, you can edit, pull, push, merge, rebase, and
+more. This may not be shown correctly on the web history page, but you can still
+do that.
+
+[wiki]: https://en.wikipedia.org/wiki/Wiki
 
 
 ## The wiki folder
@@ -41,18 +59,6 @@ with a few hidden files and directories.
 > However, please note that most revision control systems are going to behave
 > badly if you'll be working with your repository on mixed systems (_i.e._
 > Windows, Mac, Linux).
-
-
-## General features
-
-Wikked implements the usual wiki concepts of being able to edit pages, look at
-their history and revert to previous revisions, and of course easily link to
-other pages.
-
-Wikked also supports the ability to include a page into another page, to assign
-metadata (like categories) to pages, and to query pages based on that metadata.
-So for example you can display a list of all pages under the category "_Witches
-of Oz_".
 
 
 ## Limitations

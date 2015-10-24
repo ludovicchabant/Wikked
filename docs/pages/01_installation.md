@@ -9,7 +9,7 @@ header_img: monkey.png
 You need [Python 3.4][py3] or later to use Wikked. Then, the easiest way to
 install it is to use `pip`:
 
-    pip install wikked
+    pip install --pre wikked
 
 If you want to use the very latest (and potentially broken) version:
 

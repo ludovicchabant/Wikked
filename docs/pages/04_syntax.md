@@ -1,7 +1,7 @@
 ---
 title: Syntax
 icon: pencil
-header_img: melting.png
+header_img: soldier_monkey.png
 ---
 
 ## Formatting
@@ -14,9 +14,9 @@ By default, Wikked will use [Markdown][] syntax, so that things like these:
 
 ...turn into this:
 
-> Ring around the rosie, a pocket full of *spears*! Thought you were pretty 
-> foxy, didn't you? **Well!** The last to go will see the first three go 
-> before her! _And your mangy little dog, too!_
+Ring around the rosie, a pocket full of *spears*! Thought you were pretty foxy,
+didn't you? **Well!** The last to go will see the first three go before her!
+_And your mangy little dog, too!_
 
 [markdown]: http://daringfireball.net/projects/markdown/
 
@@ -96,7 +96,8 @@ tell Wikked to do something special.
   lets you use a banner graphic or some other way to present the page to
   a visitor.
 
-* `redirect`: Redirects to another page.
+* `redirect`: Redirects to another page. The link resolution rules apply to the
+  redirect target.
 
 * `readers`: Specifies the users who can read this page. When not present, the
   default readers for the wiki will be able to read the page. See the
@@ -116,10 +117,10 @@ to include the `Warning` page in another page:
     {{include: Warning}}
     {%endraw%}
 
-You can supply a relative or absolute page name to the `include` meta. For
-convenience, however, Wikked will first look in the `/Templates` folder for a
-page of that name to include. If it doesn't find one, it will resolve the path
-as usual.
+You can supply a relative or absolute page name to the `include` meta -- link
+resolving rules apply. For convenience, however, if the path is not absolute,
+Wikked will first look in the `/Templates` folder for a page of that name to
+include. If it doesn't find one, it will resolve the path as usual.
 
 > You can make Wikked look into a different folder than `/Templates` by changing
 > the `templates_dir` option in the configuration file. See the [configuration

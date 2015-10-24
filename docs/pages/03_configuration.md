@@ -1,7 +1,7 @@
 ---
 title: Configuration
 icon: cog
-header_img: soldier_monkey.png
+header_img: witch.png
 ---
 
 Wikked can be configured with a few files:
@@ -10,10 +10,10 @@ Wikked can be configured with a few files:
   revision control, so that various clones of the wiki have the same options
   where it makes sense.
 
-* `.wiki/wikirc`: some options, however, don't have to be the same depending on
-  where you run the wiki. This file is contained in the ignored-by-default
-  `.wiki` folder, and as such is meant to store options valid only for a local
-  installation.
+* `.wiki/wikirc`: some options may have to be different depending on where you
+  run the wiki from. This file is a complementary variant of the `.wikirc` file,
+  but is contained in the ignored-by-default `.wiki` folder. As such it is meant
+  to store options valid only for a local installation.
 
 * `.wiki/app.cfg`: Wikked runs on top of [Flask][]. This file, if it exists,
   will be passed on to Flask for more advanced configuration scenarios. See the
