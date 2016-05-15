@@ -71,6 +71,12 @@ if app.config['WIKI_DEV_ASSETS']:
             cache=False)  # Etag/caching seems broken
 
 
+# Add a special route for the `.well-known` directory.
+app.wsgi_app = SharedDataMiddleware(
+        app.wsgi_app,
+        {'/.well-known': os.path.join(wiki_root, '.well-known')})
+
+
 # Profiling
 if app.config['PROFILE']:
     profile_dir = app.config['PROFILE_DIR']
