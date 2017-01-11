@@ -7,7 +7,24 @@ from io import StringIO
 from .utils import get_meta_name_and_modifiers, html_escape
 
 
-FILE_FORMAT_REGEX = re.compile(r'\r\n?', re.MULTILINE)
+RE_FILE_FORMAT = re.compile(r'\r\n?', re.MULTILINE)
+
+RE_META_SINGLE_LINE = re.compile(
+    r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)\}\}\s*$',
+    re.MULTILINE)
+RE_META_MULTI_LINE = re.compile(
+    r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*'
+    r'(?P<value>.*?)^[ \t]*\}\}\s*$',
+    re.MULTILINE | re.DOTALL)
+
+RE_LINK_ENDPOINT = re.compile(
+    r'\[\[(\w[\w\d]+)\:([^\]]+)\]\]')
+RE_LINK_ENDPOINT_DISPLAY = re.compile(
+    r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)\:([^\]]+)\]\]')
+RE_LINK_DISPLAY = re.compile(
+    r'\[\[([^\|\]]+)\|([^\]]+)\]\]')
+RE_LINK = re.compile(
+    r'\[\[([^\]]*/)?([^/\]]+)\]\]')
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +67,7 @@ class PageFormatter(object):
                 }
 
     def formatText(self, ctx, text):
-        text = FILE_FORMAT_REGEX.sub("\n", text)
+        text = RE_FILE_FORMAT.sub("\n", text)
         text = self._processWikiSyntax(ctx, text)
         return text
 
@@ -77,10 +94,12 @@ class PageFormatter(object):
 
             # If we actually have a value, coerce it, if applicable,
             # and get the name without the modifier prefix.
-            clean_meta_name, meta_modifier = get_meta_name_and_modifiers(meta_name)
+            clean_meta_name, meta_modifier = get_meta_name_and_modifiers(
+                meta_name)
             coerced_meta_value = meta_value
             if clean_meta_name in self.coercers:
-                coerced_meta_value = self.coercers[clean_meta_name](ctx, meta_value)
+                coerced_meta_value = self.coercers[clean_meta_name](
+                    ctx, meta_value)
 
             # Then, set the value on the meta dictionary, or add it to
             # other existing meta values with the same key.
@@ -91,21 +110,15 @@ class PageFormatter(object):
 
             # Process it, or remove it from the output text.
             if clean_meta_name in self.processors:
-                return self.processors[clean_meta_name](ctx, meta_modifier, coerced_meta_value)
+                return self.processors[clean_meta_name](ctx, meta_modifier,
+                                                        coerced_meta_value)
             return ''
 
         # Single line meta.
-        text = re.sub(
-                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*)\}\}\s*$',
-                repl,
-                text,
-                flags=re.MULTILINE)
+        text = RE_META_SINGLE_LINE.sub(repl, text)
         # Multi-line meta.
-        text = re.sub(
-                r'^\{\{(?P<name>(__|\+)?[a-zA-Z][a-zA-Z0-9_\-]+):\s*(?P<value>.*?)^[ \t]*\}\}\s*$',
-                repl,
-                text,
-                flags=re.MULTILINE | re.DOTALL)
+        text = RE_META_MULTI_LINE.sub(repl, text)
+
         return text
 
     def _processWikiLinks(self, ctx, text):
@@ -118,7 +131,7 @@ class PageFormatter(object):
             if endpoint in self.endpoints:
                 return self.endpoints[endpoint](ctx, endpoint, value, value)
             return self._formatEndpointLink(ctx, endpoint, value, value)
-        text = re.sub(r'\[\[(\w[\w\d]+)\:([^\]]+)\]\]', repl1, text)
+        text = RE_LINK_ENDPOINT.sub(repl1, text)
 
         # [[display name|endpoint:Something/Whatever]]
         def repl2(m):
@@ -128,19 +141,20 @@ class PageFormatter(object):
             if endpoint in self.endpoints:
                 return self.endpoints[endpoint](ctx, endpoint, value, display)
             return self._formatEndpointLink(ctx, endpoint, value, display)
-        text = re.sub(r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)\:([^\]]+)\]\]', repl2, text)
+        text = RE_LINK_ENDPOINT_DISPLAY.sub(repl2, text)
 
         # [[display name|Whatever/PageName]]
         def repl3(m):
-            return s._formatWikiLink(ctx, m.group(1).strip(), m.group(2).strip())
-        text = re.sub(r'\[\[([^\|\]]+)\|([^\]]+)\]\]', repl3, text)
+            return s._formatWikiLink(ctx, m.group(1).strip(),
+                                     m.group(2).strip())
+        text = RE_LINK_DISPLAY.sub(repl3, text)
 
         # [[Namespace/PageName]]
         def repl4(m):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
             return s._formatWikiLink(ctx, b, url)
-        text = re.sub(r'\[\[([^\]]*/)?([^/\]]+)\]\]', repl4, text)
+        text = RE_LINK.sub(repl4, text)
 
         return text
 
@@ -166,13 +180,15 @@ class PageFormatter(object):
                 name = str(m.group('name'))
                 value = str(m.group('value'))
             value = html_escape(value.strip())
-            parameters += '<div class="wiki-param" data-name="%s">%s</div>' % (name, value)
+            parameters += ('<div class="wiki-param" data-name="%s">%s</div>' %
+                           (name, value))
 
         url_attr = ' data-wiki-url="%s"' % included_url
         mod_attr = ''
         if modifier:
             mod_attr = ' data-wiki-mod="%s"' % modifier
-        return '<div class="wiki-include"%s%s>%s</div>\n' % (url_attr, mod_attr, parameters)
+        return ('<div class="wiki-include"%s%s>%s</div>\n' %
+                (url_attr, mod_attr, parameters))
 
     def _processQuery(self, ctx, modifier, query):
         # Queries are run on the fly.
@@ -218,8 +234,8 @@ class PageFormatter(object):
     def _formatEndpointLink(self, ctx, endpoint, value, display):
         url = '%s:%s' % (endpoint, value)
         ctx.out_links.append(url)
-        return ('<a class="wiki-link" data-wiki-endpoint="%s" '
-                'data-wiki-url="%s">%s</a>' % (endpoint, url, display))
+        return ('<a class="wiki-link" data-wiki-url="%s" '
+                'data-wiki-endpoint="%s">%s</a>' % (url, endpoint, display))
 
     def _formatWikiLink(self, ctx, display, url):
         ctx.out_links.append(url)
@@ -265,4 +281,3 @@ class PageFormatter(object):
         if last_value:
             res.append(last_value)
         return res
-
