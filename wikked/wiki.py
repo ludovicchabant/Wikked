@@ -85,6 +85,7 @@ class WikiParameters(object):
                              ['tl', 'text', 'textile'])
         self.tryAddFormatter('creole', 'creole2html',
                              ['cr', 'creole'])
+        self.tryAddFountainFormatter()
 
     def getSpecialFilenames(self):
         yield '.wikirc'
@@ -101,6 +102,37 @@ class WikiParameters(object):
             self.formatters[func] = extensions
         except ImportError:
             pass
+
+    def tryAddFountainFormatter(self):
+        try:
+            from jouvence.parser import JouvenceParser
+            from jouvence.html import HtmlDocumentRenderer, get_css
+        except ImportError:
+            return
+
+        import io
+
+        def _jouvence_to_html(text):
+            parser = JouvenceParser()
+            document = parser.parseString(text)
+            rdr = HtmlDocumentRenderer(standalone=False)
+            with io.StringIO() as fp:
+                rdr.render_doc(document, fp)
+                return fp.getvalue()
+
+        self.formatters[_jouvence_to_html] = ['fountain']
+
+        head_css = """<style>
+body {
+    background-color: #666;
+}
+.jouvence-doc {
+    box-shadow: #111 0px 0.5em 2em;
+}
+</style>
+"""
+        head_css += '<style>%s</style>' % get_css()
+        self.custom_heads = {'fountain': head_css}
 
     def _loadConfig(self):
         # Merge the default settings with any settings provided by
