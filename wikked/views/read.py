@@ -25,6 +25,11 @@ def read(url):
     user = current_user.get_id()
     no_redirect = 'no_redirect' in request.args
     data = read_page(wiki, user, url, no_redirect=no_redirect)
+
+    if data['format']:
+        custom_head = wiki.custom_heads.get(data['format'], '')
+        data['custom_head'] = custom_head
+
     add_auth_data(data)
     add_navigation_data(
             url, data,

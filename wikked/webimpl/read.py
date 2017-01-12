@@ -25,10 +25,9 @@ def read_page(wiki, user, url, *, no_redirect=False):
             additional_info['redirected_from'] = visited_paths[:-1]
 
         ext = os.path.splitext(page.path)[1].lstrip('.')
-        custom_head = wiki.custom_heads.get(ext)
 
         result = {'meta': get_page_meta(page), 'text': page.text,
-                  'page_title': page.title, 'custom_head': custom_head}
+                  'page_title': page.title, 'format': ext}
         result.update(additional_info)
         return result
 
@@ -54,10 +53,9 @@ def read_page(wiki, user, url, *, no_redirect=False):
                     fields=['url', 'path', 'title', 'text', 'meta'],
                     check_perms=(user, CHECK_FOR_READ))
 
-    custom_head = None
+    ext = None
     if info_page is not None:
         ext = os.path.splitext(info_page.path)[1].lstrip('.')
-        custom_head = wiki.custom_heads.get(ext)
 
     if (endpoint_info is not None and
             not endpoint_info.query
@@ -69,7 +67,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
                 'meta': get_page_meta(info_page),
                 'text': info_page.text,
                 'page_title': info_page.title,
-                'custom_head': custom_head}
+                'format': ext}
         result.update(additional_info)
         return result
 
@@ -105,7 +103,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
                     'title': value
                     },
             'page_title': page_title,
-            'custom_head': custom_head
+            'format': ext
             }
     if info_page:
         result['text'] = info_page.text
