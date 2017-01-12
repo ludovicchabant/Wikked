@@ -135,7 +135,7 @@ class PageResolver(object):
             return self._unsafeRun()
         except Exception as e:
             logger.error("Error resolving page '%s':" % self.page.url)
-            logger.exception(e.message)
+            logger.exception(str(e))
             self.output = ResolveOutput(self.page)
             self.output.text = '<div class="error">%s</div>' % e
             return self.output
