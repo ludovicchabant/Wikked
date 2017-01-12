@@ -44,11 +44,14 @@ class WikiParameters(object):
             root = os.getcwd()
         self.root = root
         self.context = ctx
-        self.formatters = self.getFormatters()
+        self.formatters = {}
+        self.custom_heads = {}
         self.wiki_updater = synchronous_wiki_updater
         self._config = None
         self._index_factory = None
         self._scm_factory = None
+
+        self._build()
 
     @property
     def config(self):
@@ -74,15 +77,14 @@ class WikiParameters(object):
     def auth_factory(self):
         return UserManager(self.config)
 
-    def getFormatters(self):
-        formatters = {passthrough_formatter: ['txt', 'html']}
-        self.tryAddFormatter(formatters, 'markdown', 'markdown',
+    def _build(self):
+        self.formatters[passthrough_formatter] = ['txt', 'html']
+        self.tryAddFormatter('markdown', 'markdown',
                              ['md', 'mdown', 'markdown'])
-        self.tryAddFormatter(formatters, 'textile', 'textile',
+        self.tryAddFormatter('textile', 'textile',
                              ['tl', 'text', 'textile'])
-        self.tryAddFormatter(formatters, 'creole', 'creole2html',
+        self.tryAddFormatter('creole', 'creole2html',
                              ['cr', 'creole'])
-        return formatters
 
     def getSpecialFilenames(self):
         yield '.wikirc'
@@ -92,12 +94,11 @@ class WikiParameters(object):
             for name, val in self.config.items('ignore'):
                 yield val
 
-    def tryAddFormatter(self, formatters, module_name, module_func,
-                        extensions):
+    def tryAddFormatter(self, module_name, module_func, extensions):
         try:
             module = importlib.import_module(module_name)
             func = getattr(module, module_func)
-            formatters[func] = extensions
+            self.formatters[func] = extensions
         except ImportError:
             pass
 
@@ -197,6 +198,7 @@ class Wiki(object):
             raise ValueError("No parameters were given to the wiki.")
 
         self.formatters = parameters.formatters
+        self.custom_heads = parameters.custom_heads
         self.special_filenames = parameters.getSpecialFilenames()
 
         self.main_page_url = (

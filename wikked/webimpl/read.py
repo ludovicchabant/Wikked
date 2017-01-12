@@ -1,3 +1,4 @@
+import os.path
 import urllib.parse
 from wikked.webimpl import (
         CHECK_FOR_READ,
@@ -12,7 +13,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
         # Normal page.
         page, visited_paths = get_redirect_target(
                 wiki, path,
-                fields=['url', 'title', 'text', 'meta'],
+                fields=['url', 'path', 'title', 'text', 'meta'],
                 check_perms=(user, CHECK_FOR_READ),
                 first_only=no_redirect)
         if page is None:
@@ -23,8 +24,11 @@ def read_page(wiki, user, url, *, no_redirect=False):
         elif len(visited_paths) > 1:
             additional_info['redirected_from'] = visited_paths[:-1]
 
+        ext = os.path.splitext(page.path)[1].lstrip('.')
+        custom_head = wiki.custom_heads.get(ext)
+
         result = {'meta': get_page_meta(page), 'text': page.text,
-                  'page_title': page.title}
+                  'page_title': page.title, 'custom_head': custom_head}
         result.update(additional_info)
         return result
 
@@ -33,7 +37,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
     try:
         info_page = get_page_or_raise(
                 wiki, meta_page_url,
-                fields=['url', 'title', 'text', 'meta'],
+                fields=['url', 'path', 'title', 'text', 'meta'],
                 check_perms=(user, CHECK_FOR_READ))
     except PageNotFoundError:
         # Let permissions errors go through, but if the info page is not
@@ -47,19 +51,27 @@ def read_page(wiki, user, url, *, no_redirect=False):
             # Default page text.
             info_page = get_page_or_raise(
                     wiki, endpoint_info.default,
-                    fields=['url', 'title', 'text', 'meta'],
+                    fields=['url', 'path', 'title', 'text', 'meta'],
                     check_perms=(user, CHECK_FOR_READ))
 
-        if not endpoint_info.query:
-            # Not a query-based endpoint (like categories). Let's just
-            # return the text.
-            result = {
-                    'endpoint': endpoint,
-                    'meta': get_page_meta(info_page),
-                    'text': info_page.text,
-                    'page_title': info_page.title}
-            result.update(additional_info)
-            return result
+    custom_head = None
+    if info_page is not None:
+        ext = os.path.splitext(info_page.path)[1].lstrip('.')
+        custom_head = wiki.custom_heads.get(ext)
+
+    if (endpoint_info is not None and
+            not endpoint_info.query
+            and info_page is not None):
+        # Not a query-based endpoint (like categories). Let's just
+        # return the text.
+        result = {
+                'endpoint': endpoint,
+                'meta': get_page_meta(info_page),
+                'text': info_page.text,
+                'page_title': info_page.title,
+                'custom_head': custom_head}
+        result.update(additional_info)
+        return result
 
     # Get the list of pages to show here.
     value = path.lstrip('/')
@@ -92,7 +104,8 @@ def read_page(wiki, user, url, *, no_redirect=False):
                     'url': urllib.parse.quote(meta_page_url.encode('utf-8')),
                     'title': value
                     },
-            'page_title': page_title
+            'page_title': page_title,
+            'custom_head': custom_head
             }
     if info_page:
         result['text'] = info_page.text
