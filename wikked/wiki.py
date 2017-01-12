@@ -122,15 +122,8 @@ class WikiParameters(object):
 
         self.formatters[_jouvence_to_html] = ['fountain']
 
-        head_css = """<style>
-body {
-    background-color: #666;
-}
-.jouvence-doc {
-    box-shadow: #111 0px 0.5em 2em;
-}
-</style>
-"""
+        head_css = ('<link rel="stylesheet" type="text/css" '
+                    'href="/static/css/jouvence.min.css" />\n')
         head_css += '<style>%s</style>' % get_css()
         self.custom_heads = {'fountain': head_css}
 

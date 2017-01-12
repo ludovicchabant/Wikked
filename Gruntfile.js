@@ -10,7 +10,8 @@ module.exports = function(grunt) {
           paths: ["wikked/assets"]
         },
         files: {
-          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less"
+          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less",
+          "wikked/static/css/jouvence.min.css": "wikked/assets/css/jouvence.less"
         }
       },
       production: {
@@ -19,7 +20,8 @@ module.exports = function(grunt) {
           compress: true
         },
         files: {
-          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less"
+          "wikked/static/css/wikked.min.css": "wikked/assets/css/wikked.less",
+          "wikked/static/css/jouvence.min.css": "wikked/assets/css/jouvence.less"
         }
       }
     },
