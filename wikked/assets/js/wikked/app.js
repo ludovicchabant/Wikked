@@ -49,12 +49,15 @@ define([
                 _t[callback](e);
             });
         },
+        _setNavHiddenCookie: function(val) {
+            document.cookie = (
+                    "wiki-hide-nav=" + val + "; " +
+                    "path=/; expires=31 Dec 2100 UTC");
+        },
         _onMenuShortcutClick: function(e) {
             this.isMenuActive = !this.isMenuActive;
-            var val = this.isMenuActive ? "1" : "0";
-            document.cookie = (
-                    "wiki-menu-active=" + val + "; " +
-                    "path=/; expires=31 Dec 2100 UTC");
+            var val = this.isMenuActive ? "0" : "1";
+            this._setNavHiddenCookie(val);
             this._toggleWikiMenuPin(this.isMenuActive);
         },
         _onMenuShortcutHover: function(e) {
