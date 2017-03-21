@@ -1,13 +1,13 @@
 <a id="wiki-menu-shortcut" class="wiki-logo">
     <span>W</span>
 </a>
-<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if nav.is_menu_active%} wiki-menu-active{%endif%}">
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if not nav.hide_menu %} wiki-menu-active{%endif%}">
     <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
         <span class="fa fa-lock"></span>
     </div>
     <ul class="">
-        <li><a href="/"><span class="fa fa-home"></span> Home</a></li>
-        <li><a href="/create/"><span class="fa fa-file"></span> New Page</a></li>
+        {%if nav.url_home%}<li><a href="{{nav.url_home}}"><span class="fa fa-home"></span> Home</a></li>{%endif%}
+        {%if nav.url_new%}<li><a href="{{nav.url_new}}"><span class="fa fa-file"></span> New Page</a></li>{%endif%}
         {%if nav.url_read%}<li><a href="{{nav.url_read}}"><span class="fa fa-book"></span> Read</a></li>{%endif%}
         {%if nav.url_edit%}<li><a href="{{nav.url_edit}}"><span class="fa fa-edit"></span> Edit</a></li>{%endif%}
         {%if nav.url_hist%}<li><a href="{{nav.url_hist}}"><span class="fa fa-road"></span> History</a></li>{%endif%}

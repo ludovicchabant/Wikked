@@ -1,0 +1,18 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{meta.title}}</h1>
+        <div class="decorator">Previewing</div>
+    </header>
+    <section class="content">
+        {{text|safe}}
+    </section>
+    <form class="pure-form" action="{{post_back}}" method="POST">
+        <input type="hidden" name="previewed_text" value="{{raw_text}}"></input>
+        <div class="pure-control-group">
+            <button name="do-back-to-edit" type="submit" class="pure-button">Back to Editing</button>
+        </div>
+    </form>
+</article>
+{% endblock %}

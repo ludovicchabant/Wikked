@@ -1,5 +1,5 @@
 import functools
-from flask import request, render_template
+from flask import request, render_template, url_for
 from flask.ext.login import current_user
 from wikked.web import app, get_wiki
 from wikked.webimpl import PermissionError
@@ -72,7 +72,8 @@ def add_auth_data(data):
 
 
 def add_navigation_data(
-        url, data,
+        url, data, *,
+        home=True, new_page=True,
         read=False, edit=False, history=False, inlinks=False,
         raw_url=None, extras=None, footers=None):
     if url is not None:
@@ -80,22 +81,26 @@ def add_navigation_data(
     elif read or edit or history or inlinks:
         raise Exception("Default navigation entries require a valid URL.")
 
-    nav = {'home': '/', 'extras': [], 'footers': []}
+    nav = {'extras': [], 'footers': []}
 
-    nav['is_menu_active'] = (
-            request.cookies.get('wiki-menu-active') == '1')
+    nav['hide_menu'] = (
+            request.cookies.get('wiki-hide-nav') == '1')
 
+    if home:
+        nav['url_home'] = '/'
+    if new_page:
+        nav['url_new'] = url_for('edit_new_page')
     if read:
-        nav['url_read'] = '/read/%s' % url
+        nav['url_read'] = url_for('read', url=url)
     if edit:
-        nav['url_edit'] = '/edit/%s' % url
+        nav['url_edit'] = url_for('edit_page', url=url)
     if history:
-        nav['url_hist'] = '/hist/%s' % url
+        nav['url_hist'] = url_for('page_history', url=url)
 
     if inlinks:
         nav['extras'].append({
             'title': "Pages Linking Here",
-            'url': '/inlinks/' + url,
+            'url': url_for('incoming_links', url=url),
             'icon': 'link'
             })
 
@@ -108,7 +113,7 @@ def add_navigation_data(
 
     nav['extras'].append({
             'title': "Special Pages",
-            'url': '/special',
+            'url': url_for('special_pages_dashboard'),
             'icon': 'dashboard'})
 
     if extras:
@@ -122,4 +127,5 @@ def add_navigation_data(
 
     if app.config['WIKI_DEV_ASSETS']:
         data['is_dev'] = True
-
+    if app.config['WIKI_DEV_NO_JS']:
+        data['no_js'] = True

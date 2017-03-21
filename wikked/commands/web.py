@@ -38,6 +38,10 @@ class RunServerCommand(WikkedCommand):
                      "code reloading and debugging.",
                 action='store_true')
         parser.add_argument(
+                '--no-js',
+                help="Disable Javascript.",
+                action='store_true')
+        parser.add_argument(
                 '--no-update',
                 help="Don't auto-update the wiki if a page file has been "
                      "touched (which means you can refresh a locally modified "
@@ -81,6 +85,8 @@ class RunServerCommand(WikkedCommand):
         wikked.settings.WIKI_SERVE_FILES = True
         if ctx.args.dev:
             wikked.settings.WIKI_DEV_ASSETS = True
+        if ctx.args.no_js:
+            wikked.settings.WIKI_DEV_NO_JS = True
         if not ctx.args.no_update:
             wikked.settings.WIKI_AUTO_RELOAD = True
 
