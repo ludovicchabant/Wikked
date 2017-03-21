@@ -93,9 +93,10 @@ define([
             this.wikiMenu.toggleClass('wiki-menu-ext', true);
         },
         _searchQueryBlurred: function(e) {
-            $(e.currentTarget).val('').trigger('input');
             this.wikiMenu.toggleClass('wiki-menu-ext', false);
             this.isMenuActiveLocked = false;
+            if (this.searchPreviewList.is(':visible'))
+                this.searchPreviewList.slideUp(200);
             if ($(document.activeElement).parents('#wiki-menu').length === 0)
                 this._onMenuLeave(e);
         },
