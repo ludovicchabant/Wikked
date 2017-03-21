@@ -22,9 +22,9 @@
         {% block scripts %}
         {% if is_dev %}
         {% if not no_js %}
-        <script data-main="/dev-assets/js/wikked.js" src="/dev-assets/js/require.js"></script>
+        <script data-main="/dev-assets/js/wikked-dev.js" src="/dev-assets/js/require.js"></script>
         <script>
-        require(['wikked.app'], function(edit) {});
+        require(['wikked.app'], function(app) {});
         </script>
         {% endif %}
         {% else %}

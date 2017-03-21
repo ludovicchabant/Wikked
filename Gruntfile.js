@@ -30,7 +30,7 @@ module.exports = function(grunt) {
         options: {
           optimize: "none",
           baseUrl: "wikked/assets/js",
-          mainConfigFile: "wikked/assets/js/wikked.js",
+          mainConfigFile: "wikked/assets/js/wikked-dev.js",
           dir: "wikked/static/js",
           modules: [
           {
