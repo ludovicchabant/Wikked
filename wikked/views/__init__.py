@@ -1,3 +1,4 @@
+import urllib.parse
 import functools
 from flask import request, render_template, url_for
 from flask.ext.login import current_user
@@ -56,7 +57,7 @@ def requires_reader_auth(f):
 def add_auth_data(data):
     username = current_user.get_id()
     if current_user.is_authenticated():
-        user_page_url = 'user:/%s' % username.title()
+        user_page_url = 'user:/%s' % urllib.parse.quote(username.title())
         data['auth'] = {
                 'is_logged_in': True,
                 'username': username,
