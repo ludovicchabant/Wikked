@@ -1,0 +1,23 @@
+{% extends 'index.html' %}
+{% block nav %}{% include 'special-nav.html' %}{% endblock %}
+{% block content %}
+<article>
+    <header>
+        <h1>{{title}}</h1>
+    </header>
+    <section>
+        <p>Here are the users on this wiki:</p>
+        {%if users%}
+        <ul>
+        {%for u in users%}
+            <li><a href="{{u.url}}">{{u.username}}</a></li>
+        {%endfor%}
+        </ul>
+        {%else%}
+        <p>This wiki has no users! You can edit its configuration file
+           to add some.</p>
+        {%endif%}
+    </section>
+</article>
+{% endblock %}
+

@@ -1,4 +1,4 @@
-from flask import render_template
+from flask import url_for, render_template
 from flask.ext.login import current_user
 from wikked.views import (
         requires_reader_auth,
@@ -27,13 +27,13 @@ special_sections = [
 special_pages = {
         'changes': {
             "title": "Recent Changes",
-            "url": "/special/history",
+            "view": 'site_history',
             "description": "See all changes in the wiki.",
             "section": "wiki",
             },
         'orphans': {
             "title": "Orphaned Pages",
-            "url": "/special/list/orphans",
+            "view": 'special_list_orphans',
             "description": ("Lists pages in the wiki that have no "
                             "links to them."),
             "section": "lists",
@@ -41,7 +41,7 @@ special_pages = {
             },
         'broken-redirects': {
             "title": "Broken Redirects",
-            "url": "/special/list/broken-redirects",
+            "view": 'special_list_broken_redirects',
             "description": ("Lists pages that redirect to a missing "
                             "page."),
             "section": "lists",
@@ -49,14 +49,14 @@ special_pages = {
             },
         'double-redirects': {
             "title": "Double Redirects",
-            "url": "/special/list/double-redirects",
+            "view": 'special_list_broken_redirects',
             "description": "Lists pages that redirect twice or more.",
             "section": "lists",
             "template": "special-double-redirects.html"
             },
         'dead-ends': {
             "title": "Dead-End Pages",
-            "url": "/special/list/dead-ends",
+            "view": 'special_list_dead_ends',
             "description": ("Lists pages that don't have any "
                             "outgoing links."),
             "section": "lists",
@@ -64,7 +64,7 @@ special_pages = {
             },
         'users': {
             "title": "All Users",
-            "url": "/special/users",
+            "view": 'special_users',
             "description": "A list of all registered users.",
             "section": "users",
             }
@@ -81,7 +81,9 @@ def special_pages_dashboard():
         sec = {'title': info['title'], 'pages': []}
         for k, p in special_pages.items():
             if p['section'] == info['name']:
-                sec['pages'].append(p)
+                pdata = p.copy()
+                pdata['url'] = url_for(pdata['view'])
+                sec['pages'].append(pdata)
         sec['pages'] = sorted(sec['pages'], key=lambda i: i['title'])
         data['sections'].append(sec)
 
@@ -134,4 +136,3 @@ def special_list_double_redirects():
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')
-

@@ -1,6 +1,8 @@
-from flask import request, redirect, render_template
+import urllib.parse
+from flask import url_for, request, redirect, render_template
 from flask.ext.login import login_user, logout_user, current_user
-from wikked.views import add_auth_data, add_navigation_data
+from wikked.views import (
+    add_auth_data, add_navigation_data, requires_reader_auth)
 from wikked.web import app, get_wiki
 
 
@@ -51,3 +53,25 @@ def logout():
         logout_user()
         return redirect('/')
 
+
+@app.route('/special/users')
+@requires_reader_auth
+def special_users():
+    wiki = get_wiki()
+
+    users = []
+    for user in wiki.auth.getUsers():
+        user_url = 'user:/%s' % urllib.parse.quote(user.username.title())
+        users.append({
+            'username': user.username,
+            'url': url_for('read', url=user_url),
+            'groups': list(user.groups)
+        })
+
+    data = {
+        'title': "Users",
+        'users': users}
+    add_auth_data(data)
+    add_navigation_data(None, data)
+
+    return render_template('special-users.html', **data)

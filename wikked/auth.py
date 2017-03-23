@@ -98,9 +98,15 @@ class UserManager(object):
                 'writers': None
                 }
         if config.has_option('permissions', 'readers'):
-            self._permissions['readers'] = [p.strip() for p in re.split(r'[ ,;]', config.get('permissions', 'readers'))]
+            self._permissions['readers'] = [
+                p.strip()
+                for p in re.split(r'[ ,;]',
+                                  config.get('permissions', 'readers'))]
         if config.has_option('permissions', 'writers'):
-            self._permissions['writers'] = [p.strip() for p in re.split(r'[ ,;]', config.get('permissions', 'writers'))]
+            self._permissions['writers'] = [
+                p.strip()
+                for p in re.split(
+                        r'[ ,;]', config.get('permissions', 'writers'))]
 
     def _updateUserInfos(self, config):
         self._users = []
@@ -110,9 +116,14 @@ class UserManager(object):
                 groups = config.items('groups')
 
             for user in config.items('users'):
-                user_info = {'username': user[0], 'password': user[1], 'groups': []}
+                user_info = {
+                    'username': user[0],
+                    'password': user[1],
+                    'groups': []}
                 for group in groups:
-                    users_in_group = [u.strip() for u in re.split(r'[ ,;]', group[1])]
+                    users_in_group = [
+                        u.strip()
+                        for u in re.split(r'[ ,;]', group[1])]
                     if user[0] in users_in_group:
                         user_info['groups'].append(group[0])
                 self._users.append(user_info)
