@@ -2,8 +2,8 @@ import os
 import os.path
 import logging
 from .base import WikiIndex, HitResult
-from whoosh.analysis import (StandardAnalyzer, StemmingAnalyzer,
-        CharsetFilter, NgramFilter)
+from whoosh.analysis import (
+    StemmingAnalyzer, CharsetFilter, NgramWordAnalyzer)
 from whoosh.fields import Schema, ID, TEXT, STORED
 from whoosh.highlight import WholeFragmenter, UppercaseFormatter
 from whoosh.index import create_in, open_dir
@@ -74,15 +74,16 @@ class WhooshWikiIndex(WikiIndex):
 
     def previewSearch(self, query):
         with self.ix.searcher() as searcher:
-            title_qp = QueryParser("title_preview", self.ix.schema).parse(query)
+            title_qp = QueryParser(
+                "title_preview", self.ix.schema).parse(query)
             results = searcher.search(title_qp)
             results.fragmenter = WholeFragmenter()
 
             hits = []
             for result in results:
                 hit = HitResult(
-                        result['url'],
-                        result.highlights('title_preview', text=result['title']))
+                    result['url'],
+                    result.highlights('title_preview', text=result['title']))
                 hits.append(hit)
             return hits
 
@@ -105,12 +106,12 @@ class WhooshWikiIndex(WikiIndex):
             return hits
 
     def _getSchema(self):
-        preview_analyzer = (StandardAnalyzer() | CharsetFilter(accent_map) |
-                NgramFilter(minsize=1))
+        preview_analyzer = NgramWordAnalyzer(minsize=2)
         text_analyzer = StemmingAnalyzer() | CharsetFilter(accent_map)
         schema = Schema(
                 url=ID(stored=True),
-                title_preview=TEXT(analyzer=preview_analyzer, stored=False),
+                title_preview=TEXT(analyzer=preview_analyzer,
+                                   stored=False, phrase=False),
                 title=TEXT(analyzer=text_analyzer, stored=True),
                 text=TEXT(analyzer=text_analyzer, stored=True),
                 path=STORED,
@@ -124,7 +125,7 @@ class WhooshWikiIndex(WikiIndex):
             url=page.url,
             title_preview=page.title,
             title=page.title,
-            text=page.text,
+            text=page.raw_text,
             path=page.path,
             time=os.path.getmtime(page.path)
             )
