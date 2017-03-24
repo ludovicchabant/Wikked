@@ -1,7 +1,7 @@
 {% extends 'index.html' %}
 {% block head %}{{custom_head|safe}}{% endblock %}
 {% block content %}
-<article>
+<article class="wiki-page">
     {% if not meta.notitle %}
     <header>
         <h1>{{meta.title}}</h1>
@@ -12,13 +12,15 @@
         <div class="decorator"><small>Redirected from 
             {% for r in redirected_from %}
             {% if not loop.first %} | {% endif %}
-            <a href="{{get_read_url(r)}}?no_redirect">{{r}}</a>
+            <a class="wiki-link" data-wiki-url="{{r}}"
+               href="{{get_read_url(r)}}?no_redirect">{{r}}</a>
             {% endfor %}
         </small></div>
         {% endif %}
         {% if meta.redirect %}
         <div class="decorator"><small>Redirects to
-                <a href="{{get_read_url(redirects_to)}}">{{redirects_to}}</a>
+                <a class="wiki-link" data-wiki-url="{{redirects_to}}"
+                   href="{{get_read_url(redirects_to)}}">{{redirects_to}}</a>
         </small></div>
         {% endif %}
     </header>
@@ -28,7 +30,8 @@
         {% if is_query %}
         {% if not text %}
         <p>No additional information is available for this page.
-           You can <a href="{{get_edit_url(meta.url)}}">write some right now</a>.</p>
+           You can <a class="wiki-link" data-wiki-url="{{meta.url}}"
+                      href="{{get_edit_url(meta.url)}}">write some right now</a>.</p>
         {% endif %}
         <h3>Pages in {{meta_query}} "{{meta_value}}"</h3>
         <ul>
@@ -45,7 +48,8 @@
         <span class="info-categories">Categories: </span>
         {% for c in meta.category %}
         {% if not loop.first %} | {% endif %}
-        <span><a href="{{get_read_url(c.url)}}">{{c.name}}</a></span>
+        <span><a class="wiki-link" data-wiki-url="{{c.url}}"
+                 href="{{get_read_url(c.url)}}">{{c.name}}</a></span>
         {% endfor %}
         {% endif %}
     </section>

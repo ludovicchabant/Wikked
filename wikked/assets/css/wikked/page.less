@@ -11,6 +11,31 @@ article {
     width: 100%;
 }
 
+article {
+    a {
+        text-decoration: none;
+        color: @color-blue;
+        &:link { color: @color-blue; }
+        &:visited { color: @color-blue; }
+        &:hover { color: @color-blue; text-decoration: underline; }
+        &:active { color: @color-blue; }
+    }
+    a.wiki-link.missing,
+    a.wiki-meta-link.missing {
+        color: @color-orange;
+        &:hover { color: @color-orange; text-decoration: underline; }
+    }
+}
+article.wiki-page {
+    a {
+        &::after { font-family: FontAwesome; content: ' \f14c';  }
+    }
+    a.wiki-link,
+    a.wiki-meta-link {
+        &::after { content: none; }
+    }
+}
+
 // Page title decorators
 .decorator {
     text-transform: uppercase;
@@ -20,11 +45,12 @@ article {
     margin-top: -0.5em;
     margin-bottom: 1.5em;
     letter-spacing: 0.1em;
-    color: @color-gray-dark;
+    color: @color-green-dark;
 
     small {
         font-size: 60%;
         text-transform: none;
+        letter-spacing: 0.03em;
     }
 
     .rev_id {
