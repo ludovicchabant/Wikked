@@ -34,7 +34,7 @@ def get_orphans(wiki, user):
                 no_endpoint_only=True,
                 fields=['url', 'title', 'meta', 'links']):
             pages[p.url] = p
-            rev_links[p.url] = 0
+            rev_links.setdefault(p.url, 0)
 
             for l in p.links:
                 abs_l = get_absolute_url(p.url, l)
