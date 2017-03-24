@@ -16,6 +16,15 @@
         {%else%}
         {%block empty%}{%endblock%}
         {%endif%}
+        {% if refresh %}
+        <div class="wiki-pagelist-refresh">
+            <form action="{{refresh.url}}" method="POST" class="pure-form">
+                <input type="hidden" name="list_name" value="{{refresh.list_name}}" />
+                <input type="hidden" name="postback" value="{{refresh.postback}}" />
+                <button name="do-refresh" type="submit" class="pure-button pure-button-warning"><span class="fa fa-refresh"></span> Force Refresh</button>
+            </form>
+        </div>
+        {% endif %}
     </section>
 </article>
 {% endblock %}

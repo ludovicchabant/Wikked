@@ -44,14 +44,21 @@ def errorhandling_ui2(tpl_name):
     return decorator
 
 
+def requires_auth(group):
+    def decorator(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            wiki = get_wiki()
+            if not wiki.auth.hasPermission(group, current_user.get_id()):
+                return show_unauthorized_error()
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 def requires_reader_auth(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        wiki = get_wiki()
-        if not wiki.auth.hasPermission('readers', current_user.get_id()):
-            return show_unauthorized_error()
-        return f(*args, **kwargs)
-    return wrapper
+    decorator = requires_auth('readers')
+    return decorator(f)
 
 
 def add_auth_data(data):

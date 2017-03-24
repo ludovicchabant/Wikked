@@ -1,7 +1,7 @@
-from flask import url_for, render_template
+from flask import request, redirect, url_for, render_template, abort
 from flask.ext.login import current_user
 from wikked.views import (
-        requires_reader_auth,
+        requires_auth, requires_reader_auth,
         add_auth_data, add_navigation_data)
 from wikked.web import app, get_wiki
 from wikked.webimpl.special import (
@@ -107,6 +107,11 @@ def call_api(page_name, api_func, *args, **kwargs):
     add_navigation_data(None, data, raw_url=raw_url)
     data['title'] = info['title']
     data['is_special_page'] = True
+    data['refresh'] = {
+        'url': url_for('special_list_refresh'),
+        'list_name': page_name.replace('-', '_'),
+        'postback': page_name
+    }
     return render_template(info['template'], **data)
 
 
@@ -136,3 +141,23 @@ def special_list_double_redirects():
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')
+
+
+@app.route('/special/list-refresh', methods=['POST'])
+@requires_auth('administrators')
+def special_list_refresh():
+    list_name = request.form.get('list_name')
+    postback_name = request.form.get('postback')
+    if not list_name:
+        abort(400)
+
+    info = special_pages.get(postback_name)
+    if not info:
+        abort(400)
+
+    postback_url = url_for(info['view'])
+
+    wiki = get_wiki()
+    wiki.db.removePageList(list_name)
+
+    return redirect(postback_url)
