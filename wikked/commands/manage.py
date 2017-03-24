@@ -154,3 +154,21 @@ class ResolveCommand(WikkedCommand):
         ctx.wiki.resolve(
             force=ctx.args.force,
             parallel=ctx.args.parallel)
+
+
+@register_command
+class RemoveAllListsCommand(WikkedCommand):
+    def __init__(self):
+        super().__init__()
+        self.name = 'rmlists'
+        self.description = (
+            "Deletes all the cached page lists to force re-computing them "
+            "all. Page lists include things like the list of all orphan "
+            "or wanted pages.")
+
+    def setupParser(self, parser):
+        pass
+
+    def run(self, ctx):
+        ctx.wiki.db.removeAllPageLists()
+        logger.info("All page lists removed.")
