@@ -49,7 +49,7 @@ special_pages = {
             },
         'double-redirects': {
             "title": "Double Redirects",
-            "view": 'special_list_broken_redirects',
+            "view": 'special_list_double_redirects',
             "description": "Lists pages that redirect twice or more.",
             "section": "lists",
             "template": "special-double-redirects.html"
