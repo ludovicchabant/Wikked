@@ -7,6 +7,10 @@ class PageListNotFound(Exception):
                 "No such page list: %s" % list_name)
 
 
+class NoWantedPages(Exception):
+    pass
+
+
 class Database(object):
     """ The base class for a database cache.
     """
@@ -88,6 +92,12 @@ class Database(object):
     def _getPageByPath(self, path, fields):
         raise NotImplementedError()
 
+    def saveWantedPages(self, wanted_pages):
+        pass
+
+    def getWantedPages(self):
+        raise NotImplementedError()
+
     def addPageList(self, list_name, pages):
         pass
 
@@ -105,4 +115,3 @@ class Database(object):
 
     def removeAllPageLists(self):
         pass
-

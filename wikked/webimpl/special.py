@@ -1,7 +1,10 @@
+import urllib.parse
+from wikked.db.base import NoWantedPages
+from wikked.page import WantedPage
 from wikked.utils import get_absolute_url
 from wikked.webimpl import (
         CHECK_FOR_READ,
-        get_page_meta, get_page_or_raise,
+        get_page_meta, get_page_or_raise, make_page_title,
         is_page_readable, get_redirect_target,
         get_or_build_pagelist, get_generic_pagelist_builder,
         CircularRedirectError, RedirectNotFound)
@@ -107,6 +110,76 @@ def get_dead_ends(wiki, user):
     return generic_pagelist_view(
             wiki, user, 'dead_ends', filter_func,
             fields=['url', 'title', 'meta', 'links'])
+
+
+def get_broken_links(wiki, user):
+    def builder_func():
+        wiki.resolve()
+
+        pages = set()
+        page_existence = {}
+        for p in wiki.getPages(
+                no_endpoint_only=True,
+                fields=['url', 'title', 'meta', 'links']):
+            # Gather all outgoing links from each page, then check which
+            # of those match another page in the dictionary.
+            for l in p.links:
+                abs_l = get_absolute_url(p.url, l)
+                exists = page_existence.get(abs_l, None)
+                if exists is None:
+                    # Don't know yet if this URL is valid, so let's ask the
+                    # database and cache the result.
+                    exists = wiki.pageExists(abs_l)
+                    page_existence[abs_l] = exists
+                if not exists:
+                    pages.add(p)
+        return pages
+
+    fields = ['url', 'title', 'meta']
+    pages = get_or_build_pagelist(wiki, 'broken_links', builder_func, fields)
+    return build_pagelist_view_data(pages, user)
+
+
+def get_wanted_pages(wiki, user):
+    def builder_func():
+        wiki.resolve()
+
+        wanted = {}
+        page_existence = {}
+        for p in wiki.getPages(
+                no_endpoint_only=True,
+                fields=['url', 'title', 'meta', 'links']):
+            for l in p.links:
+                abs_l = get_absolute_url(p.url, l)
+                exists = page_existence.get(abs_l, None)
+                if exists is None:
+                    exists = wiki.pageExists(abs_l)
+                    page_existence[abs_l] = exists
+                if not exists:
+                    wanted.setdefault(abs_l, p)
+
+        return [WantedPage(u, p) for u, p in wanted.items()]
+
+    try:
+        wanted = sorted(wiki.db.getWantedPages(), key=lambda p: p.url)
+    except NoWantedPages:
+        wanted = None
+
+    if wanted is None:
+        wanted = builder_func()
+        wiki.db.saveWantedPages(wanted)
+
+    data = []
+    for w in wanted:
+        d = {'url': urllib.parse.quote(w.url.encode('utf-8')),
+             'title': make_page_title(w.url),
+             'wanted_by': {
+                 'url': urllib.parse.quote(w.wanted_by.url.encode('utf-8')),
+                 'title': w.wanted_by.title}
+             }
+        data.append(d)
+    result = {'wanted_pages': data}
+    return result
 
 
 def list_pages(wiki, user, url=None):

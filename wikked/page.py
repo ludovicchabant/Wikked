@@ -162,3 +162,9 @@ class FileSystemPage(Page):
             data.title = data.title[0]
 
         return data
+
+
+class WantedPage:
+    def __init__(self, url, wanted_by):
+        self.url = url
+        self.wanted_by = wanted_by

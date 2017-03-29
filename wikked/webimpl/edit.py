@@ -3,10 +3,10 @@ import urllib.parse
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
 from wikked.resolver import PageResolver
-from wikked.utils import PageNotFoundError, split_page_url
+from wikked.utils import PageNotFoundError
 from wikked.webimpl import (
         CHECK_FOR_WRITE,
-        get_page_or_raise, get_page_meta)
+        get_page_or_raise, get_page_meta, make_page_title)
 
 
 logger = logging.getLogger(__name__)
@@ -38,18 +38,6 @@ class DummyPage(Page):
             data.title = data.title[0]
 
         return data
-
-
-def make_page_title(url):
-    endpoint, path = split_page_url(url)
-    last_slash = path.rstrip('/').rfind('/')
-    if last_slash < 0 or last_slash == 0:
-        title = path.lstrip('/')
-    else:
-        title = path[last_slash + 1:]
-    if endpoint:
-        return '%s: %s' % (endpoint, title)
-    return title
 
 
 def get_edit_page(wiki, user, url, author=None, custom_data=None):
@@ -114,4 +102,3 @@ def preview_edited_page(wiki, url, raw_text):
     resolver = PageResolver(dummy)
     dummy._setExtendedData(resolver.run())
     return dummy.text
-

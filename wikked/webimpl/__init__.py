@@ -199,3 +199,14 @@ def get_generic_pagelist_builder(wiki, filter_func, fields=None):
 
     return builder
 
+
+def make_page_title(url):
+    endpoint, path = split_page_url(url)
+    last_slash = path.rstrip('/').rfind('/')
+    if last_slash < 0 or last_slash == 0:
+        title = path.lstrip('/')
+    else:
+        title = path[last_slash + 1:]
+    if endpoint:
+        return '%s: %s' % (endpoint, title)
+    return title

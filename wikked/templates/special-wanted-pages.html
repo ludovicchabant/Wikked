@@ -1,0 +1,26 @@
+{% extends 'index.html' %}
+{% block nav %}{% include 'special-nav.html' %}{% endblock %}
+{% block content %}
+<article>
+    <header>
+        <h1>Wanted Pages</h1>
+    </header>
+    <section>
+        <p>This is a list of pages that are linked to by other pages in this wiki,
+           but which don't exist.</p>
+        {%if wanted_pages%}
+        <ul>
+        {%for p in wanted_pages%}
+            <li><a class="wiki-link missing" href="{{get_edit_url(p.url)}}">{{p.title}}</a> 
+            {%if p.wanted_by%}
+                (wanted by <a class="wiki-link" href="{{get_read_url(p.wanted_by.url)}}">{{p.wanted_by.title}}</a>)
+            {%endif%}
+            </li>
+        {%endfor%}
+        </ul>
+        {%else%}
+        <p>No wanted pages!</p>
+        {%endif%}
+    </section>
+</article>
+{% endblock %}

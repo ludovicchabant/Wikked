@@ -16,8 +16,8 @@ from sqlalchemy.orm import (
     Load)
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
-from wikked.db.base import Database, PageListNotFound
-from wikked.page import Page, PageData, FileSystemPage
+from wikked.db.base import Database, PageListNotFound, NoWantedPages
+from wikked.page import Page, PageData, FileSystemPage, WantedPage
 from wikked.utils import split_page_url
 
 
@@ -127,6 +127,16 @@ class SQLInfo(Base):
     time_value = Column(DateTime)
 
 
+class SQLWantedPage(Base):
+    __tablename__ = 'wanted_pages'
+
+    id = Column(Integer, primary_key=True)
+    url = Column(Text)
+    wanted_by_id = Column(Integer, ForeignKey('pages.id'))
+
+    wanted_by = relationship('SQLPage')
+
+
 class SQLPageList(Base):
     __tablename__ = 'page_lists'
 
@@ -147,8 +157,7 @@ class SQLPageListItem(Base):
     list_id = Column(Integer, ForeignKey('page_lists.id'))
     page_id = Column(Integer, ForeignKey('pages.id'))
 
-    page = relationship(
-            'SQLPage')
+    page = relationship('SQLPage')
 
 
 class _WikkedSQLSession(Session):
@@ -231,7 +240,7 @@ class _EmbeddedSQLState(_SQLStateBase):
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 8
+    schema_version = 9
 
     def __init__(self, config):
         Database.__init__(self)
@@ -309,6 +318,12 @@ class SQLDatabase(Database):
         ver.name = 'schema_version'
         ver.int_value = self.schema_version
         self.session.add(ver)
+
+        wanted_valid = SQLInfo()
+        wanted_valid.name = 'wanted_pages_is_valid'
+        wanted_valid.int_value = 0
+        self.session.add(wanted_valid)
+
         self.session.commit()
 
     def _getSchemaVersion(self):
@@ -496,7 +511,7 @@ class SQLDatabase(Database):
         if except_url:
             q = q.filter(SQLPage.url != except_url)
         if only_required:
-            q = q.filter(SQLPage.needs_invalidate == True)
+            q = q.filter(SQLPage.needs_invalidate is True)
 
         uncached_urls = []
         for p in q.all():
@@ -606,6 +621,47 @@ class SQLDatabase(Database):
         self.session.add(po)
 
         return po
+
+    def saveWantedPages(self, wanted_pages):
+        # Delete previously cached wanted pages.
+        self.session.query(SQLWantedPage).delete()
+
+        for p in wanted_pages:
+            item = SQLWantedPage()
+            item.url = p.url
+            item.wanted_by_id = p.wanted_by._id
+            self.session.add(item)
+
+        valid = self.session.query(SQLInfo)\
+            .filter(SQLInfo.name == 'wanted_pages_is_valid')\
+            .first()
+        if valid is not None:
+            valid.int_value = 1
+        else:
+            valid = SQLInfo()
+            valid.name = 'wanted_pages_is_valid'
+            valid.int_value = 1
+            self.session.add(valid)
+
+        self.session.commit()
+
+    def getWantedPages(self, valid_only=True):
+        if valid_only:
+            valid = self.session.query(SQLInfo)\
+                .filter(SQLInfo.name == 'wanted_pages_is_valid')\
+                .first()
+            if valid is None or valid.int_value != 1:
+                raise NoWantedPages()
+
+        fields = ['url', 'title']
+
+        q = self.session.query(SQLWantedPage)\
+            .join(SQLWantedPage.wanted_by)
+        q = self._addFieldOptions(q, fields, use_load_obj=True)
+
+        for wp in q.all():
+            yield WantedPage(wp.url,
+                             SQLDatabasePage(self, wp.wanted_by, fields))
 
     def addPageList(self, list_name, pages):
         page_list = self.session.query(SQLPageList)\
@@ -733,4 +789,3 @@ class SQLDatabasePage(Page):
                 data.ext_links = [l.target_url for l in db_obj.ready_links]
 
         return data
-

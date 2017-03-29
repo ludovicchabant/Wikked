@@ -6,69 +6,84 @@ from wikked.views import (
 from wikked.web import app, get_wiki
 from wikked.webimpl.special import (
         get_orphans, get_broken_redirects, get_double_redirects,
-        get_dead_ends)
+        get_dead_ends, get_broken_links, get_wanted_pages)
 
 
 special_sections = [
-        {
-            'name': 'wiki',
-            'title': 'Wiki'
-            },
-        {
-            'name': 'lists',
-            'title': 'Page Lists'
-            },
-        {
-            'name': 'users',
-            'title': 'Users'
-            }
-        ]
+    {
+        'name': 'wiki',
+        'title': 'Wiki'
+    },
+    {
+        'name': 'lists',
+        'title': 'Page Lists'
+    },
+    {
+        'name': 'users',
+        'title': 'Users'
+    }
+]
 
 special_pages = {
-        'changes': {
-            "title": "Recent Changes",
-            "view": 'site_history',
-            "description": "See all changes in the wiki.",
-            "section": "wiki",
-            },
-        'orphans': {
-            "title": "Orphaned Pages",
-            "view": 'special_list_orphans',
-            "description": ("Lists pages in the wiki that have no "
-                            "links to them."),
-            "section": "lists",
-            "template": "special-orphans.html"
-            },
-        'broken-redirects': {
-            "title": "Broken Redirects",
-            "view": 'special_list_broken_redirects',
-            "description": ("Lists pages that redirect to a missing "
-                            "page."),
-            "section": "lists",
-            "template": "special-broken-redirects.html"
-            },
-        'double-redirects': {
-            "title": "Double Redirects",
-            "view": 'special_list_double_redirects',
-            "description": "Lists pages that redirect twice or more.",
-            "section": "lists",
-            "template": "special-double-redirects.html"
-            },
-        'dead-ends': {
-            "title": "Dead-End Pages",
-            "view": 'special_list_dead_ends',
-            "description": ("Lists pages that don't have any "
-                            "outgoing links."),
-            "section": "lists",
-            "template": "special-dead-ends.html"
-            },
-        'users': {
-            "title": "All Users",
-            "view": 'special_users',
-            "description": "A list of all registered users.",
-            "section": "users",
-            }
-        }
+    'changes': {
+        "title": "Recent Changes",
+        "view": 'site_history',
+        "description": "See all changes in the wiki.",
+        "section": "wiki",
+    },
+    'orphans': {
+        "title": "Orphaned Pages",
+        "view": 'special_list_orphans',
+        "description": ("Lists pages in the wiki that have no "
+                        "links to them."),
+        "section": "lists",
+        "template": "special-orphans.html"
+    },
+    'broken-redirects': {
+        "title": "Broken Redirects",
+        "view": 'special_list_broken_redirects',
+        "description": ("Lists pages that redirect to a missing "
+                        "page."),
+        "section": "lists",
+        "template": "special-broken-redirects.html"
+    },
+    'double-redirects': {
+        "title": "Double Redirects",
+        "view": 'special_list_double_redirects',
+        "description": "Lists pages that redirect twice or more.",
+        "section": "lists",
+        "template": "special-double-redirects.html"
+    },
+    'dead-ends': {
+        "title": "Dead-End Pages",
+        "view": 'special_list_dead_ends',
+        "description": ("Lists pages that don't have any "
+                        "outgoing links."),
+        "section": "lists",
+        "template": "special-dead-ends.html"
+    },
+    'broken-links': {
+        "title": "Broken Links",
+        "view": 'special_list_broken_links',
+        "description": ("Lists pages that have broken links in them."),
+        "section": "lists",
+        "template": "special-broken-links.html"
+    },
+    'wanted-pages': {
+        "title": "Wanted Pages",
+        "view": 'special_list_wanted_pages',
+        "description": ("Lists pages that don't exist yet but already have "
+                        "incoming links to them."),
+        "section": "lists",
+        "template": "special-wanted-pages.html"
+    },
+    'users': {
+        "title": "All Users",
+        "view": 'special_users',
+        "description": "A list of all registered users.",
+        "section": "users",
+    }
+}
 
 
 @app.route('/special')
@@ -101,17 +116,22 @@ def call_api(page_name, api_func, *args, **kwargs):
     if 'raw_url' in kwargs:
         raw_url = kwargs['raw_url']
         del kwargs['raw_url']
+    refresh = True
+    if 'refresh' in kwargs:
+        refresh = kwargs['refresh']
+        del kwargs['refresh']
 
     data = api_func(wiki, user, *args, **kwargs)
     add_auth_data(data)
     add_navigation_data(None, data, raw_url=raw_url)
     data['title'] = info['title']
     data['is_special_page'] = True
-    data['refresh'] = {
-        'url': url_for('special_list_refresh'),
-        'list_name': page_name.replace('-', '_'),
-        'postback': page_name
-    }
+    if refresh:
+        data['refresh'] = {
+            'url': url_for('special_list_refresh'),
+            'list_name': page_name.replace('-', '_'),
+            'postback': page_name
+        }
     return render_template(info['template'], **data)
 
 
@@ -141,6 +161,21 @@ def special_list_double_redirects():
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')
+
+
+@app.route('/special/list/broken-links')
+@requires_reader_auth
+def special_list_broken_links():
+    return call_api('broken-links', get_broken_links,
+                    raw_url='/api/broken-links')
+
+
+@app.route('/special/list/wanted-pages')
+@requires_reader_auth
+def special_list_wanted_pages():
+    return call_api('wanted-pages', get_wanted_pages,
+                    raw_url='/api/wanted-pages',
+                    refresh=False)
 
 
 @app.route('/special/list-refresh', methods=['POST'])
