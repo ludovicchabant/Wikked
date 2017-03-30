@@ -30,7 +30,7 @@
         {% if is_query %}
         {% if not text %}
         <p>No additional information is available for this page.
-           You can <a class="wiki-link" data-wiki-url="{{meta.url}}"
+           You can <a class="wiki-link missing" data-wiki-url="{{meta.url}}"
                       href="{{get_edit_url(meta.url)}}">write some right now</a>.</p>
         {% endif %}
         <h3>Pages in {{meta_query}} "{{meta_value}}"</h3>
