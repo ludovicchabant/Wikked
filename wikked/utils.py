@@ -1,7 +1,10 @@
 import re
 import os
 import os.path
-import urllib.request, urllib.parse, urllib.error
+import urllib.error
+import urllib.parse
+import urllib.request
+import unicodedata
 from xml.sax.saxutils import escape, unescape
 
 
@@ -92,6 +95,10 @@ def split_page_url(url):
     return (endpoint, path)
 
 
+def lower_url(url):
+    return unicodedata.normalize("NFKD", url.casefold())
+
+
 def get_meta_name_and_modifiers(name):
     """ Strips a meta name from any leading modifiers like `__` or `+`
         and returns both as a tuple. If no modifier was found, the
@@ -123,10 +130,10 @@ def flatten_single_metas(meta):
 html_escape_table = {'"': "&quot;", "'": "&apos;"}
 html_unescape_table = {v: k for k, v in list(html_escape_table.items())}
 
+
 def html_escape(text):
     return escape(text, html_escape_table)
 
 
 def html_unescape(text):
     return unescape(text, html_unescape_table)
-

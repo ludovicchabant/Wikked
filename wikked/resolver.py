@@ -213,13 +213,18 @@ class PageResolver(object):
                 raw_url = m.group('url')
                 is_edit = bool(m.group('isedit'))
                 url = self.ctx.getAbsoluteUrl(raw_url)
+                validated_url = self.wiki.db.validateUrl(url)
+                if validated_url:
+                    url = validated_url
                 self.output.out_links.append(url)
                 action = 'edit' if is_edit else 'read'
                 quoted_url = urllib.parse.quote(url.encode('utf-8'))
-                if self.wiki.pageExists(url):
+
+                if validated_url:
                     actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
                     return ('<a class="wiki-link" data-wiki-url="%s" '
                             'href="%s"' % (quoted_url, actual_url))
+
                 actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
                 return ('<a class="wiki-link missing" data-wiki-url="%s" '
                         'href="%s"' % (quoted_url, actual_url))

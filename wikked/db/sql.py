@@ -18,7 +18,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 from wikked.db.base import Database, PageListNotFound, NoWantedPages
 from wikked.page import Page, PageData, FileSystemPage, WantedPage
-from wikked.utils import split_page_url
+from wikked.utils import split_page_url, lower_url
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class SQLPage(Base):
     # this length (but it's good because it makes those 2 columns short enough
     # to be indexable by SQL).
     url = Column(String(260), unique=True)
+    url_ci = Column(String(260), unique=True)
     path = Column(String(260), unique=True)
     endpoint = Column(String(64))
     title = Column(UnicodeText)
@@ -240,7 +241,7 @@ class _EmbeddedSQLState(_SQLStateBase):
 class SQLDatabase(Database):
     """ A database cache based on SQL.
     """
-    schema_version = 9
+    schema_version = 10
 
     def __init__(self, config):
         Database.__init__(self)
@@ -520,10 +521,20 @@ class SQLDatabase(Database):
         logger.debug("Uncaching: %s" % ', '.join(uncached_urls))
         self.session.commit()
 
-    def pageExists(self, url=None, path=None):
-        q = self.session.query(SQLPage.id, SQLPage.url).filter_by(url=url)
+    def pageExists(self, url):
+        l = lower_url(url)
+        q = self.session.query(SQLPage.id, SQLPage.url_ci).filter_by(url_ci=l)
         res = self.session.query(q.exists())
         return res.scalar()
+
+    def validateUrl(self, url):
+        l = lower_url(url)
+        try:
+            q = self.session.query(SQLPage.id, SQLPage.url, SQLPage.url_ci).\
+                filter_by(url_ci=l).one()
+            return q.url
+        except NoResultFound:
+            return None
 
     def getLinksTo(self, url):
         q = self.session.query(SQLReadyLink).\
@@ -598,6 +609,7 @@ class SQLDatabase(Database):
         po = SQLPage()
         po.cache_time = datetime.datetime.now()
         po.url = page.url
+        po.url_ci = lower_url(page.url)
         po.endpoint, _ = split_page_url(page.url)
         po.path = page.path
         po.title = page.title

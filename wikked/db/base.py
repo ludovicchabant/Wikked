@@ -78,8 +78,13 @@ class Database(object):
         """ Invalidates resolved information for pages in the wiki. """
         pass
 
-    def pageExists(self, url=None, path=None):
+    def pageExists(self, url):
         """ Returns whether a given page exists. """
+        raise NotImplementedError()
+
+    def validateUrl(self, url):
+        """ Returns the proper URL, given a URL with potentially different
+            casing, or `None` if that URL doesn't exist. """
         raise NotImplementedError()
 
     def getLinksTo(self, url):
