@@ -20,6 +20,10 @@ class PageNotFoundError(Exception):
     def __init__(self, url, message=None, *args):
         Exception.__init__(self, url, message, *args)
 
+    @property
+    def url(self):
+        return self.args[0]
+
     def __str__(self):
         url = self.args[0]
         message = self.args[1]

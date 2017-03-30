@@ -16,8 +16,6 @@ def read_page(wiki, user, url, *, no_redirect=False):
                 fields=['url', 'path', 'title', 'text', 'meta'],
                 check_perms=(user, CHECK_FOR_READ),
                 first_only=no_redirect)
-        if page is None:
-            raise PageNotFoundError(url)
 
         if no_redirect:
             additional_info['redirects_to'] = visited_paths[-1]
@@ -57,19 +55,19 @@ def read_page(wiki, user, url, *, no_redirect=False):
     if info_page is not None:
         ext = os.path.splitext(info_page.path)[1].lstrip('.')
 
-    if (endpoint_info is not None and
-            not endpoint_info.query
-            and info_page is not None):
+    if endpoint_info is not None and not endpoint_info.query:
         # Not a query-based endpoint (like categories). Let's just
-        # return the text.
-        result = {
+        # return the text if it exists, or a "not found" page.
+        if info_page is not None:
+            result = {
                 'endpoint': endpoint,
                 'meta': get_page_meta(info_page),
                 'text': info_page.text,
                 'page_title': info_page.title,
                 'format': ext}
-        result.update(additional_info)
-        return result
+            result.update(additional_info)
+            return result
+        raise PageNotFoundError(url)
 
     # Get the list of pages to show here.
     value = path.lstrip('/')
@@ -150,4 +148,3 @@ def get_outgoing_links(wiki, user, url):
 
     result = {'meta': get_page_meta(page), 'out_links': links}
     return result
-

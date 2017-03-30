@@ -1,0 +1,26 @@
+{% extends 'index.html' %}
+{% block content %}
+<article class="wiki-page">
+    <header>
+        <h1>{{meta.title}}</h1>
+        {% if endpoint %}
+        <div class="decorator">{{endpoint}}</div>
+        {% endif %}
+        {% if redirected_from %}
+        <div class="decorator"><small>Redirected from 
+            {% for r in redirected_from %}
+            {% if not loop.first %} | {% endif %}
+            <a class="wiki-link" data-wiki-url="{{r}}"
+               href="{{get_read_url(r)}}?no_redirect">{{r}}</a>
+            {% endfor %}
+        </small></div>
+        {% endif %}
+    </header>
+    <section class="content">
+        <p>This page doesn't exist yet. You can 
+            <a class="wiki-link missing" data-wiki-url="{{meta.url}}"
+               href="{{get_edit_url(meta.url)}}">create it now</a>.
+        </p>
+    </section>
+</article>
+{% endblock %}

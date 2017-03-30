@@ -7,7 +7,7 @@ from wikked.webimpl import (
         get_page_meta, get_page_or_raise, make_page_title,
         is_page_readable, get_redirect_target,
         get_or_build_pagelist, get_generic_pagelist_builder,
-        CircularRedirectError, RedirectNotFound)
+        CircularRedirectError, RedirectNotFoundError)
 
 
 def build_pagelist_view_data(pages, user):
@@ -68,7 +68,7 @@ def get_broken_redirects(wiki, user):
                     fields=['url', 'meta'])
         except CircularRedirectError:
             return True
-        except RedirectNotFound:
+        except RedirectNotFoundError:
             return True
         return False
 

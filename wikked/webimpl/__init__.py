@@ -21,11 +21,13 @@ class CircularRedirectError(Exception):
                 "after visiting: %s" % (url, visited))
 
 
-class RedirectNotFound(Exception):
+class RedirectNotFoundError(Exception):
     def __init__(self, url, not_found):
-        super(RedirectNotFound, self).__init__(
+        super(RedirectNotFoundError, self).__init__(
                 "Target redirect page '%s' not found from '%s'." %
                 (url, not_found))
+        self.origin_url = url
+        self.url = not_found
 
 
 class PermissionError(Exception):
@@ -133,12 +135,15 @@ def get_redirect_target(wiki, path, fields=None,
     visited_paths = []
 
     while True:
-        page = get_page_or_none(
-                wiki, path,
-                fields=fields,
-                check_perms=check_perms)
-        if page is None:
-            raise RedirectNotFound(orig_path, path)
+        try:
+            page = get_page_or_raise(
+                    wiki, path,
+                    fields=fields,
+                    check_perms=check_perms)
+        except PageNotFoundError as pnfe:
+            if len(visited_paths) > 0:
+                raise RedirectNotFoundError(orig_path, path)
+            raise
 
         visited_paths.append(path)
         redirect_meta = page.getMeta('redirect')

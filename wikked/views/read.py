@@ -1,12 +1,14 @@
 import urllib.parse
 from flask import (
-        render_template, request, abort)
+    render_template, request, abort)
 from flask.ext.login import current_user
+from wikked.utils import split_page_url, PageNotFoundError
 from wikked.views import add_auth_data, add_navigation_data, errorhandling_ui
 from wikked.web import app, get_wiki
-from wikked.webimpl import url_from_viewarg
+from wikked.webimpl import (
+    url_from_viewarg, make_page_title, RedirectNotFoundError)
 from wikked.webimpl.read import (
-        read_page, get_incoming_links)
+    read_page, get_incoming_links)
 from wikked.webimpl.special import get_search_results
 
 
@@ -17,6 +19,19 @@ def home():
     return read(url)
 
 
+def _make_missing_page_data(url):
+    endpoint, path = split_page_url(url)
+    data = {
+        'endpoint': endpoint,
+        'meta': {
+            'url': url,
+            'title': make_page_title(path)
+        },
+        'format': None
+    }
+    return data
+
+
 @app.route('/read/<path:url>')
 @errorhandling_ui
 def read(url):
@@ -24,7 +39,15 @@ def read(url):
     url = url_from_viewarg(url)
     user = current_user.get_id()
     no_redirect = 'no_redirect' in request.args
-    data = read_page(wiki, user, url, no_redirect=no_redirect)
+    tpl_name = 'read-page.html'
+    try:
+        data = read_page(wiki, user, url, no_redirect=no_redirect)
+    except PageNotFoundError as pnfe:
+        tpl_name = 'read-page-missing.html'
+        data = _make_missing_page_data(pnfe.url)
+    except RedirectNotFoundError as rnfe:
+        tpl_name = 'read-page-missing.html'
+        data = _make_missing_page_data(rnfe.url)
 
     if data['format']:
         custom_head = wiki.custom_heads.get(data['format'], '')
@@ -35,7 +58,7 @@ def read(url):
             url, data,
             edit=True, history=True, inlinks=True,
             raw_url='/api/raw/' + url.lstrip('/'))
-    return render_template('read-page.html', **data)
+    return render_template(tpl_name, **data)
 
 
 @app.route('/search')

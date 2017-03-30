@@ -6,9 +6,9 @@ from wikked.web import app, get_wiki
 from wikked.webimpl import (
         CHECK_FOR_READ,
         url_from_viewarg,
-        get_page_or_raise, get_page_or_none,
-        get_page_meta, is_page_readable,
-        RedirectNotFound, CircularRedirectError)
+        get_page_or_raise,
+        get_page_meta,
+        PageNotFoundError, RedirectNotFoundError, CircularRedirectError)
 from wikked.webimpl.read import (
         read_page, get_incoming_links, get_outgoing_links)
 from wikked.webimpl.special import list_pages
@@ -40,7 +40,7 @@ def api_read_page(url):
     try:
         result = read_page(wiki, user, url)
         return jsonify(result)
-    except RedirectNotFound as e:
+    except (PageNotFoundError, RedirectNotFoundError) as e:
         app.logger.exception(e)
         abort(404)
     except CircularRedirectError as e:
@@ -131,5 +131,3 @@ def api_get_incoming_links(url):
     user = current_user.get_id()
     result = get_incoming_links(wiki, user, url)
     return jsonify(result)
-
-
