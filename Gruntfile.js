@@ -121,7 +121,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // Default task(s).
-  grunt.registerTask('default', ['jshint', 'less:production', 'requirejs:production', 'imagemin:all', 'copy:production']);
+  grunt.registerTask('default', ['jshint', 'less:production', 'requirejs:production', 'copy:production']);
 
   // Other tasks.
   grunt.registerTask('dev', ['less:development', 'requirejs:development', 'copy:production', 'copy:development']);
