@@ -14,16 +14,36 @@ class ListCommand(WikkedCommand):
 
     def setupParser(self, parser):
         parser.add_argument(
-                '--fs',
-                help="Lists pages by scanning the file-system directly",
-                action='store_true')
+            'pattern',
+            help="Filter pages whose URL matches the given pattern.")
+        parser.add_argument(
+            '-r', '--regex',
+            action='store_true',
+            help="Treat the specified pattern as a regular expression.")
+        parser.add_argument(
+            '--fs',
+            help="Lists pages by scanning the file-system directly",
+            action='store_true')
 
     def run(self, ctx):
         if ctx.args.fs:
-            for pi in ctx.wiki.fs.getPageInfos():
-                logger.info(pi.url)
+            urls = [pi.url for pi in ctx.wiki.fs.getPageInfos()]
         else:
-            for url in ctx.wiki.db.getPageUrls():
+            urls = ctx.wiki.db.getPageUrls()
+
+        if ctx.args.pattern:
+            if ctx.args.regex:
+                import re
+                r = re.compile(ctx.args.pattern)
+                for url in urls:
+                    if r.search(url):
+                        logger.info(url)
+            else:
+                for url in urls:
+                    if ctx.args.pattern in url:
+                        logger.info(url)
+        else:
+            for url in urls:
                 logger.info(url)
 
 
@@ -37,19 +57,17 @@ class GetCommand(WikkedCommand):
     def setupParser(self, parser):
         parser.add_argument(
                 'url',
-                help="The URL of the page to get",
-                nargs=1)
+                help="The URL of the page to get")
         parser.add_argument(
                 '--raw',
                 help="Get the raw text of the page.",
                 action='store_true')
         parser.add_argument(
                 '--rev',
-                help="The revision to get",
-                nargs=1)
+                help="The revision to get")
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url[0])
+        page = ctx.wiki.getPage(ctx.args.url)
         if ctx.args.rev is not None:
             logger.info(page.getRevision(ctx.args.rev))
             return
@@ -92,11 +110,10 @@ class LinksFromCommand(WikkedCommand):
     def setupParser(self, parser):
         parser.add_argument(
                 'url',
-                help="The page from which the links come from",
-                nargs=1)
+                help="The page from which the links come from")
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url[0])
+        page = ctx.wiki.getPage(ctx.args.url)
         for l in page.links:
             logger.info(l)
 
@@ -111,11 +128,9 @@ class LinksToCommand(WikkedCommand):
     def setupParser(self, parser):
         parser.add_argument(
                 'url',
-                help="The page to which the links go to",
-                nargs=1)
+                help="The page to which the links go to")
 
     def run(self, ctx):
-        page = ctx.wiki.getPage(ctx.args.url[0])
+        page = ctx.wiki.getPage(ctx.args.url)
         for l in page.getIncomingLinks():
             logger.info(l)
-
