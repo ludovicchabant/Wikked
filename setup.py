@@ -21,7 +21,7 @@ setup(
         url="https://github.com/ludovicchabant/Wikked",
         license="Apache 2.0",
         keywords="wiki mercurial hg git",
-        packages=find_packages(exclude=["tests"]),
+        packages=find_packages(exclude=["monkeys", "tests"]),
         setup_requires=['setuptools_scm'],
         use_scm_version={
             'write_to': 'wikked/__version__.py'},
@@ -43,4 +43,3 @@ setup(
                     'wk = wikked.witch:real_main']
                 },
         )
-

@@ -1,7 +1,13 @@
-recursive-include wikked/resources *
-include wikked/templates/*.html
-include wikked/static/css/wikked.min.css
-include wikked/static/fonts/*
-include wikked/static/img/*.png
-include wikked/static/js/require.js
-include wikked/static/js/wikked.*.js
+include LICENSE
+include README.md
+
+include pytest.ini
+include requirements.txt
+include dev-requirements.txt
+
+recursive-include wikked *
+recursive-include tests *
+
+global-exclude *.py[cdo] __pycache__ *.so
+global-exclude .DS_Store Thumbs.db Desktop.ini
+global-exclude *.swp *~ *.bak
