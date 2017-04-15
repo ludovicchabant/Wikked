@@ -57,10 +57,12 @@ if os.path.isfile(config_path):
 
 
 # Make the app serve static content and wiki assets in DEBUG mode.
+app.config['WIKI_ROOT'] = wiki_root
+app.config['WIKI_FILES_DIR'] = os.path.join(wiki_root, '_files')
 if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
     app.wsgi_app = SharedDataMiddleware(
             app.wsgi_app,
-            {'/files': os.path.join(wiki_root, '_files')})
+            {'/files': app.config['WIKI_FILES_DIR']})
 
 
 # In DEBUG mode, also serve raw assets instead of static ones.

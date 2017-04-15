@@ -56,7 +56,7 @@ def read(url):
     add_auth_data(data)
     add_navigation_data(
             url, data,
-            edit=True, history=True, inlinks=True,
+            edit=True, history=True, inlinks=True, upload=True,
             raw_url='/api/raw/' + url.lstrip('/'))
     return render_template(tpl_name, **data)
 
@@ -94,7 +94,6 @@ def incoming_links(url):
     add_auth_data(data)
     add_navigation_data(
             url, data,
-            read=True, edit=True, history=True,
+            read=True, edit=True, history=True, upload=True,
             raw_url='/api/inlinks/' + url.lstrip('/'))
     return render_template('inlinks-page.html', **data)
-

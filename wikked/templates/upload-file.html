@@ -1,0 +1,54 @@
+{% extends 'index.html' %}
+{% block content %}
+<article>
+    <header>
+        <h1>Upload File</h1>
+    </header>
+    <section>
+        {% if success %}
+        <h2>File Uploaded!</h2>
+        <section>
+            <p>The file is accessible with the following syntax: <code>{%raw%}{{file: {%endraw%}{{success.example}}{%raw%}}}{%endraw%}</code></p>
+            {% if success.is_page_specific %}
+            <p><strong>Note</strong>: this syntax is valid only on <a href="{{get_read_url(for_page)}}">the current page</a>.</p>
+            {% endif %}
+        </section>
+        {% else %}
+        <form id="file-upload" class="pure-form" action="{{post_back}}" method="POST" enctype="multipart/form-data">
+            <fieldset>
+                {%if error%}
+                <section class="editing-error alert alert-danger">
+                    <p><strong>Error:</strong> <span class="upload-error-message">{{error}}</span></p>
+                </section>
+                {%endif%}
+                <section class="editing-input">
+                    <div class="pure-control-group">
+                        <label for="file">Choose a file:</label>
+                        <input type="file" name="file" />
+                    </div>
+                    <div class="pure-control-group pure-control-addon">
+                        <label for="title" class="">Rename File</label>
+                        <input type="text" name="path" placeholder="Name..." value="{{path}}"></input>
+                    </div>
+                    <div class="pure-form-help">
+                        <span for="title">You can specify a different name and/or path: <code>Folder/Filename</code>.</span>
+                    </div>
+                    {% if for_page %}
+                    <div class="pure-control-group">
+                        <label for="is_page_specific">Page-specific file</label>
+                        <input type="checkbox" name="is_page_specific" value="true"></input>
+                    </div>
+                    <div class="pure-form-help">
+                        <span for="title">Check this to upload this file under: <code>{{for_page}}</code></span>
+                    </div>
+                    {% endif %}
+                    <div class="pure-control-group">
+                        <button name="do-upload" type="submit" class="pure-button pure-button-primary"><span class="fa fa-upload"></span> Upload</button>
+                    </div>
+                </section>
+            </fieldset>
+        </form>
+        {% endif %}
+    </section>
+</article>
+{% endblock %}

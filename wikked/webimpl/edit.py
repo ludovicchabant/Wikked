@@ -1,5 +1,7 @@
+import os.path
 import logging
 import urllib.parse
+from werkzeug.utils import secure_filename
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
 from wikked.resolver import PageResolver
@@ -102,3 +104,44 @@ def preview_edited_page(wiki, url, raw_text):
     resolver = PageResolver(dummy)
     dummy._setExtendedData(resolver.run())
     return dummy.text
+
+
+def do_upload_file(wiki, user, reqfile, for_url=None, submit=True):
+    if not reqfile:
+        raise Exception("No file was specified.")
+    if not reqfile.filename:
+        raise Exception("No file name was specified.")
+
+    # TODO: check permissions for the user.
+
+    filename = secure_filename(reqfile.filename)
+
+    files_dir = os.path.join(wiki.root, '_files')
+    upload_dir = files_dir
+    if for_url:
+        upload_dir = os.path.join(wiki.root, for_url)
+
+    path = os.path.join(upload_dir, filename)
+    path = os.path.normpath(path)
+    if not path.startswith(wiki.root):
+        raise Exception("Don't try anything weird, please.")
+
+    # Save to disk.
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    reqfile.save(path)
+
+    # Commit the file to the source-control.
+    if submit:
+        commit_meta = {
+            'author': user,
+            'message': "Uploaded '%s'." % filename}
+        wiki.scm.commit([path], commit_meta)
+
+    if for_url:
+        example = './%s' % filename
+    else:
+        example = os.path.relpath(path, files_dir)
+    result = {
+        'example': example
+    }
+    return result

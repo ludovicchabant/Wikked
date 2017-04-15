@@ -6,7 +6,7 @@ from wikked.views import (
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
 from wikked.webimpl.edit import (
-    get_edit_page, do_edit_page, preview_edited_page)
+    get_edit_page, do_edit_page, preview_edited_page, do_upload_file)
 
 
 @app.route('/create/')
@@ -63,7 +63,7 @@ def edit_page(url):
         add_auth_data(data)
         add_navigation_data(
                 url, data,
-                read=True, history=True, inlinks=True,
+                read=True, history=True, inlinks=True, upload=True,
                 raw_url=url_for('api_read_page', url=url.lstrip('/')))
         return render_template('edit-page.html', **data)
 
@@ -89,3 +89,37 @@ def edit_page(url):
 
         else:
             abort(400)
+
+
+@app.route('/upload', methods=['GET', 'POST'])
+@errorhandling_ui2('error-unauthorized-upload.html')
+def upload_file():
+    p = request.args.get('p')
+    data = {
+        'post_back': url_for('upload_file', p=p),
+        'for_page': p
+    }
+    add_auth_data(data)
+    add_navigation_data(p, data)
+
+    if request.method == 'GET':
+        return render_template('upload-file.html', **data)
+
+    if request.method == 'POST':
+        wiki = get_wiki()
+        user = current_user.get_id() or request.remote_addr
+
+        for_url = None
+        is_page_specific = (request.form.get('is_page_specific') == 'true')
+        if is_page_specific:
+            for_url = p
+
+        res = do_upload_file(
+            wiki, user, request.files.get('file'),
+            for_url=for_url)
+
+        data['success'] = {
+            'example': res['example'],
+            'is_page_specific': is_page_specific}
+
+        return render_template('upload-file.html', **data)

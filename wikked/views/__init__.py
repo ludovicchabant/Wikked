@@ -82,7 +82,7 @@ def add_auth_data(data):
 def add_navigation_data(
         url, data, *,
         home=True, new_page=True,
-        read=False, edit=False, history=False, inlinks=False,
+        read=False, edit=False, history=False, inlinks=False, upload=False,
         raw_url=None, extras=None, footers=None):
     if url is not None:
         url = url.lstrip('/')
@@ -111,6 +111,13 @@ def add_navigation_data(
             'url': url_for('incoming_links', url=url),
             'icon': 'link'
             })
+
+    if upload:
+        nav['extras'].append({
+            'title': "Upload File",
+            'url': url_for('upload_file', p=url),
+            'icon': 'upload'
+        })
 
     if raw_url:
         nav['footers'].append({

@@ -38,7 +38,7 @@ def page_history(url):
     add_auth_data(data)
     add_navigation_data(
             url, data,
-            read=True, edit=True, inlinks=True,
+            read=True, edit=True, inlinks=True, upload=True,
             raw_url='/api/history/' + url.lstrip('/'))
     return render_template('history-page.html', **data)
 
@@ -104,4 +104,3 @@ def diff_revision(rev):
     add_navigation_data(
             '', data)
     return render_template('diff-rev.html', **data)
-
