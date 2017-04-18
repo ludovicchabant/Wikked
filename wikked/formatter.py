@@ -62,8 +62,8 @@ class PageFormatter(object):
                 'query': self._processQuery
                 }
         self.endpoints = {
-                'url': self._formatUrlLink,
-                'asset': self._formatAssetLink
+                'file': self._formatFileLink,
+                'image': self._formatImageLink
                 }
 
     def formatText(self, ctx, text):
@@ -208,28 +208,19 @@ class PageFormatter(object):
         return '<div class="wiki-query"%s>%s</div>\n' % (
                 mod_attr, '|'.join(processed_args))
 
-    def _formatUrlLink(self, ctx, endpoint, value, display):
-        if value.startswith('/'):
-            abs_url = '/files' + value
+    def _formatFileLink(self, ctx, endpoint, value, display):
+        if value.startswith('./'):
+            abs_url = os.path.join('/pagefiles', ctx.url.lstrip('/'),
+                                   value[2:])
         else:
-            abs_url = os.path.join('/files', ctx.urldir, value)
-            abs_url = os.path.normpath(abs_url).replace('\\', '/')
+            abs_url = os.path.join('/files', value.lstrip('/'))
+        abs_url = os.path.normpath(abs_url).replace('\\', '/')
         return abs_url
 
-    def _formatAssetLink(self, ctx, endpoint, value, display):
-        img_exts = ['.jpg', '.jpeg', '.png', '.gif']
-        base, ext = os.path.splitext(value)
-        if value.startswith('/'):
-            abs_url = '/files' + value
-        else:
-            abs_url = os.path.join('/files', ctx.urldir, value)
-            abs_url = os.path.normpath(abs_url).replace('\\', '/')
-
-        if ext in img_exts:
-            return ('<img class="wiki-asset" src="%s" alt="%s"></img>' %
-                    (abs_url, display))
-
-        return '<a class="wiki-asset" href="%s">%s</a>' % (abs_url, display)
+    def _formatImageLink(self, ctx, endpoint, value, display):
+        abs_url = self._formatFileLink(ctx, endpoint, value, display)
+        return ('<img class="wiki-image" src="%s" alt="%s"></img>' %
+                (abs_url, display))
 
     def _formatEndpointLink(self, ctx, endpoint, value, display):
         url = '%s:%s' % (endpoint, value)

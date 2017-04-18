@@ -1,4 +1,5 @@
 import os.path
+import re
 import logging
 import datetime
 import urllib.parse
@@ -61,6 +62,10 @@ def get_page_or_raise(wiki, url, fields=None,
     if not async_update and fields is not None:
         if 'is_resolved' not in fields:
             fields.append('is_resolved')
+
+    if check_perms is not None and fields is not None:
+        if 'meta' not in fields:
+            fields.append('meta')
 
     page = wiki.getPage(url, fields=fields)
 
@@ -215,3 +220,19 @@ def make_page_title(url):
     if endpoint:
         return '%s: %s' % (endpoint, title)
     return title
+
+
+def load_mimetype_map():
+    mimetype_map = {}
+    sep_re = re.compile(r'\s+')
+    path = os.path.join(os.path.dirname(__file__), 'mime.types')
+    with open(path, 'r') as f:
+        for line in f:
+            tokens = sep_re.split(line)
+            if len(tokens) > 1:
+                for t in tokens[1:]:
+                    mimetype_map[t] = tokens[0]
+    return mimetype_map
+
+
+mimetype_map = load_mimetype_map()
