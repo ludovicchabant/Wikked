@@ -16,7 +16,9 @@ from sqlalchemy.orm import (
     Load)
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
-from wikked.db.base import Database, PageListNotFound, NoWantedPages
+from wikked.db.base import (
+    Database,
+    DatabaseUpgradeRequired, PageListNotFound, NoWantedPages)
 from wikked.page import Page, PageData, FileSystemPage, WantedPage
 from wikked.utils import split_page_url, lower_url
 
@@ -362,8 +364,7 @@ class SQLDatabase(Database):
 
     def updatePage(self, page_info):
         if self._needsSchemaUpdate():
-            raise Exception("This wiki needs a database update. "
-                            "Please run `wk reset`.")
+            raise DatabaseUpgradeRequired()
 
         logger.debug("Updating SQL database for page: %s" % page_info.url)
 
@@ -384,8 +385,7 @@ class SQLDatabase(Database):
 
     def updateAll(self, page_infos, force=False):
         if self._needsSchemaUpdate():
-            raise Exception("This wiki needs a database upgrade. "
-                            "Please run `wk reset`.")
+            raise DatabaseUpgradeRequired()
 
         logger.debug("Updating SQL database...")
 

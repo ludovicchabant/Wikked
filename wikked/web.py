@@ -170,7 +170,7 @@ app.jinja_env.globals.update({
     })
 
 
-from flask.ext.login import LoginManager
+from flask.ext.login import LoginManager  # NOQA
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.user_loader(user_loader)
@@ -178,12 +178,12 @@ login_manager.unauthorized_handler(lambda: abort(401))
 
 
 # Bcrypt extension.
-from wikked.bcryptfallback import Bcrypt
+from wikked.bcryptfallback import Bcrypt  # NOQA
 app.bcrypt = Bcrypt(app)
 
 
 # Import the views.
-# (this creates a PyFlakes warning but it's OK)
+import wikked.commonroutes    # NOQA
 import wikked.api.admin       # NOQA
 import wikked.api.edit        # NOQA
 import wikked.api.history     # NOQA
@@ -253,4 +253,3 @@ if app.config['INFLUXDB_HOST']:
 
     request_started.connect(on_request_started, app)
     request_tearing_down.connect(on_request_tearing_down, app)
-

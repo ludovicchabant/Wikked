@@ -1,6 +1,13 @@
 from wikked.utils import PageNotFoundError
 
 
+class DatabaseUpgradeRequired(Exception):
+    def __init__(self, *args):
+        super().__init__(
+            "This wiki needs a database update. Please run `wk reset`.",
+            *args)
+
+
 class PageListNotFound(Exception):
     def __init__(self, list_name):
         super(PageListNotFound, self).__init__(

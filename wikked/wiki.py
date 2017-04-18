@@ -5,6 +5,7 @@ import logging
 import importlib
 import multiprocessing
 from configparser import SafeConfigParser, NoOptionError
+from wikked.db import DatabaseUpgradeRequired
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
 from wikked.scheduler import ResolveScheduler
@@ -312,18 +313,22 @@ class Wiki(object):
             page_info.url,
             fields=['url', 'path', 'title', 'text']))
 
-    def updateAll(self, parallel=False):
+    def updateAll(self, parallel=False, reset_on_db_upgrade_required=True):
         """ Completely updates all pages, i.e. read them from the file-system
             and have them fully resolved and cached in the DB.
             This function will check for timestamps to only update pages that
             need it.
         """
         logger.info("Updating all pages...")
-        page_infos = self.fs.getPageInfos()
-        self.db.updateAll(page_infos)
-        self.resolve(parallel=parallel)
-        self.index.updateAll(self.db.getPages(
-            fields=['url', 'path', 'title', 'text']))
+        try:
+            page_infos = self.fs.getPageInfos()
+            self.db.updateAll(page_infos)
+            self.resolve(parallel=parallel)
+            self.index.updateAll(self.db.getPages(
+                fields=['url', 'path', 'title', 'text']))
+        except DatabaseUpgradeRequired:
+            logger.info("Database upgrade required... running full reset.")
+            self.reset(parallel=parallel)
 
     def getPageUrls(self, subdir=None):
         """ Returns all the page URLs in the wiki, or in the given
