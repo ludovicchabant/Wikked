@@ -5,7 +5,7 @@ import logging
 import importlib
 import multiprocessing
 from configparser import SafeConfigParser, NoOptionError
-from wikked.db import DatabaseUpgradeRequired
+from wikked.db.base import DatabaseUpgradeRequired
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
 from wikked.scheduler import ResolveScheduler
