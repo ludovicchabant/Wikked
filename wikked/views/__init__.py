@@ -2,6 +2,7 @@ import urllib.parse
 import functools
 from flask import request, render_template, url_for
 from flask.ext.login import current_user
+from wikked.utils import get_url_folder
 from wikked.web import app, get_wiki
 from wikked.webimpl import PermissionError
 
@@ -97,7 +98,8 @@ def add_navigation_data(
     if home:
         nav['url_home'] = '/'
     if new_page:
-        nav['url_new'] = url_for('edit_new_page')
+        url_folder = get_url_folder(url).lstrip('/')
+        nav['url_new'] = url_for('create_page', url_folder=url_folder)
     if read:
         nav['url_read'] = url_for('read', url=url)
     if edit:

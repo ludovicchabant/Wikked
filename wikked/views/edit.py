@@ -9,31 +9,43 @@ from wikked.webimpl.edit import (
     get_edit_page, do_edit_page, preview_edited_page, do_upload_file)
 
 
-@app.route('/create/')
+@app.route('/create/', methods=['GET'])
 def create_page_at_root():
     return create_page('/')
 
 
-@app.route('/create/<path:url>')
-def create_page(url):
+@app.route('/create/<path:url_folder>')
+def create_page(url_folder):
     wiki = get_wiki()
     if not wiki.auth.hasPermission('writers', current_user.get_id()):
         return show_unauthorized_error(
                 error="You're not authorized to create new pages.")
 
+    title_hint = ((url_folder or '') + '/New Page').lstrip('/')
     data = {
             'is_new': True,
-            'create_in': url.lstrip('/'),
+            'title_hint': title_hint,
             'text': '',
             'commit_meta': {
                 'author': current_user.get_id() or request.remote_addr,
-                'desc': 'Editing ' + url
+                'desc': 'Creating new page',
                 },
-            'post_back': url_for('edit_page', url=url.lstrip('/'))
+            'post_back': url_for('create_page_postback')
             }
     add_auth_data(data)
-    add_navigation_data(url, data)
+    add_navigation_data(None, data, new_page=False)
     return render_template('edit-page.html', **data)
+
+
+@app.route('/create', methods=['POST'])
+def create_page_postback():
+    wiki = get_wiki()
+    if not wiki.auth.hasPermission('writers', current_user.get_id()):
+        return show_unauthorized_error(
+                error="You're not authorized to create new pages.")
+
+    url = request.form['title']
+    return edit_page(url)
 
 
 @app.route('/edit', methods=['POST'])

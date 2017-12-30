@@ -86,6 +86,14 @@ def get_absolute_url(base_url, url, quote=False):
     return abs_url
 
 
+def get_url_folder(url):
+    if url:
+        head = os.path.dirname(url)
+        if head:
+            return head
+    return '/'
+
+
 def is_endpoint_url(url):
     return endpoint_prefix_regex.match(url) is not None
 
