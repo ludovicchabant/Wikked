@@ -86,17 +86,17 @@ class PageTest(WikkedTest):
 
     def testGenericUrl(self):
         wiki = self._getWikiFromStructure({
-            '/foo.txt': "URL: [[url:/blah/boo/raw.txt]]"
+            '/foo.txt': "URL: [[file:/blah/boo/raw.txt]]"
             })
         foo = wiki.getPage('/foo')
         self.assertEqual("URL: /files/blah/boo/raw.txt", foo.getFormattedText())
 
     def testImageUrl(self):
         wiki = self._getWikiFromStructure({
-            '/foo.txt': "URL: [[blah|asset:/blah/boo/image.png]]"
+            '/foo.txt': "URL: [[blah|image:/blah/boo/image.png]]"
             })
         foo = wiki.getPage('/foo')
-        self.assertEqual("URL: <img class=\"wiki-asset\" src=\"/files/blah/boo/image.png\" alt=\"blah\"></img>", foo.getFormattedText())
+        self.assertEqual("URL: <img class=\"wiki-image\" src=\"/files/blah/boo/image.png\" alt=\"blah\"></img>", foo.getFormattedText())
 
     def testUrlTemplateFunctions(self):
         wiki =self._getWikiFromStructure({
