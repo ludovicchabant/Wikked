@@ -1,6 +1,3 @@
-
-require(['wikked/edit'],
-        function(edit) {
-            edit.run();
-        });
+var runedit = require('./wikked/edit');
+runedit();
 

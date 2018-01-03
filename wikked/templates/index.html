@@ -4,7 +4,7 @@
         <title>{%if page_title%}{{page_title}} &ndash; {%endif%}Wikked</title>
         <meta charset="utf-8"></meta>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" type="text/css" href="/static/css/wikked.min.css" />
+        <link rel="stylesheet" type="text/css" href="/static/css/wikked.css" />
         {% block head %}{% endblock %}
     </head>
     <body>
@@ -20,15 +20,7 @@
             </div>
         </div>
         {% block scripts %}
-        {% if is_dev %}
         {% if not no_js %}
-        <script data-main="/dev-assets/js/wikked-dev.js" src="/dev-assets/js/require.js"></script>
-        <script>
-        require(['wikked.app'], function(app) {});
-        </script>
-        {% endif %}
-        {% else %}
-        <script src="/static/js/require.js"></script>
         <script src="/static/js/wikked.app.js"></script>
         {% endif %}
         {% endblock %}

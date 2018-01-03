@@ -1,6 +1,3 @@
-
-require(['wikked/app'],
-        function(app) {
-            app.run();
-        });
+var runapp = require('./wikked/app.js');
+runapp();
 
