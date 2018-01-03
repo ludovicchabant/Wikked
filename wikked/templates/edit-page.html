@@ -56,16 +56,8 @@
 </article>
 {% endblock %}
 {% block scripts %}
-{% if is_dev %}
+{{ super() }}
 {% if not no_js %}
-<script data-main="/dev-assets/js/wikked.js" src="/dev-assets/js/require.js"></script>
-<script>
-require(['wikked.app', 'wikked.edit'], function(app, edit) {});
-</script>
-{% endif %}
-{% else %}
-<script src="/static/js/require.js"></script>
-<script src="/static/js/wikked.app.js"></script>
 <script src="/static/js/wikked.edit.js"></script>
 {% endif %}
 {% endblock %}

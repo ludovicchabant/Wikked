@@ -18,6 +18,10 @@
 
 .wiki-menu-a {
     color: @color-gray-light;
+    display: block;
+    text-decoration: none;
+    line-height: 1.5em;
+    white-space: nowrap;
 }
 .wiki-menu-a-hover {
     background: @link-hover-color;
@@ -64,6 +68,7 @@
     background-color: @color-gray-dark;
     transition: left 200ms ease-in-out 0s,
                 width 200ms ease-in-out 0s,
+                box-shadow 200ms,
                 !important;
     a {
         padding: 0.5em 1em;
@@ -89,6 +94,7 @@
 }
 #wiki-menu.wiki-menu-ext {
     width: @wiki-menu-width-ext !important;
+    box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.3);
 }
 
 #wiki-menu-shortcut {
@@ -175,6 +181,11 @@ ul#search-preview {
 
 ul.search-results {
     list-style: none;
+}
+
+.wiki-search-underlayer {
+    background: #CCC;
+    transition: background 0.5s;
 }
 
 // Footer

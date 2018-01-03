@@ -141,8 +141,3 @@ def add_navigation_data(
         nav['footers'] = [{'title': f[0], 'url': f[1], 'icon': f[2]}
                           for f in footers]
     data['nav'] = nav
-
-    if app.config['WIKI_DEV_ASSETS']:
-        data['is_dev'] = True
-    if app.config['WIKI_DEV_NO_JS']:
-        data['no_js'] = True

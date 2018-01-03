@@ -21,8 +21,6 @@ app.config.from_envvar('WIKKED_SETTINGS', silent=True)
 app.config.setdefault('SQL_DEBUG', False)
 app.config.setdefault('SQL_COMMIT_ON_TEARDOWN', False)
 app.config.setdefault('WIKI_ROOT', None)
-app.config.setdefault('WIKI_DEV_ASSETS', False)
-app.config.setdefault('WIKI_DEV_NO_JS', False)
 app.config.setdefault('WIKI_UPDATE_ON_START', True)
 app.config.setdefault('WIKI_AUTO_RELOAD', False)
 app.config.setdefault('WIKI_ASYNC_UPDATE', False)
@@ -59,19 +57,10 @@ if os.path.isfile(config_path):
 # Make the app serve static content and wiki assets in DEBUG mode.
 app.config['WIKI_ROOT'] = wiki_root
 app.config['WIKI_FILES_DIR'] = os.path.join(wiki_root, '_files')
-if app.config['WIKI_DEV_ASSETS'] or app.config['WIKI_SERVE_FILES']:
+if app.config['WIKI_SERVE_FILES']:
     app.wsgi_app = SharedDataMiddleware(
             app.wsgi_app,
             {'/files': app.config['WIKI_FILES_DIR']})
-
-
-# In DEBUG mode, also serve raw assets instead of static ones.
-if app.config['WIKI_DEV_ASSETS']:
-    assets_folder = os.path.join(os.path.dirname(__file__), 'assets')
-    app.wsgi_app = SharedDataMiddleware(
-            app.wsgi_app,
-            {'/dev-assets': assets_folder},
-            cache=False)  # Etag/caching seems broken
 
 
 # Add a special route for the `.well-known` directory.
