@@ -101,7 +101,9 @@ def do_edit_page(wiki, user, url, text, author=None, message=None):
 
 def preview_edited_page(wiki, url, raw_text):
     dummy = DummyPage(wiki, url, raw_text)
-    resolver = PageResolver(dummy)
+    # We can pass `can_use_resolved_meta` since we know we have the only
+    # resolver running right now... this will speed things up dramatically.
+    resolver = PageResolver(dummy, can_use_resolved_meta=True)
     dummy._setExtendedData(resolver.run())
     return dummy.text
 

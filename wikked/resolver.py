@@ -12,6 +12,27 @@ from wikked.utils import (
 
 logger = logging.getLogger(__name__)
 
+re_wiki_tag = re.compile(
+    r'^<div class="wiki-(?P<name>[a-z]+)"'
+    r'(?P<opts>( data-wiki-([a-z]+)="([^"]+)")*)'
+    r'>(?P<value>.*)</div>$',
+    flags=re.MULTILINE)
+re_wiki_tag_attr = re.compile(
+    r'data-wiki-(?P<name>[a-z]+)="(?P<value>[^"]+)"')
+re_wiki_link = re.compile(
+    r'<a class="wiki-link(?P<isedit>-edit)?" '
+    r'data-wiki-url="(?P<url>[^"]+)"')
+
+re_wiki_include_param = re.compile(
+    r'<div class="wiki-param" '
+    r'data-name="(?P<name>\w[\w\d]*)?">'
+    r'(?P<value>.*?)</div>')
+
+re_wiki_query_param = re.compile(
+    r'(^|\|)\s*(?P<name>(__)?[a-zA-Z][a-zA-Z0-9_\-]+)\s*=(?P<value>[^\|]+)')
+re_wiki_query_template_ref = re.compile(r'^\[\[.*\]\]$')
+re_wiki_query_local_meta = re.compile(r'^__[a-zA-Z][a-zA-Z0-9_\-]+$')
+
 
 class FormatterNotFound(Exception):
     """ An exception raised when not formatter is found for the
@@ -108,12 +129,13 @@ class PageResolver(object):
         }
 
     def __init__(self, page, ctx=None, parameters=None, page_getter=None,
-                 pages_meta_getter=None):
+                 pages_meta_getter=None, can_use_resolved_meta=False):
         self.page = page
         self.ctx = ctx or ResolveContext(page)
         self.parameters = parameters
         self.page_getter = page_getter or self._getPage
         self.pages_meta_getter = pages_meta_getter or self._getPagesMeta
+        self.can_use_resolved_meta = can_use_resolved_meta
         self.output = None
         self.env = None
 
@@ -146,7 +168,7 @@ class PageResolver(object):
         return self.wiki.db.getPage(url, fields=fields)
 
     def _getPagesMeta(self):
-        fields = ['url', 'title', 'local_meta']
+        fields = ['url', 'title', 'local_meta', 'meta']
         return self.wiki.db.getPages(fields=fields)
 
     def _unsafeRun(self):
@@ -178,9 +200,7 @@ class PageResolver(object):
             meta_value = m.group('value')
             meta_opts = {}
             if m.group('opts'):
-                for c in re.finditer(
-                        r'data-wiki-(?P<name>[a-z]+)="(?P<value>[^"]+)"',
-                        m.group('opts')):
+                for c in re_wiki_tag_attr.finditer(m.group('opts')):
                     opt_name = c.group('name')
                     opt_value = c.group('value')
                     meta_opts[opt_name] = opt_value
@@ -190,13 +210,7 @@ class PageResolver(object):
                 return resolver(meta_opts, meta_value)
             return ''
 
-        final_text = re.sub(
-                r'^<div class="wiki-(?P<name>[a-z]+)"'
-                r'(?P<opts>( data-wiki-([a-z]+)="([^"]+)")*)'
-                r'>(?P<value>.*)</div>$',
-                repl2,
-                final_text,
-                flags=re.MULTILINE)
+        final_text = re_wiki_tag.sub(repl2, final_text)
 
         # If this is the root page, with all the includes resolved and
         # collapsed into one text, we need to run the final steps.
@@ -229,11 +243,7 @@ class PageResolver(object):
                 return ('<a class="wiki-link missing" data-wiki-url="%s" '
                         'href="%s"' % (quoted_url, actual_url))
 
-            final_text = re.sub(
-                    r'<a class="wiki-link(?P<isedit>-edit)?" '
-                    r'data-wiki-url="(?P<url>[^"]+)"',
-                    repl1,
-                    final_text)
+            final_text = re_wiki_link.sub(repl1, final_text)
 
             # Format the text.
             formatter = self._getFormatter(self.page.extension)
@@ -275,10 +285,7 @@ class PageResolver(object):
             # We do not, however, run them through the formatting -- this
             # will be done in one pass when everything is gathered on the
             # root page.
-            arg_pattern = (r'<div class="wiki-param" '
-                           r'data-name="(?P<name>\w[\w\d]*)?">'
-                           r'(?P<value>.*?)</div>')
-            for i, m in enumerate(re.finditer(arg_pattern, args)):
+            for i, m in enumerate(re_wiki_include_param.finditer(args)):
                 value = m.group('value').strip()
                 value = html_unescape(value)
                 value = self._renderTemplate(value, self.parameters,
@@ -319,9 +326,7 @@ class PageResolver(object):
         # Parse the query.
         parameters = dict(self.default_parameters)
         meta_query = {}
-        arg_pattern = r"(^|\|)\s*(?P<name>(__)?[a-zA-Z][a-zA-Z0-9_\-]+)\s*="\
-            r"(?P<value>[^\|]+)"
-        for m in re.finditer(arg_pattern, query):
+        for m in re_wiki_query_param.finditer(query):
             key = m.group('name').lower()
             if key in parameters:
                 parameters[key] = m.group('value')
@@ -383,7 +388,7 @@ class PageResolver(object):
 
     def _valueOrPageText(self, value, with_url=False):
         stripped_value = value.strip()
-        if re.match(r'^\[\[.*\]\]$', stripped_value):
+        if re_wiki_query_template_ref.match(stripped_value):
             include_url = stripped_value[2:-2]
             try:
                 page = self.page_getter(include_url)
@@ -394,7 +399,7 @@ class PageResolver(object):
                 return (page.url, page.text)
             return page.text
 
-        if re.match(r'^__[a-zA-Z][a-zA-Z0-9_\-]+$', stripped_value):
+        if re_wiki_query_local_meta.match(stripped_value):
             meta = self.page.getLocalMeta(stripped_value)
             if with_url:
                 return (None, meta)
@@ -405,6 +410,21 @@ class PageResolver(object):
         return value
 
     def _isPageMatch(self, page, name, value, level=0):
+        # If we can use the resolved meta properties of the page, this is
+        # a lot easier, since we just, well, check that.
+        if self.can_use_resolved_meta:
+            actual = page.getMeta(name)
+            if (actual is not None and
+                    ((type(actual) is list and value in actual) or
+                     (actual == value))):
+                return True
+            return False
+
+        # Can't use the resolved meta properties, for instance because we have
+        # a bunch of other resolvers like us busy resolving the other pages'
+        # properties, and so we don't know which ones are ready or not.
+        # We'll need to parse pages "manually".
+        #
         # Check the page's local meta properties.
         meta_keys = [name]
         if level > 0:
