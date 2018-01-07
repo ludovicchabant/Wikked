@@ -1,14 +1,14 @@
 <a id="wiki-menu-shortcut" class="wiki-logo">
     <span>W</span>
 </a>
-<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{% if not nav.hide_menu%} wiki-menu-active{%endif%}">
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if not nav.hide_menu%} wiki-menu-active{%endif%}">
     <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
         <span class="fa fa-lock"></span>
     </div>
-    <ul class="">
-        <li><a href="/"><span class="fa fa-home"></span> Home</a></li>
-        <li><a href="/special"><span class="fa fa-dashboard"></span> Special Pages</a></li>
-        <li><a href="/create/"><span class="fa fa-file"></span> New Page</a></li>
+    <ul class="pure-menu-list">
+        <li class="pure-menu-item"><a href="/"><span class="fa fa-home"></span> Home</a></li>
+        <li class="pure-menu-item"><a href="/special"><span class="fa fa-dashboard"></span> Special Pages</a></li>
+        <li class="pure-menu-item"><a href="/create/"><span class="fa fa-file"></span> New Page</a></li>
     </ul>
     <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider">
         <fieldset>
@@ -16,12 +16,12 @@
             <ul id="search-preview"></ul>
         </fieldset>
     </form>
-    <ul class="pure-menu-divider">
+    <ul class="pure-menu-list">
         {%if auth.is_logged_in%}
-        <li><a href="{{auth.url_profile}}"><span class="fa fa-cog"></span> {{auth.username}}</a></li>
-        <li><a href="{{auth.url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_profile}}"><span class="fa fa-cog"></span> {{auth.username}}</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
         {%else%}
-        <li><a href="{{auth.url_login}}"><span class="fa fa-log-in"></span> Login</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_login}}"><span class="fa fa-log-in"></span> Login</a></li>
         {%endif%}
     </ul>
 </nav>
