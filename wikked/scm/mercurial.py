@@ -167,14 +167,10 @@ class MercurialSourceControl(MercurialBaseSourceControl):
             rev.description += lines[i]
             i += 1
 
-        rev.files = []
         for j in range(i + 1, len(lines)):
             if lines[j] == '':
                 continue
-            rev.files.append({
-                'path': lines[j][2:],
-                'action': self.actions[lines[j][0]]
-                })
+            rev.addFile(lines[j][2:], self.actions.get(lines[j][0]))
 
         return rev
 
@@ -230,7 +226,7 @@ def create_hg_client(root):
     try:
         import signal
         signal.signal(signal.SIGTERM, shutdown_commandserver)
-    except:
+    except:  # NOQA
         # `mod_wsgi` prevents adding stuff to `SIGTERM`
         # so let's not make a big deal if this doesn't
         # go through.
@@ -290,10 +286,8 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             if needs_files:
                 rev_statuses = self.client.status(change=rev.node)
                 for rev_status in rev_statuses:
-                    r.files.append({
-                        'path': _s(rev_status[1]),
-                        'action': self.actions[_s(rev_status[0])]
-                        })
+                    r.addFile(_s(rev_status[1]),
+                              self.actions.get(_s(rev_status[0])))
             revisions.append(r)
         return revisions
 
@@ -345,4 +339,3 @@ class MercurialCommandServerSourceControl(MercurialBaseSourceControl):
             self.client.revert(files=_b(paths), nobackup=True)
         else:
             self.client.revert(all=True, nobackup=True)
-

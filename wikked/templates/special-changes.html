@@ -39,8 +39,11 @@
                                     <ul class="pure-ul-unstyled">
                                         {%for p in e.pages%}
                                         <li>
-                                            <a href="{{get_rev_url(p.url, e.rev_id)}}">{{p.url}}</a>
-                                            {{p.action_label}}
+                                            {%if p.url%}
+                                            <a href="{{get_rev_url(p.url, e.rev_id)}}">{{p.url}}</a> <em><small>({{p.action}})</small></em>
+                                            {%else%}
+                                            <code>{{p.path}}</code> <em>({{p.action}})</em>
+                                            {%endif%}
                                         </li>
                                         {%endfor%}
                                     </ul>

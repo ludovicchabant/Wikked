@@ -9,7 +9,8 @@ STATE_NAMES = ['committed', 'modified', 'new']
 ACTION_ADD = 0
 ACTION_DELETE = 1
 ACTION_EDIT = 2
-ACTION_NAMES = ['add', 'delete', 'edit']
+ACTION_OTHER = 3
+ACTION_NAMES = ['add', 'delete', 'edit', 'other']
 
 
 class SourceControl(object):
@@ -61,6 +62,14 @@ class Author(object):
         return '%s <%s>' % (self.name, self.email)
 
 
+class FileRevision:
+    def __init__(self, path=None, action=None):
+        self.path = path
+        self.action = action
+        if action is None:
+            self.action = ACTION_OTHER
+
+
 class Revision(object):
     def __init__(self, rev_id=-1):
         self.rev_id = rev_id
@@ -78,6 +87,9 @@ class Revision(object):
     def is_committed(self):
         return self.rev_id != -1
 
+    def addFile(self, path, action=None):
+        self.files.append(FileRevision(path, action))
+
 
 class SourceControlError(Exception):
     def __init__(self, operation, message, command, output, *args):
@@ -90,4 +102,3 @@ class SourceControlError(Exception):
     def __str__(self):
         return "Error running '%s': %s\nCommand: %s\nOutput: %s" % (
                 self.operation, self.message, self.command, self.output)
-
