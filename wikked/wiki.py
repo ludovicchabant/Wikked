@@ -446,6 +446,10 @@ class Wiki(object):
             if config.has_option(s, 'default'):
                 ep.default = config.get(s, 'default')
             endpoints[ep.name] = ep
+        # The 'help' endpoint is built-in and is always the same.
+        help_ep = EndpointInfo('help')
+        help_ep.query = False
+        endpoints['help'] = help_ep
         return endpoints
 
 

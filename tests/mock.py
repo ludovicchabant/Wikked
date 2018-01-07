@@ -91,6 +91,7 @@ def mock_os_walk(root_dir, root_node):
 class MockFileSystem(FileSystem):
     def __init__(self, root, config, structure=None):
         super(MockFileSystem, self).__init__(root, config)
+        self.include_builtin_namespaces = False
         if not structure:
             self.structure = {}
         else:
@@ -99,6 +100,8 @@ class MockFileSystem(FileSystem):
     def getPageInfos(self, subdir=None):
         def tmp_walk(path):
             node = self._getNode(path)
+            if node is None:
+                raise Exception("No node at %s" % path)
             return mock_os_walk(path, node)
 
         orig_walk = os.walk
@@ -134,6 +137,8 @@ class MockFileSystem(FileSystem):
     def _getPhysicalPath(self, url, is_file=True, make_new=False):
         def tmp_walk(path):
             node = self._getNode(path)
+            if node is None:
+                raise Exception("No node at %s" % path)
             return mock_os_walk(path, node)
 
         orig_walk = os.walk

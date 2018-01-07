@@ -6,16 +6,17 @@ import fnmatch
 import logging
 import itertools
 from .utils import (PageNotFoundError, NamespaceNotFoundError,
-        split_page_url)
+                    split_page_url)
 
 
 META_ENDPOINT = '_meta'
 
-
 logger = logging.getLogger(__name__)
 
-
 valid_filename_pattern = re.compile('^[\w \.\-\(\)\[\]\\/]+$', re.UNICODE)
+
+builtin_namespace_help = os.path.join(os.path.dirname(__file__),
+                                      'resources', 'help')
 
 
 class PageInfo(object):
@@ -39,10 +40,10 @@ class FileSystem(object):
     """
     def __init__(self, root, config):
         self.root = root
-
         self.excluded = None
         self.page_extensions = None
         self.default_extension = config.get('wiki', 'default_extension')
+        self.include_builtin_namespaces = True
 
     def start(self, wiki):
         self.page_extensions = list(set(
@@ -64,22 +65,10 @@ class FileSystem(object):
         if subdir is not None:
             basepath = self.getPhysicalNamespacePath(subdir)
 
-        logger.debug("Scanning for pages in: %s" % basepath)
-        for dirpath, dirnames, filenames in os.walk(basepath):
-            incl_dirnames = []
-            for d in dirnames:
-                full_d = os.path.join(dirpath, d)
-                for e in self.excluded:
-                    if fnmatch.fnmatch(full_d, e):
-                        break
-                else:
-                    incl_dirnames.append(d)
-            dirnames[:] = incl_dirnames
-            for filename in filenames:
-                path = os.path.join(dirpath, filename)
-                page_info = self.getPageInfo(path)
-                if page_info is not None:
-                    yield page_info
+        yield from self._getPageInfos(basepath)
+
+        if subdir is None and self.include_builtin_namespaces:
+            yield from self._getPageInfos(builtin_namespace_help)
 
     def getPageInfo(self, path):
         logger.debug("Reading page info from: %s" % path)
@@ -117,6 +106,24 @@ class FileSystem(object):
     def getPhysicalNamespacePath(self, url, make_new=False):
         return self._getPhysicalPath(url, is_file=False, make_new=make_new)
 
+    def _getPageInfos(self, root_dir):
+        logger.debug("Scanning for pages in: %s" % root_dir)
+        for dirpath, dirnames, filenames in os.walk(root_dir):
+            incl_dirnames = []
+            for d in dirnames:
+                full_d = os.path.join(dirpath, d)
+                for e in self.excluded:
+                    if fnmatch.fnmatch(full_d, e):
+                        break
+                else:
+                    incl_dirnames.append(d)
+            dirnames[:] = incl_dirnames
+            for filename in filenames:
+                path = os.path.join(dirpath, filename)
+                page_info = self.getPageInfo(path)
+                if page_info is not None:
+                    yield page_info
+
     def _getPageInfo(self, path):
         meta = None
         abs_path = os.path.abspath(path)
@@ -124,12 +131,16 @@ class FileSystem(object):
         if rel_path.startswith(META_ENDPOINT + os.sep):
             rel_path = rel_path[len(META_ENDPOINT) + 1:]
             meta, rel_path = rel_path.split(os.sep, 1)
+        elif abs_path.startswith(builtin_namespace_help):
+            meta = 'help'
+            rel_path = abs_path[len(builtin_namespace_help) + 1:]
         rel_path_split = os.path.splitext(rel_path)
         ext = rel_path_split[1].lstrip('.')
         name = rel_path_split[0].replace(os.sep, '/')
         if len(ext) == 0:
             return None
-        if self.page_extensions is not None and ext not in self.page_extensions:
+        if (self.page_extensions is not None and
+                ext not in self.page_extensions):
             return None
 
         url = '/' + name
@@ -154,7 +165,7 @@ class FileSystem(object):
         url_path = url[1:].replace('/', os.sep)
         if url_path[0] == os.sep:
             raise ValueError("Page URLs can only have one slash at the "
-                    "beginning. Got: %s" % url)
+                             "beginning. Got: %s" % url)
 
         # If we want a non-existing file's path, just build that.
         if make_new:
@@ -189,7 +200,8 @@ class FileSystem(object):
 
     def _throwNotFoundError(self, url, searched, is_file):
         if is_file:
-            raise PageNotFoundError("No such page '%s' in: %s" % (url, searched))
+            raise PageNotFoundError("No such page '%s' in: %s" %
+                                    (url, searched))
         else:
-            raise NamespaceNotFoundError("No such namespace '%s' in: %s" % (url, searched))
-
+            raise NamespaceNotFoundError("No such namespace '%s' in: %s" %
+                                         (url, searched))
