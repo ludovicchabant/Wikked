@@ -3,16 +3,13 @@ import re
 import logging
 import datetime
 import urllib.parse
+from wikked.auth import PERM_READ, PERM_EDIT, PERM_NAMES
 from wikked.utils import (
         get_absolute_url, PageNotFoundError, split_page_url, is_endpoint_url)
 from wikked.web import app
 
 
 logger = logging.getLogger(__name__)
-
-
-CHECK_FOR_READ = 1
-CHECK_FOR_WRITE = 2
 
 
 class CircularRedirectError(Exception):
@@ -31,8 +28,10 @@ class RedirectNotFoundError(Exception):
         self.url = not_found
 
 
-class PermissionError(Exception):
-    pass
+class UserPermissionError(Exception):
+    def __init__(self, perm, message):
+        super().__init__(message)
+        self.perm = perm
 
 
 def url_from_viewarg(url):
@@ -49,8 +48,7 @@ def split_url_from_viewarg(url):
     return (None, '/' + path)
 
 
-def get_page_or_raise(wiki, url, fields=None,
-                      check_perms=None):
+def get_page_or_raise(wiki, url, fields=None, check_perms=None):
     auto_reload = app.config.get('WIKI_AUTO_RELOAD', False)
     if auto_reload is True and fields is not None:
         if 'path' not in fields:
@@ -64,8 +62,8 @@ def get_page_or_raise(wiki, url, fields=None,
             fields.append('is_resolved')
 
     if check_perms is not None and fields is not None:
-        if 'meta' not in fields:
-            fields.append('meta')
+        if 'local_meta' not in fields:
+            fields.append('local_meta')
 
     page = wiki.getPage(url, fields=fields)
 
@@ -86,11 +84,17 @@ def get_page_or_raise(wiki, url, fields=None,
             page = wiki.getPage(url, fields=fields)
 
     if check_perms is not None:
-        user, mode = check_perms
-        if mode == CHECK_FOR_READ and not is_page_readable(page, user):
-            raise PermissionError()
-        elif mode == CHECK_FOR_WRITE and not is_page_writable(page, user):
-            raise PermissionError()
+        user, modes = check_perms
+        has_page_perm = page.wiki.auth.hasPagePermission
+        for mode in modes.split(','):
+            if not has_page_perm(page, user, PERM_NAMES[mode]):
+                if mode == 'read':
+                    msg = "You don't have permissions to read this page."
+                elif mode == 'edit':
+                    msg = "You don't have permissions to edit this page."
+                else:
+                    msg = "You don't have the '%s' permission." % mode
+                raise UserPermissionError(mode, msg)
 
     return page
 
@@ -102,12 +106,12 @@ def get_page_or_none(wiki, url, **kwargs):
         return None
 
 
-def is_page_readable(page, user):
-    return page.wiki.auth.isPageReadable(page, user)
+def is_page_readable(page, username):
+    return page.wiki.auth.hasPagePermission(page, username, PERM_READ)
 
 
-def is_page_writable(page, user):
-    return page.wiki.auth.isPageWritable(page, user)
+def is_page_writable(page, username):
+    return page.wiki.auth.hasPagePermission(page, username, PERM_EDIT)
 
 
 def get_page_meta(page, local_only=False):

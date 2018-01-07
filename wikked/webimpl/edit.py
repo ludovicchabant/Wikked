@@ -7,7 +7,6 @@ from wikked.formatter import PageFormatter, FormattingContext
 from wikked.resolver import PageResolver
 from wikked.utils import PageNotFoundError
 from wikked.webimpl import (
-        CHECK_FOR_WRITE,
         get_page_or_raise, get_page_meta, make_page_title)
 
 
@@ -46,7 +45,7 @@ def get_edit_page(wiki, user, url, author=None, custom_data=None):
     page = None
     try:
         page = get_page_or_raise(wiki, url,
-                                 check_perms=(user, CHECK_FOR_WRITE))
+                                 check_perms=(user, 'edit'))
     except PageNotFoundError:
         # Only catch errors about the page not existing. Permission
         # errors still go through.
@@ -80,7 +79,7 @@ def get_edit_page(wiki, user, url, author=None, custom_data=None):
 def do_edit_page(wiki, user, url, text, author=None, message=None):
     try:
         get_page_or_raise(wiki, url,
-                          check_perms=(user, CHECK_FOR_WRITE))
+                          check_perms=(user, 'edit'))
     except PageNotFoundError:
         # Only catch errors about the page not existing. Permission
         # errors still go through.

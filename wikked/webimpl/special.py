@@ -3,11 +3,10 @@ from wikked.db.base import NoWantedPages
 from wikked.page import WantedPage
 from wikked.utils import get_absolute_url
 from wikked.webimpl import (
-        CHECK_FOR_READ,
         get_page_meta, get_page_or_raise, make_page_title,
         is_page_readable, get_redirect_target,
         get_or_build_pagelist, get_generic_pagelist_builder,
-        CircularRedirectError, RedirectNotFoundError)
+        UserPermissionError, CircularRedirectError, RedirectNotFoundError)
 
 
 def build_pagelist_view_data(pages, user):
@@ -183,7 +182,7 @@ def get_wanted_pages(wiki, user):
 
 
 def list_pages(wiki, user, url=None):
-    pages = list(filter(is_page_readable, wiki.getPages(url)))
+    pages = [p for p in wiki.getPages(url) if is_page_readable(p, user)]
     page_metas = [get_page_meta(page) for page in pages]
     result = {'path': url, 'pages': list(page_metas)}
     return result
@@ -195,8 +194,8 @@ def get_search_results(wiki, user, query):
     for h in hits:
         try:
             get_page_or_raise(wiki, h.url,
-                              check_perms=(user, CHECK_FOR_READ))
-        except PermissionError:
+                              check_perms=(user, 'read'))
+        except UserPermissionError:
             continue
 
         readable_hits.append({
@@ -217,8 +216,8 @@ def get_search_preview_results(wiki, user, query):
     for h in hits:
         try:
             get_page_or_raise(wiki, h.url,
-                              check_perms=(user, CHECK_FOR_READ))
-        except PermissionError:
+                              check_perms=(user, 'read'))
+        except UserPermissionError:
             continue
 
         readable_hits.append({'url': h.url, 'title': h.title})
@@ -228,5 +227,3 @@ def get_search_preview_results(wiki, user, query):
             'hit_count': len(readable_hits),
             'hits': readable_hits}
     return result
-
-

@@ -2,13 +2,13 @@
 {% block content %}
 <article>
     <header>
-        <h1>{{error|default("You're not authorized for this")}}</h1>
+        <h1>{{error|default("User Permission Error")}}</h1>
     </header>
     <section>
         {%if error_details%}
         <p>{{error_details}}</p>
         {%else%}
-        <p>The page you're trying to access is protected.</p>
+        <p>You don't have permission for this.</p>
         {%endif%}
         {%if auth.is_logged_in%}
         <p>User <a href="{{auth.url_profile}}">{{auth.username}}</a> is not authorized for this. Please <a href="/login">log into a different account</a> to have access to it.</p>

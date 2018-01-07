@@ -2,11 +2,13 @@ from flask import abort, request, jsonify
 from flask.ext.login import current_user
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg, split_url_from_viewarg
+from wikked.webimpl.decorators import requires_permission
 from wikked.webimpl.edit import (
         get_edit_page, do_edit_page, preview_edited_page)
 
 
 @app.route('/api/edit/<path:url>', methods=['GET', 'POST'])
+@requires_permission('edit')
 def api_edit_page(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -45,6 +47,7 @@ def api_edit_page(url):
 
 
 @app.route('/api/preview', methods=['POST'])
+@requires_permission('edit')
 def api_preview():
     url = request.form.get('url')
     if url == '' or not url[0] == '/':
@@ -58,16 +61,19 @@ def api_preview():
 
 
 @app.route('/api/rename/<path:url>', methods=['POST'])
+@requires_permission(['create', 'delete'])
 def api_rename_page(url):
-    pass
+    raise NotImplementedError()
 
 
 @app.route('/api/delete/<path:url>', methods=['POST'])
+@requires_permission('delete')
 def api_delete_page(url):
-    pass
+    raise NotImplementedError()
 
 
 @app.route('/api/validate/newpage', methods=['GET', 'POST'])
+@requires_permission('create')
 def api_validate_newpage():
     path = request.form.get('title')
     if path is None:
@@ -84,4 +90,3 @@ def api_validate_newpage():
     except Exception:
         return '"This page name is invalid or unavailable"'
     return '"true"'
-

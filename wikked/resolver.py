@@ -400,7 +400,7 @@ class PageResolver(object):
             return page.text
 
         if re_wiki_query_local_meta.match(stripped_value):
-            meta = self.page.getLocalMeta(stripped_value)
+            meta = self.page.getLocalMeta(stripped_value, is_single=True)
             if with_url:
                 return (None, meta)
             return meta

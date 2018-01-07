@@ -1,9 +1,8 @@
 from flask import request, redirect, url_for, render_template, abort
 from flask.ext.login import current_user
-from wikked.views import (
-        requires_auth, requires_reader_auth,
-        add_auth_data, add_navigation_data)
+from wikked.views import add_auth_data, add_navigation_data
 from wikked.web import app, get_wiki
+from wikked.webimpl.decorators import requires_permission
 from wikked.webimpl.special import (
         get_orphans, get_broken_redirects, get_double_redirects,
         get_dead_ends, get_broken_links, get_wanted_pages)
@@ -87,7 +86,7 @@ special_pages = {
 
 
 @app.route('/special')
-@requires_reader_auth
+@requires_permission('read')
 def special_pages_dashboard():
     data = {
             'is_special_page': True,
@@ -136,42 +135,42 @@ def call_api(page_name, api_func, *args, **kwargs):
 
 
 @app.route('/special/list/orphans')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_orphans():
     return call_api('orphans', get_orphans,
                     raw_url='/api/orphans')
 
 
 @app.route('/special/list/broken-redirects')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_broken_redirects():
     return call_api('broken-redirects', get_broken_redirects,
                     raw_url='/api/broken-redirects')
 
 
 @app.route('/special/list/double-redirects')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_double_redirects():
     return call_api('double-redirects', get_double_redirects,
                     raw_url='/api/double-redirects')
 
 
 @app.route('/special/list/dead-ends')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')
 
 
 @app.route('/special/list/broken-links')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_broken_links():
     return call_api('broken-links', get_broken_links,
                     raw_url='/api/broken-links')
 
 
 @app.route('/special/list/wanted-pages')
-@requires_reader_auth
+@requires_permission('read')
 def special_list_wanted_pages():
     return call_api('wanted-pages', get_wanted_pages,
                     raw_url='/api/wanted-pages',
@@ -179,7 +178,7 @@ def special_list_wanted_pages():
 
 
 @app.route('/special/list-refresh', methods=['POST'])
-@requires_auth('administrators')
+@requires_permission('listrefresh')
 def special_list_refresh():
     list_name = request.form.get('list_name')
     postback_name = request.form.get('postback')

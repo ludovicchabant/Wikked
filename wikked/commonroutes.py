@@ -5,8 +5,7 @@ from werkzeug import Response
 from werkzeug.wsgi import wrap_file
 from wikked.web import app, get_wiki
 from wikked.webimpl import (
-    get_page_or_raise, url_from_viewarg,
-    CHECK_FOR_READ, mimetype_map)
+    get_page_or_raise, url_from_viewarg, mimetype_map)
 
 
 @app.route('/pagefiles/<path:url>')
@@ -17,7 +16,7 @@ def read_pagefile(url):
         replace('\\', '/').\
         rstrip('/')
     page = get_page_or_raise(wiki, page_url, fields=['path'],
-                             check_perms=(user, CHECK_FOR_READ))
+                             check_perms=(user, 'read'))
     # If no exception was thrown, we're good for reading the file.
 
     path_no_ext, _ = os.path.splitext(page.path)

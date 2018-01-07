@@ -1,26 +1,21 @@
 from flask import abort, redirect, url_for, request, render_template
 from flask.ext.login import current_user
-from wikked.views import (
-        errorhandling_ui2, show_unauthorized_error,
-        add_auth_data, add_navigation_data)
+from wikked.views import add_auth_data, add_navigation_data
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
+from wikked.webimpl.decorators import requires_permission
 from wikked.webimpl.edit import (
     get_edit_page, do_edit_page, preview_edited_page, do_upload_file)
 
 
-@app.route('/create/', methods=['GET'])
+@app.route('/create', methods=['GET'])
 def create_page_at_root():
     return create_page('/')
 
 
 @app.route('/create/<path:url_folder>')
+@requires_permission('create')
 def create_page(url_folder):
-    wiki = get_wiki()
-    if not wiki.auth.hasPermission('writers', current_user.get_id()):
-        return show_unauthorized_error(
-                error="You're not authorized to create new pages.")
-
     title_hint = ((url_folder or '') + '/New Page').lstrip('/')
     data = {
             'is_new': True,
@@ -38,25 +33,21 @@ def create_page(url_folder):
 
 
 @app.route('/create', methods=['POST'])
+@requires_permission('create')
 def create_page_postback():
-    wiki = get_wiki()
-    if not wiki.auth.hasPermission('writers', current_user.get_id()):
-        return show_unauthorized_error(
-                error="You're not authorized to create new pages.")
-
     url = request.form['title']
     return edit_page(url)
 
 
 @app.route('/edit', methods=['POST'])
-@errorhandling_ui2('error-unauthorized-edit.html')
+@requires_permission('edit')
 def edit_new_page():
     url = request.form['title']
     return edit_page(url)
 
 
 @app.route('/edit/<path:url>', methods=['GET', 'POST'])
-@errorhandling_ui2('error-unauthorized-edit.html')
+@requires_permission('edit')
 def edit_page(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -104,7 +95,7 @@ def edit_page(url):
 
 
 @app.route('/upload', methods=['GET', 'POST'])
-@errorhandling_ui2('error-unauthorized-upload.html')
+@requires_permission('create')
 def upload_file():
     p = request.args.get('p')
     data = {

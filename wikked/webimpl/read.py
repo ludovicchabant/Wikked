@@ -1,7 +1,6 @@
 import os.path
 import urllib.parse
 from wikked.webimpl import (
-        CHECK_FOR_READ,
         get_redirect_target, get_page_meta, get_page_or_raise)
 from wikked.utils import split_page_url, PageNotFoundError
 
@@ -14,7 +13,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
         page, visited_paths = get_redirect_target(
                 wiki, path,
                 fields=['url', 'path', 'title', 'text', 'meta'],
-                check_perms=(user, CHECK_FOR_READ),
+                check_perms=(user, 'read'),
                 first_only=no_redirect)
 
         if no_redirect:
@@ -35,7 +34,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
         info_page = get_page_or_raise(
                 wiki, meta_page_url,
                 fields=['url', 'path', 'title', 'text', 'meta'],
-                check_perms=(user, CHECK_FOR_READ))
+                check_perms=(user, 'read'))
     except PageNotFoundError:
         # Let permissions errors go through, but if the info page is not
         # found that's OK.
@@ -49,7 +48,7 @@ def read_page(wiki, user, url, *, no_redirect=False):
             info_page = get_page_or_raise(
                     wiki, endpoint_info.default,
                     fields=['url', 'path', 'title', 'text', 'meta'],
-                    check_perms=(user, CHECK_FOR_READ))
+                    check_perms=(user, 'read'))
 
     ext = None
     if info_page is not None:
@@ -113,14 +112,14 @@ def read_page(wiki, user, url, *, no_redirect=False):
 def get_incoming_links(wiki, user, url):
     page = get_page_or_raise(
             wiki, url,
-            check_perms=(user, CHECK_FOR_READ),
+            check_perms=(user, 'read'),
             fields=['url', 'title', 'meta'])
     links = []
     for link in page.getIncomingLinks():
         try:
             other = get_page_or_raise(
                     wiki, link,
-                    check_perms=(user, CHECK_FOR_READ),
+                    check_perms=(user, 'read'),
                     fields=['url', 'title', 'meta'])
             links.append(get_page_meta(other))
         except PageNotFoundError:
@@ -133,14 +132,14 @@ def get_incoming_links(wiki, user, url):
 def get_outgoing_links(wiki, user, url):
     page = get_page_or_raise(
             wiki, url,
-            check_perms=(user, CHECK_FOR_READ),
+            check_perms=(user, 'read'),
             fields=['url', 'title', 'links'])
     links = []
     for link in page.links:
         try:
             other = get_page_or_raise(
                     wiki, link,
-                    check_perms=(user, CHECK_FOR_READ),
+                    check_perms=(user, 'read'),
                     fields=['url', 'title', 'meta'])
             links.append(get_page_meta(other))
         except PageNotFoundError:

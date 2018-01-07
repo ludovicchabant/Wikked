@@ -78,12 +78,12 @@ if app.config['PROFILE']:
 
 # Customize logging.
 if app.config['DEBUG']:
-    l = logging.getLogger('wikked')
-    l.setLevel(logging.DEBUG)
+    lg = logging.getLogger('wikked')
+    lg.setLevel(logging.DEBUG)
 
 if app.config['SQL_DEBUG']:
-    l = logging.getLogger('sqlalchemy')
-    l.setLevel(logging.DEBUG)
+    lg = logging.getLogger('sqlalchemy')
+    lg.setLevel(logging.DEBUG)
 
 app.logger.debug("Creating Flask application...")
 
@@ -115,6 +115,7 @@ if app.wiki_params is None:
 def uncaching_wiki_updater(wiki, url):
     app.logger.debug("Uncaching all pages because %s was edited." % url)
     wiki.db.uncachePages(except_url=url, only_required=True)
+
 
 app.wiki_params.wiki_updater = uncaching_wiki_updater
 
@@ -178,12 +179,14 @@ import wikked.api.edit        # NOQA
 import wikked.api.history     # NOQA
 import wikked.api.read        # NOQA
 import wikked.api.special     # NOQA
+import wikked.api.user        # NOQA
 import wikked.views.admin     # NOQA
 import wikked.views.edit      # NOQA
 import wikked.views.error     # NOQA
 import wikked.views.history   # NOQA
 import wikked.views.read      # NOQA
 import wikked.views.special   # NOQA
+import wikked.views.user      # NOQA
 
 
 # Async wiki update.

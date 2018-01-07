@@ -131,10 +131,10 @@ def flatten_single_metas(meta):
     items = list(meta.items())
     for k, v in items:
         if isinstance(v, list):
-            l = len(v)
-            if l == 0:
+            lv = len(v)
+            if lv == 0:
                 del meta[k]
-            elif l == 1:
+            elif lv == 1:
                 meta[k] = v[0]
     return meta
 

@@ -3,12 +3,8 @@ import datetime
 from pygments import highlight
 from pygments.formatters import get_formatter_by_name
 from pygments.lexers import get_lexer_by_name
-from wikked.page import PageLoadingError
-from wikked.scm.base import ACTION_NAMES
-from wikked.utils import PageNotFoundError
-from wikked.webimpl import (
-        CHECK_FOR_READ,
-        is_page_readable, get_page_meta, get_page_or_raise)
+from wikked.scm.base import ACTION_NAMES, ACTION_ADD, ACTION_EDIT
+from wikked.webimpl import get_page_meta, get_page_or_raise
 
 
 def get_history_data(wiki, user, history, needs_files=False):
@@ -27,24 +23,19 @@ def get_history_data(wiki, user, history, needs_files=False):
         if needs_files:
             rev_data['pages'] = []
             for f in rev.files:
-                url = None
-                path = os.path.join(wiki.root, f['path'])
-                try:
-                    page = wiki.db.getPage(path=path)
-                    # Hide pages that the user can't see.
-                    if not is_page_readable(page, user):
-                        continue
-                    url = page.url
-                except PageNotFoundError:
-                    pass
-                except PageLoadingError:
-                    pass
-                if not url:
-                    url = os.path.splitext(f['path'])[0]
-                rev_data['pages'].append({
-                    'url': url,
-                    'action': ACTION_NAMES[f['action']]
-                    })
+                path = os.path.join(wiki.root, f.path)
+                page_info = wiki.fs.getPageInfo(path)
+                action_name = ACTION_NAMES[f.action]
+                if page_info is not None:
+                    rev_data['pages'].append({
+                        'url': page_info.url,
+                        'is_add_or_edit': (f.action == ACTION_ADD or
+                                           f.action == ACTION_EDIT),
+                        'action': action_name})
+                else:
+                    rev_data['pages'].append({
+                        'path': f.path,
+                        'action': action_name})
             rev_data['num_pages'] = len(rev_data['pages'])
             if len(rev_data['pages']) > 0:
                 hist_data.append(rev_data)
@@ -61,7 +52,7 @@ def get_site_history(wiki, user, after_rev=None):
 
 
 def get_page_history(wiki, user, url):
-    page = get_page_or_raise(wiki, url, check_perms=(user, CHECK_FOR_READ))
+    page = get_page_or_raise(wiki, url, check_perms=(user, 'read,history'))
     history = page.getHistory()
     hist_data = get_history_data(wiki, user, history)
     result = {'url': url, 'meta': get_page_meta(page), 'history': hist_data}
@@ -69,7 +60,7 @@ def get_page_history(wiki, user, url):
 
 
 def read_page_rev(wiki, user, url, rev):
-    page = get_page_or_raise(wiki, url, check_perms=(user, CHECK_FOR_READ))
+    page = get_page_or_raise(wiki, url, check_perms=(user, 'read,history'))
     page_rev = page.getRevision(rev)
     meta = dict(get_page_meta(page, True), rev=rev)
     result = {'meta': meta, 'text': page_rev}
@@ -77,7 +68,7 @@ def read_page_rev(wiki, user, url, rev):
 
 
 def diff_page_revs(wiki, user, url, rev1, rev2=None, raw=False):
-    page = get_page_or_raise(wiki, url, check_perms=(user, CHECK_FOR_READ))
+    page = get_page_or_raise(wiki, url, check_perms=(user, 'read,history'))
     diff = page.getDiff(rev1, rev2)
     if not raw:
         lexer = get_lexer_by_name('diff')
@@ -108,4 +99,3 @@ def revert_page(wiki, user, url, rev, message=None):
             'message': message
             }
     wiki.revertPage(url, page_fields)
-

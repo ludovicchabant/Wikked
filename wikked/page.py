@@ -8,14 +8,19 @@ from .formatter import PageFormatter, FormattingContext
 logger = logging.getLogger(__name__)
 
 
-def get_meta_value(meta, key, first=False):
+class UnexpectedMultipleMetaValuesError(Exception):
+    pass
+
+
+def get_meta_value(meta, key, *, is_single=False):
     value = meta.get(key)
-    if value is not None and isinstance(value, list):
-        l = len(value)
-        if l == 0:
-            return None
-        if l == 1 or first:
-            return value[0]
+    if isinstance(value, list):
+        if is_single:
+            lv = len(value)
+            if lv == 0:
+                return None
+            if lv == 1:
+                return value[0]
         return value
     return value
 
@@ -112,15 +117,15 @@ class Page(object):
     def getFormattedText(self):
         return self._data.formatted_text
 
-    def getMeta(self, name=None, first=False):
+    def getMeta(self, name=None, is_single=False):
         if name is None:
             return self._data.ext_meta
-        return get_meta_value(self._data.ext_meta, name, first)
+        return get_meta_value(self._data.ext_meta, name, is_single=is_single)
 
-    def getLocalMeta(self, name=None, first=False):
+    def getLocalMeta(self, name=None, is_single=False):
         if name is None:
             return self._data.local_meta
-        return get_meta_value(self._data.local_meta, name, first)
+        return get_meta_value(self._data.local_meta, name, is_single=is_single)
 
     def getLocalLinks(self):
         return self._data.local_links

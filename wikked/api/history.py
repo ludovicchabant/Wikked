@@ -2,12 +2,14 @@ from flask import request, abort, jsonify
 from flask.ext.login import current_user
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg
+from wikked.webimpl.decorators import requires_permission
 from wikked.webimpl.history import (
         get_site_history, get_page_history,
         read_page_rev, diff_page_revs)
 
 
 @app.route('/api/site-history')
+@requires_permission('wikihistory')
 def api_site_history():
     wiki = get_wiki()
     user = current_user.get_id()
@@ -23,6 +25,7 @@ def api_main_page_history():
 
 
 @app.route('/api/history/<path:url>')
+@requires_permission('history')
 def api_page_history(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -32,6 +35,7 @@ def api_page_history(url):
 
 
 @app.route('/api/revision/<path:url>')
+@requires_permission('history')
 def api_read_page_rev(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -44,6 +48,7 @@ def api_read_page_rev(url):
 
 
 @app.route('/api/diff/<path:url>')
+@requires_permission('history')
 def api_diff_page(url):
     wiki = get_wiki()
     user = current_user.get_id()
@@ -59,6 +64,7 @@ def api_diff_page(url):
 
 
 @app.route('/api/revert/<path:url>', methods=['POST'])
+@requires_permission('revert')
 def api_revert_page(url):
     # TODO: only users with write access can revert.
     if 'rev' not in request.form:
@@ -83,4 +89,3 @@ def api_revert_page(url):
     wiki.revertPage(url, page_fields)
     result = {'reverted': 1}
     return jsonify(result)
-

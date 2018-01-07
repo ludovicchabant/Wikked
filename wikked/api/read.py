@@ -4,22 +4,24 @@ from wikked.scm.base import STATE_NAMES
 from wikked.utils import PageNotFoundError
 from wikked.web import app, get_wiki
 from wikked.webimpl import (
-        CHECK_FOR_READ,
-        url_from_viewarg,
-        get_page_or_raise,
-        get_page_meta,
-        PageNotFoundError, RedirectNotFoundError, CircularRedirectError)
+    url_from_viewarg,
+    get_page_or_raise,
+    get_page_meta,
+    RedirectNotFoundError, CircularRedirectError)
+from wikked.webimpl.decorators import requires_permission
 from wikked.webimpl.read import (
-        read_page, get_incoming_links, get_outgoing_links)
+    read_page, get_incoming_links, get_outgoing_links)
 from wikked.webimpl.special import list_pages
 
 
 @app.route('/api/list')
+@requires_permission('list')
 def api_list_all_pages():
     return api_list_pages(None)
 
 
 @app.route('/api/list/<path:url>')
+@requires_permission('list')
 def api_list_pages(url):
     wiki = get_wiki()
     url = url_from_viewarg(url)
@@ -61,9 +63,9 @@ def api_read_page_raw(url):
     url = url_from_viewarg(url)
     try:
         page = get_page_or_raise(
-                wiki, url,
-                check_perms=(user, CHECK_FOR_READ),
-                fields=['raw_text', 'meta'])
+            wiki, url,
+            check_perms=(user, 'read'),
+            fields=['raw_text', 'meta'])
     except PageNotFoundError as e:
         app.logger.exception(e)
         abort(404)
@@ -73,14 +75,16 @@ def api_read_page_raw(url):
 
 
 @app.route('/api/query')
+@requires_permission('search')
 def api_query():
     wiki = get_wiki()
     query = dict(request.args)
     pages = wiki.getPages(meta_query=query)
     result = {
-            'query': query,
-            'pages': [get_page_meta(p) for p in pages]
-            }
+        'query': query,
+        # TODO: filter pages we don't have permission to.
+        'pages': [get_page_meta(p) for p in pages]
+    }
     return jsonify(result)
 
 
@@ -96,7 +100,7 @@ def api_get_state(url):
     user = current_user.get_id()
     page = get_page_or_raise(
             wiki, url,
-            check_perms=(user, CHECK_FOR_READ),
+            check_perms=(user, 'read'),
             fields=['url', 'title', 'path', 'meta'])
     state = page.getState()
     return jsonify({
