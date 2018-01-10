@@ -15,7 +15,8 @@ class ListCommand(WikkedCommand):
     def setupParser(self, parser):
         parser.add_argument(
             'pattern',
-            help="Filter pages whose URL matches the given pattern.")
+            help="Filter pages whose URL matches the given pattern.",
+            nargs='?')
         parser.add_argument(
             '-r', '--regex',
             action='store_true',
