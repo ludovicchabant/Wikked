@@ -17,7 +17,7 @@ def build_pagelist_view_data(pages, user):
 
 
 def generic_pagelist_view(wiki, user, list_name, filter_func, fields=None):
-    fields = fields or ['url', 'title', 'meta']
+    fields = fields or ['url', 'title', 'local_meta', 'meta']
     pages = get_or_build_pagelist(
             wiki,
             list_name,
@@ -34,7 +34,7 @@ def get_orphans(wiki, user):
         rev_links = {}
         for p in wiki.getPages(
                 no_endpoint_only=True,
-                fields=['url', 'title', 'meta', 'links']):
+                fields=['url', 'title', 'local_meta', 'meta', 'links']):
             pages[p.url] = p
             rev_links.setdefault(p.url, 0)
 
@@ -49,7 +49,7 @@ def get_orphans(wiki, user):
                 or_pages.append(pages[tgt])
         return or_pages
 
-    fields = ['url', 'title', 'meta', 'links']
+    fields = ['url', 'title', 'local_meta', 'meta', 'links']
     pages = get_or_build_pagelist(wiki, 'orphans', builder_func, fields)
     return build_pagelist_view_data(pages, user)
 
@@ -64,7 +64,7 @@ def get_broken_redirects(wiki, user):
         try:
             target, visited = get_redirect_target(
                     path,
-                    fields=['url', 'meta'])
+                    fields=['url', 'local_meta', 'meta'])
         except CircularRedirectError:
             return True
         except RedirectNotFoundError:
@@ -82,7 +82,7 @@ def get_double_redirects(wiki, user):
         redirs = {}
         for p in wiki.getPages(
                 no_endpoint_only=True,
-                fields=['url', 'title', 'meta']):
+                fields=['url', 'title', 'local_meta', 'meta']):
             pages[p.url] = p
 
             target = p.getMeta('redirect')
@@ -96,7 +96,7 @@ def get_double_redirects(wiki, user):
                 dr_pages.append(pages[src])
         return dr_pages
 
-    fields = ['url', 'title', 'meta']
+    fields = ['url', 'title', 'local_meta', 'meta']
     pages = get_or_build_pagelist(wiki, 'double_redirects', builder_func,
                                   fields)
     return build_pagelist_view_data(pages, user)
@@ -108,7 +108,7 @@ def get_dead_ends(wiki, user):
 
     return generic_pagelist_view(
             wiki, user, 'dead_ends', filter_func,
-            fields=['url', 'title', 'meta', 'links'])
+            fields=['url', 'title', 'local_meta', 'meta', 'links'])
 
 
 def get_broken_links(wiki, user):
@@ -119,7 +119,7 @@ def get_broken_links(wiki, user):
         page_existence = {}
         for p in wiki.getPages(
                 no_endpoint_only=True,
-                fields=['url', 'title', 'meta', 'links']):
+                fields=['url', 'title', 'local_meta', 'meta', 'links']):
             # Gather all outgoing links from each page, then check which
             # of those match another page in the dictionary.
             for l in p.links:
@@ -134,7 +134,7 @@ def get_broken_links(wiki, user):
                     pages.add(p)
         return pages
 
-    fields = ['url', 'title', 'meta']
+    fields = ['url', 'title', 'local_meta', 'meta']
     pages = get_or_build_pagelist(wiki, 'broken_links', builder_func, fields)
     return build_pagelist_view_data(pages, user)
 
@@ -147,7 +147,7 @@ def get_wanted_pages(wiki, user):
         page_existence = {}
         for p in wiki.getPages(
                 no_endpoint_only=True,
-                fields=['url', 'title', 'meta', 'links']):
+                fields=['url', 'title', 'local_meta', 'meta', 'links']):
             for l in p.links:
                 abs_l = get_absolute_url(p.url, l)
                 exists = page_existence.get(abs_l, None)
