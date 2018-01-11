@@ -6,6 +6,7 @@ import importlib
 import multiprocessing
 from configparser import SafeConfigParser, NoOptionError
 from wikked.db.base import DatabaseUpgradeRequired
+from wikked.endpoint import create_endpoint_infos
 from wikked.fs import FileSystem
 from wikked.auth import UserManager
 from wikked.scheduler import ResolveScheduler
@@ -204,13 +205,6 @@ class WikiParameters(object):
                     "No such source control: " + scm_type)
 
 
-class EndpointInfo(object):
-    def __init__(self, name):
-        self.name = name
-        self.query = True
-        self.default = None
-
-
 class Wiki(object):
     """ The wiki class! This is where the magic happens.
     """
@@ -233,7 +227,7 @@ class Wiki(object):
         self.templates_url = (
             parameters.config.get('wiki', 'templates_endpoint') +
             ':/')
-        self.endpoints = self._createEndpointInfos(parameters.config)
+        self.endpoints = create_endpoint_infos(parameters.config)
 
         self.fs = parameters.fs_factory()
         self.index = parameters.index_factory()
@@ -436,21 +430,16 @@ class Wiki(object):
     def getSpecialFilenames(self):
         return self.special_filenames
 
-    def _createEndpointInfos(self, config):
-        endpoints = {}
-        sections = [s for s in config.sections() if s.startswith('endpoint:')]
-        for s in sections:
-            ep = EndpointInfo(s[9:])   # 9 = len('endpoint:')
-            if config.has_option(s, 'query'):
-                ep.query = config.getboolean(s, 'query')
-            if config.has_option(s, 'default'):
-                ep.default = config.get(s, 'default')
-            endpoints[ep.name] = ep
-        # The 'help' endpoint is built-in and is always the same.
-        help_ep = EndpointInfo('help')
-        help_ep.query = False
-        endpoints['help'] = help_ep
-        return endpoints
+    def getEndpoints(self):
+        return self.endpoints.values()
+
+    def getEndpoint(self, name):
+        return self.endpoints.get(name)
+
+    def getBuiltinEndpoints(self):
+        for ep in self.endpoints.values():
+            if ep.builtin:
+                yield ep
 
 
 def reloader_stat_loop(wiki, interval=1):

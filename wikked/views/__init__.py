@@ -1,7 +1,8 @@
 import urllib.parse
 from flask import request, url_for
 from flask.ext.login import current_user
-from wikked.utils import get_url_folder
+from wikked.utils import get_url_folder, split_page_url
+from wikked.web import get_wiki
 
 
 def add_auth_data(data):
@@ -26,8 +27,13 @@ def add_navigation_data(
         home=True, new_page=True,
         read=False, edit=False, history=False, inlinks=False, upload=False,
         raw_url=None, extras=None, footers=None):
+    is_readonly_endpoint = False
     if url is not None:
         url = url.lstrip('/')
+        endpoint, _ = split_page_url(url)
+        if endpoint:
+            epinfo = get_wiki().getEndpoint(endpoint)
+            is_readonly_endpoint = (epinfo is not None and epinfo.readonly)
     elif read or edit or history or inlinks:
         raise Exception("Default navigation entries require a valid URL.")
 
@@ -38,14 +44,14 @@ def add_navigation_data(
 
     if home:
         nav['url_home'] = '/'
-    if new_page:
+    if new_page and not is_readonly_endpoint:
         url_folder = get_url_folder(url).lstrip('/')
         nav['url_new'] = url_for('create_page', url_folder=url_folder)
     if read:
         nav['url_read'] = url_for('read', url=url)
-    if edit:
+    if edit and not is_readonly_endpoint:
         nav['url_edit'] = url_for('edit_page', url=url)
-    if history:
+    if history and not is_readonly_endpoint:
         nav['url_hist'] = url_for('page_history', url=url)
 
     if inlinks:
@@ -55,7 +61,7 @@ def add_navigation_data(
             'icon': 'link'
             })
 
-    if upload:
+    if upload and not is_readonly_endpoint:
         nav['extras'].append({
             'title': "Upload File",
             'url': url_for('upload_file', p=url),

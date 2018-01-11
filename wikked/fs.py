@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 
 valid_filename_pattern = re.compile('^[\w \.\-\(\)\[\]\\/]+$', re.UNICODE)
 
-builtin_namespace_help = os.path.join(os.path.dirname(__file__),
-                                      'resources', 'help')
-
 
 class PageInfo(object):
     def __init__(self, url, path):
@@ -40,12 +37,14 @@ class FileSystem(object):
     """
     def __init__(self, root, config):
         self.root = root
+        self.wiki = None
         self.excluded = None
         self.page_extensions = None
         self.default_extension = config.get('wiki', 'default_extension')
-        self.include_builtin_namespaces = True
+        self.include_builtin_endpoints = True
 
     def start(self, wiki):
+        self.wiki = wiki
         self.page_extensions = list(set(
             itertools.chain(*wiki.formatters.values())))
 
@@ -67,8 +66,9 @@ class FileSystem(object):
 
         yield from self._getPageInfos(basepath)
 
-        if subdir is None and self.include_builtin_namespaces:
-            yield from self._getPageInfos(builtin_namespace_help)
+        if subdir is None and self.include_builtin_endpoints:
+            for ep in self.wiki.getBuiltinEndpoints():
+                yield from self._getPageInfos(ep.root_dir)
 
     def getPageInfo(self, path):
         logger.debug("Reading page info from: %s" % path)
@@ -131,9 +131,12 @@ class FileSystem(object):
         if rel_path.startswith(META_ENDPOINT + os.sep):
             rel_path = rel_path[len(META_ENDPOINT) + 1:]
             meta, rel_path = rel_path.split(os.sep, 1)
-        elif abs_path.startswith(builtin_namespace_help):
-            meta = 'help'
-            rel_path = abs_path[len(builtin_namespace_help) + 1:]
+        elif self.include_builtin_endpoints:
+            for ep in self.wiki.getBuiltinEndpoints():
+                if abs_path.startswith(ep.root_dir):
+                    meta = ep.name
+                    rel_path = abs_path[len(ep.root_dir) + 1:]
+                    break
         rel_path_split = os.path.splitext(rel_path)
         ext = rel_path_split[1].lstrip('.')
         name = rel_path_split[0].replace(os.sep, '/')
@@ -159,7 +162,11 @@ class FileSystem(object):
         # page file.
         root = self.root
         if endpoint:
-            root = os.path.join(self.root, META_ENDPOINT, endpoint)
+            ep_info = self.wiki.getEndpoint(endpoint)
+            if ep_info is None or not ep_info.builtin:
+                root = os.path.join(self.root, META_ENDPOINT, endpoint)
+            else:
+                root = ep_info.root_dir
 
         # Make the URL into a relative file-system path.
         url_path = url[1:].replace('/', os.sep)

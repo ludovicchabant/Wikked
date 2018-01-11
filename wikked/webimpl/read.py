@@ -1,7 +1,8 @@
 import os.path
 import urllib.parse
 from wikked.webimpl import (
-        get_redirect_target, get_page_meta, get_page_or_raise)
+    get_redirect_target, get_page_meta, get_page_or_raise,
+    make_page_title)
 from wikked.utils import split_page_url, PageNotFoundError
 
 
@@ -40,15 +41,17 @@ def read_page(wiki, user, url, *, no_redirect=False):
         # found that's OK.
         info_page = None
 
+    info_page_is_default = False
     endpoint_info = wiki.endpoints.get(endpoint)
-    if endpoint_info is not None:
-        # We have some information about this endpoint...
-        if endpoint_info.default and info_page is None:
-            # Default page text.
-            info_page = get_page_or_raise(
-                    wiki, endpoint_info.default,
-                    fields=['url', 'path', 'title', 'text', 'meta'],
-                    check_perms=(user, 'read'))
+    if (endpoint_info is not None and endpoint_info.default and
+            info_page is None):
+        # We have no actual page to show, but we have a default one
+        # that we can use for this endpoint.
+        info_page = get_page_or_raise(
+            wiki, endpoint_info.default,
+            fields=['url', 'path', 'title', 'text', 'meta'],
+            check_perms=(user, 'read'))
+        info_page_is_default = True
 
     ext = None
     if info_page is not None:
@@ -64,6 +67,20 @@ def read_page(wiki, user, url, *, no_redirect=False):
                 'text': info_page.text,
                 'page_title': info_page.title,
                 'format': ext}
+
+            if info_page_is_default:
+                # If our page is actually the endpoint's default page
+                # because the real page didn't exist, we need to change
+                # the title to match the page that we wanted originally.
+                # We also fix the URL so navigation links to edit/create
+                # the page acts on the wanted page -- not the default info
+                # page.
+                wanted_page_title = make_page_title(meta_page_url)
+                result['page_title'] = wanted_page_title
+                result['meta']['title'] = wanted_page_title
+                result['meta']['url'] = urllib.parse.quote(
+                    meta_page_url.encode('utf-8'))
+
             result.update(additional_info)
             return result
         raise PageNotFoundError(url)
