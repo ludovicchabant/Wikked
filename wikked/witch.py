@@ -81,31 +81,36 @@ def main():
 
     # Setup the parser.
     parser = argparse.ArgumentParser(
-            description="Wikked command line utility")
-    parser.add_argument('--root',
-            help="Use the specified root directory instead of the current one")
-    parser.add_argument('--debug',
-            help="Show debug information",
-            action='store_true')
-    parser.add_argument('--debugsql',
-            help="Show debug information for SQLAlchemy (advanced)",
-            action='store_true')
-    parser.add_argument('--quiet',
-            help="Print only important information",
-            action='store_true')
-    parser.add_argument('--log',
-            help="Send log messages to the specified file")
-    parser.add_argument('--version',
-            help="Print version and exit",
-            action='store_true')
+        description="Wikked command line utility")
+    parser.add_argument(
+        '--root',
+        help="Use the specified root directory instead of the current one")
+    parser.add_argument(
+        '--debug',
+        help="Show debug information",
+        action='store_true')
+    parser.add_argument(
+        '--debugsql',
+        help="Show debug information for SQLAlchemy (advanced)",
+        action='store_true')
+    parser.add_argument(
+        '--quiet',
+        help="Print only important information",
+        action='store_true')
+    parser.add_argument(
+        '--log',
+        help="Send log messages to the specified file")
+    parser.add_argument(
+        '--version',
+        help="Print version and exit",
+        action='store_true')
 
     # Import the commands.
-    # (this creates a PyLint warning but it's OK)
     # pylint: disable=unused-import
-    import wikked.commands.manage
-    import wikked.commands.query
-    import wikked.commands.users
-    import wikked.commands.web
+    import wikked.commands.manage  # NOQA
+    import wikked.commands.query   # NOQA
+    import wikked.commands.users   # NOQA
+    import wikked.commands.web     # NOQA
 
     # Setup the command parsers.
     subparsers = parser.add_subparsers()
