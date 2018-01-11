@@ -2,12 +2,14 @@ import os.path
 import logging
 import urllib.parse
 from werkzeug.utils import secure_filename
+from wikked.auth import PERM_UPLOAD, PERM_WIKIUPLOAD
 from wikked.page import Page, PageData
 from wikked.formatter import PageFormatter, FormattingContext
 from wikked.resolver import PageResolver
 from wikked.utils import PageNotFoundError
 from wikked.webimpl import (
-        get_page_or_raise, get_page_meta, make_page_title)
+    get_page_or_raise, get_page_meta, make_page_title,
+    UserPermissionError)
 
 
 logger = logging.getLogger(__name__)
@@ -107,20 +109,31 @@ def preview_edited_page(wiki, url, raw_text):
     return dummy.text
 
 
-def do_upload_file(wiki, user, reqfile, for_url=None, submit=True):
+def do_upload_file(wiki, user, reqfile, for_url=None, commit_user=False,
+                   submit=True):
     if not reqfile:
         raise Exception("No file was specified.")
     if not reqfile.filename:
         raise Exception("No file name was specified.")
 
-    # TODO: check permissions for the user.
+    # Check permissions for the user.
+    if for_url:
+        for_page = get_page_or_raise(wiki, for_url,
+                                     fields=['url', 'local_meta'])
+        if not wiki.auth.hasPagePermission(for_page, user, PERM_UPLOAD):
+            raise UserPermissionError(
+                "You don't have permission to upload files to this page.")
+    else:
+        if not wiki.auth.hasPermission(user, PERM_WIKIUPLOAD):
+            raise UserPermissionError(
+                "You don't have permission to upload files.")
 
     filename = secure_filename(reqfile.filename)
 
-    files_dir = os.path.join(wiki.root, '_files')
-    upload_dir = files_dir
+    upload_dir = os.path.join(wiki.root, '_files')
     if for_url:
-        upload_dir = os.path.join(wiki.root, for_url)
+        fs_info = wiki.fs.findPageInfo(for_url)
+        upload_dir, _ = os.path.splitext(fs_info.path)
 
     path = os.path.join(upload_dir, filename)
     path = os.path.normpath(path)
@@ -134,14 +147,14 @@ def do_upload_file(wiki, user, reqfile, for_url=None, submit=True):
     # Commit the file to the source-control.
     if submit:
         commit_meta = {
-            'author': user,
+            'author': commit_user,
             'message': "Uploaded '%s'." % filename}
         wiki.scm.commit([path], commit_meta)
 
     if for_url:
         example = './%s' % filename
     else:
-        example = os.path.relpath(path, files_dir)
+        example = filename
     result = {
         'example': example
     }

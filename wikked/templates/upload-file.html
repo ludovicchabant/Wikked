@@ -8,9 +8,13 @@
         {% if success %}
         <h2>File Uploaded!</h2>
         <section>
-            <p>The file is accessible with the following syntax: <code>{%raw%}{{file: {%endraw%}{{success.example}}{%raw%}}}{%endraw%}</code></p>
+            <p>The file URL is accessible with the following syntax: <code>[[file: {{success.example}}]]</code></p>
+            <p>Media files can be embedded easily in a page:</p>
+            <p><ul>
+                <li>Image: <code>[[image: {{success.example}}]]</code></li>
+            </ul></p>
             {% if success.is_page_specific %}
-            <p><strong>Note</strong>: this syntax is valid only on <a href="{{get_read_url(for_page)}}">the current page</a>.</p>
+            <p><strong>Note</strong>: these syntaxes are only valid on <a href="{{get_read_url(for_page)}}">the current page</a>.</p>
             {% endif %}
         </section>
         {% else %}

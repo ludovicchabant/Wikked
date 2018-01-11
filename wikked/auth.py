@@ -14,12 +14,14 @@ PERM_DELETE = 2**3
 PERM_HISTORY = 2**4
 PERM_REVERT = 2**5
 PERM_SEARCH = 2**6
+PERM_UPLOAD = 2**7
 # Site-wide premissions.
-PERM_INDEX = 2**7
-PERM_LIST = 2**8
-PERM_LISTREFRESH = 2**9
-PERM_WIKIHISTORY = 2**10
-PERM_USERS = 2**11
+PERM_INDEX = 2**8
+PERM_LIST = 2**9
+PERM_LISTREFRESH = 2**10
+PERM_WIKIHISTORY = 2**11
+PERM_WIKIUPLOAD = 2**12
+PERM_USERS = 2**13
 
 PERM_NAMES = {
         # Page permissions.
@@ -31,11 +33,13 @@ PERM_NAMES = {
         'history': PERM_HISTORY,
         'revert': PERM_REVERT,
         'search': PERM_SEARCH,
+        'upload': PERM_UPLOAD,
         # Site-wide permissions.
         'index': PERM_INDEX,
         'list': PERM_LIST,
         'listrefresh': PERM_LISTREFRESH,
         'wikihistory': PERM_WIKIHISTORY,
+        'wikiupload': PERM_WIKIUPLOAD,
         'users': PERM_USERS,
         # Aliases
         'write': PERM_EDIT,
@@ -47,9 +51,9 @@ ALL_USERS_GROUP = '*'
 
 DEFAULT_USER_ROLES = {
         'reader': (PERM_READ | PERM_HISTORY),
-        'contributor': (PERM_READ | PERM_EDIT | PERM_HISTORY),
+        'contributor': (PERM_READ | PERM_EDIT | PERM_HISTORY | PERM_UPLOAD),
         'editor': (PERM_READ | PERM_EDIT | PERM_CREATE | PERM_DELETE |
-                   PERM_HISTORY | PERM_REVERT),
+                   PERM_HISTORY | PERM_REVERT | PERM_UPLOAD | PERM_WIKIUPLOAD),
         'admin': 0xffff
         }
 

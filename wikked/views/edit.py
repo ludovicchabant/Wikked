@@ -98,27 +98,28 @@ def edit_page(url):
 @requires_permission('create')
 def upload_file():
     p = request.args.get('p')
+    p_url = url_from_viewarg(p)
     data = {
         'post_back': url_for('upload_file', p=p),
-        'for_page': p
+        'for_page': p_url
     }
     add_auth_data(data)
-    add_navigation_data(p, data)
+    add_navigation_data(p_url, data)
 
     if request.method == 'GET':
         return render_template('upload-file.html', **data)
 
     if request.method == 'POST':
-        wiki = get_wiki()
-        user = current_user.get_id() or request.remote_addr
-
         for_url = None
         is_page_specific = (request.form.get('is_page_specific') == 'true')
         if is_page_specific:
-            for_url = p
+            for_url = p_url
 
+        wiki = get_wiki()
+        user = current_user.get_id()
         res = do_upload_file(
             wiki, user, request.files.get('file'),
+            commit_user=(user or request.remote_addr),
             for_url=for_url)
 
         data['success'] = {
