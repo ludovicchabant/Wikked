@@ -1,5 +1,5 @@
 import functools
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.auth import PERM_NAMES
 from wikked.web import get_wiki
 from wikked.webimpl import UserPermissionError

@@ -1,5 +1,5 @@
 from flask import abort, request, jsonify
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg, split_url_from_viewarg
 from wikked.webimpl.decorators import requires_permission

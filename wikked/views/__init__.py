@@ -1,6 +1,6 @@
 import urllib.parse
 from flask import request, url_for
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.utils import get_url_folder, split_page_url
 from wikked.web import get_wiki
 

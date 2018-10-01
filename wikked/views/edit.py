@@ -1,5 +1,5 @@
 from flask import abort, redirect, url_for, request, render_template
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.views import add_auth_data, add_navigation_data
 from wikked.web import app, get_wiki
 from wikked.webimpl import url_from_viewarg

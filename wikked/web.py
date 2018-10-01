@@ -160,7 +160,7 @@ app.jinja_env.globals.update({
     })
 
 
-from flask.ext.login import LoginManager  # NOQA
+from flask_login import LoginManager  # NOQA
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.user_loader(user_loader)

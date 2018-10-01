@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    from flask.ext.bcrypt import Bcrypt, generate_password_hash
+    from flask_bcrypt import Bcrypt, generate_password_hash
 except ImportError:
     logger.warning("Bcrypt not available... falling back to SHA512.")
     logger.warning("Run `pip install Flask-Bcrypt` for more secure "
@@ -24,4 +24,3 @@ except ImportError:
             self.check_password_hash = check_password_hash
 
     Bcrypt = SHA512Fallback
-

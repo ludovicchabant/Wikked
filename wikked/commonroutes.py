@@ -1,6 +1,6 @@
 import os.path
 from flask import request, abort
-from flask.ext.login import current_user
+from flask_login import current_user
 from werkzeug import Response
 from werkzeug.wsgi import wrap_file
 from wikked.web import app, get_wiki

@@ -1,5 +1,5 @@
 from flask import request
-from flask.ext.login import login_user
+from flask_login import login_user
 from wikked.web import app, get_wiki
 
 
@@ -15,4 +15,3 @@ def do_login_user():
             login_user(user, remember=bool(remember))
             return True
     return False
-

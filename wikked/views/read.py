@@ -1,7 +1,7 @@
 import urllib.parse
 from flask import (
     render_template, request, abort)
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.utils import split_page_url, PageNotFoundError
 from wikked.views import add_auth_data, add_navigation_data
 from wikked.web import app, get_wiki

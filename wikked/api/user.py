@@ -1,5 +1,5 @@
 from flask import jsonify, abort, request
-from flask.ext.login import logout_user, current_user
+from flask_login import logout_user, current_user
 from wikked.web import app, get_wiki
 from wikked.webimpl.admin import do_login_user
 

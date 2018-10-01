@@ -1,5 +1,5 @@
 from flask import request, jsonify, make_response, abort
-from flask.ext.login import current_user
+from flask_login import current_user
 from wikked.scm.base import STATE_NAMES
 from wikked.utils import PageNotFoundError
 from wikked.web import app, get_wiki
