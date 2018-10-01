@@ -77,6 +77,17 @@ _.extend(NavigationView.prototype, {
     },
     _toggleWikiMenuPin: function(onOff) {
         $('#wiki-menu-pin').toggleClass('wiki-menu-pin-active', onOff);
+        var lockIcon = $('#wiki-menu-pin>span');
+        if (onOff)
+        {
+            lockIcon.addClass('fa-lock');
+            lockIcon.removeClass('fa-unlock');
+        }
+        else
+        {
+            lockIcon.addClass('fa-unlock');
+            lockIcon.removeClass('fa-lock');
+        }
     },
     _searchQueryFocused: function(e) {
         this.isMenuActiveLocked = true;

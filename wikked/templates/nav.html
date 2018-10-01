@@ -3,7 +3,7 @@
 </a>
 <nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if not nav.hide_menu%} wiki-menu-active{%endif%}">
     <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
-        <span class="fa fa-lock"></span>
+        <span class="fa fa-{%if not nav.hide_menu%}lock{%else%}unlock{%endif%}"></span>
     </div>
     <ul class="pure-menu-list">
         {%if nav.url_home%}<li class="pure-menu-item"><a href="{{nav.url_home}}"><span class="fa fa-home"></span> Home</a></li>{%endif%}
