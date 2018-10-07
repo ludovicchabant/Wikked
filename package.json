@@ -1,6 +1,8 @@
 {
   "name": "Wikked",
   "version": "0.1.0",
+  "repository": "https://bitbucket.org/ludovicchabant/Wikked",
+  "license": "Apache-2.0",
   "devDependencies": {
     "browser-sync": "^2.23.2",
     "gulp": "^3.9.1",
