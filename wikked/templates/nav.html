@@ -3,14 +3,14 @@
 </a>
 <nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if not nav.hide_menu%} wiki-menu-active{%endif%}">
     <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
-        <span class="fa fa-{%if not nav.hide_menu%}lock{%else%}unlock{%endif%}"></span>
+        <i class="fas fa-{%if not nav.hide_menu%}lock{%else%}unlock{%endif%}"></i>
     </div>
     <ul class="pure-menu-list">
-        {%if nav.url_home%}<li class="pure-menu-item"><a href="{{nav.url_home}}"><span class="fa fa-home"></span> Home</a></li>{%endif%}
-        {%if nav.url_new%}<li class="pure-menu-item"><a href="{{nav.url_new}}"><span class="fa fa-file"></span> New Page</a></li>{%endif%}
-        {%if nav.url_read%}<li class="pure-menu-item"><a href="{{nav.url_read}}"><span class="fa fa-book"></span> Read</a></li>{%endif%}
-        {%if nav.url_edit%}<li class="pure-menu-item"><a href="{{nav.url_edit}}"><span class="fa fa-edit"></span> Edit</a></li>{%endif%}
-        {%if nav.url_hist%}<li class="pure-menu-item"><a href="{{nav.url_hist}}"><span class="fa fa-road"></span> History</a></li>{%endif%}
+        {%if nav.url_home%}<li class="pure-menu-item"><a href="{{nav.url_home}}"><i class="fas fa-home"></i> Home</a></li>{%endif%}
+        {%if nav.url_new%}<li class="pure-menu-item"><a href="{{nav.url_new}}"><i class="fas fa-file"></i> New Page</a></li>{%endif%}
+        {%if nav.url_read%}<li class="pure-menu-item"><a href="{{nav.url_read}}"><i class="fas fa-book"></i> Read</a></li>{%endif%}
+        {%if nav.url_edit%}<li class="pure-menu-item"><a href="{{nav.url_edit}}"><i class="fas fa-edit"></i> Edit</a></li>{%endif%}
+        {%if nav.url_hist%}<li class="pure-menu-item"><a href="{{nav.url_hist}}"><i class="fas fa-road"></i> History</a></li>{%endif%}
     </ul>
     <form role="search" id="search" class="pure-form pure-menu-form pure-menu-divider" action="/search">
         <fieldset>
@@ -21,16 +21,16 @@
     {%if nav.extras%}
     <ul class="pure-menu-list">
     {%for e in nav.extras%}
-        <li class="pure-menu-item"><a href="{{e.url}}">{%if e.icon%}<span class="fa fa-{{e.icon}}"></span> {%endif%}{{e.title}}</a></li>
+        <li class="pure-menu-item"><a href="{{e.url}}">{%if e.icon%}<i class="fas fa-{{e.icon}}"></i> {%endif%}{{e.title}}</a></li>
     {%endfor%}
     </ul>
     {%endif%}
     <ul class="pure-menu-list">
         {%if auth.is_logged_in%}
-        <li class="pure-menu-item"><a href="{{auth.url_profile}}"><span class="fa fa-cog"></span> {{auth.username}}</a></li>
-        <li class="pure-menu-item"><a href="{{auth.url_logout}}"><span class="fa fa-log-out"></span> Logout</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_profile}}"><i class="fas fa-cog"></i> {{auth.username}}</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_logout}}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
         {%else%}
-        <li class="pure-menu-item"><a href="{{auth.url_login}}"><span class="fa fa-log-in"></span> Login</a></li>
+        <li class="pure-menu-item"><a href="{{auth.url_login}}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
         {%endif%}
     </ul>
 </nav>

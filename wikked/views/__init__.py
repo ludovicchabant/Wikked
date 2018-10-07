@@ -78,7 +78,7 @@ def add_navigation_data(
     nav['extras'].append({
             'title': "Special Pages",
             'url': url_for('special_pages_dashboard'),
-            'icon': 'dashboard'})
+            'icon': 'tachometer-alt'})
 
     if extras:
         nav['extras'] = [{'title': e[0], 'url': e[1], 'icon': e[2]}

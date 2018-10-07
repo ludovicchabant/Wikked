@@ -1,3 +1,6 @@
+@wikked-external-link-icon: @fa-var-external-link-alt;
+//@wikked-external-link-icon: @fa-var-external-link-square-alt;
+
 
 // Article
 article {
@@ -28,7 +31,7 @@ article {
 }
 article.wiki-page {
     a {
-        &::after { font-family: FontAwesome; content: ' \f14c';  }
+        &::after { font-family: 'Font Awesome 5 Free'; font-weight: 900; content: ' @{wikked-external-link-icon}';  }
     }
     a.wiki-link,
     a.wiki-meta-link {

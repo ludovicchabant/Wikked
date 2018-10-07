@@ -28,5 +28,8 @@
   },
   "scripts": {
     "build": "gulp"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.3.1"
   }
 }

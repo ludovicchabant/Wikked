@@ -5,7 +5,7 @@ var argv = require('yargs').argv;
 
 var less = require('gulp-less');
 var sourcemaps = require('gulp-sourcemaps');
-let cleanCSS = require('gulp-clean-css');
+var cleanCSS = require('gulp-clean-css');
 
 var imagemin   = require('gulp-imagemin');
 
@@ -23,7 +23,7 @@ var handleErrors = function(errorObject, callback) {
   // Keep gulp from hanging on this task
   if (typeof this.emit === 'function')
     this.emit('end');
-}
+};
 
 
 gulp.task('css', function() {
@@ -33,18 +33,18 @@ gulp.task('css', function() {
     .on('error', handleErrors)
     .pipe(gulpif(argv.production, cleanCSS({compatibility: 'ie8'})))
     .pipe(gulpif(!argv.production, sourcemaps.write()))
-    .pipe(gulp.dest('wikked/static/css'))
+    .pipe(gulp.dest('wikked/static/css'));
 });
 
 gulp.task('fonts', function() {
-  return gulp.src('wikked/assets/font-awesome/fonts/*')
-    .pipe(gulp.dest('wikked/static/fonts'))
+  return gulp.src('node_modules/@fortawesome/fontawesome-free/webfonts/*')
+    .pipe(gulp.dest('wikked/static/webfonts'));
 });
 
 gulp.task('images', function() {
   return gulp.src('wikked/assets/img/*')
     .pipe(gulpif(argv.production, imagemin()))
-    .pipe(gulp.dest('wikked/static/img'))
+    .pipe(gulp.dest('wikked/static/img'));
 });
 
 gulp.task('js', function() {
