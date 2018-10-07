@@ -1,3 +1,4 @@
+# flake8: noqa
 from tests import WikkedTest, format_link
 
 
