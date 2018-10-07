@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape, unescape
 
 
 re_terminal_path = re.compile(r'[/\\]|(\w\:)')
-endpoint_regex = re.compile(r'(\w[\w\d]*)\:(.*)')
+endpoint_regex = re.compile(r'(\w[\w\d]+)?\:(.*)')
 endpoint_prefix_regex = re.compile(r'^(\w[\w\d]+)\:')
 
 
@@ -55,14 +55,16 @@ def find_wiki_root(path=None):
     return None
 
 
-def get_absolute_url(base_url, url, quote=False):
+def get_absolute_url(base_url, url, *, force_endpoint=None, quote=False):
     base_endpoint, base_url = split_page_url(base_url)
     if base_url[0] != '/':
         raise ValueError("The base URL must be absolute. Got: %s" % base_url)
 
     endpoint, url = split_page_url(url)
-    if not endpoint:
-        endpoint = base_endpoint
+    if endpoint is None:
+        endpoint = force_endpoint
+        if endpoint is None:
+            endpoint = base_endpoint
 
     if url.startswith('/'):
         # Absolute page URL.

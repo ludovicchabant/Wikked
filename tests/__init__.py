@@ -1,6 +1,6 @@
 import os
 import os.path
-import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.parse, urllib.error  # noqa
 import shutil
 import unittest
 from wikked.wiki import Wiki
@@ -64,15 +64,26 @@ class WikkedTest(unittest.TestCase):
         wiki.reset()
 
 
-def format_link(title, url, missing=False, mod=None):
-    res = '<a class=\"wiki-link'
+def format_link(title, url, missing=False, mod=None, endpoint=None):
+    res = '<a class="wiki-link'
     if missing:
         res += ' missing'
+    res += '"'
+
+    if endpoint:
+        url = '%s:%s' % (endpoint, url)
     url = urllib.parse.quote(url)
-    res += '\" data-wiki-url=\"' + url + '\"'
+    res += ' data-wiki-url="%s"' % url
+
     if mod:
-        res += ' data-wiki-mod=\"' + mod + '\"'
-    res += ' href="/read' + url + '"'
+        res += ' data-wiki-mod="%s"' % mod
+
+    if endpoint:
+        res += ' href="/read/%s"' % url
+        res += ' data-wiki-endpoint="%s"' % endpoint
+    else:
+        res += ' href="/read' + url + '"'
+
     res += '>' + title + '</a>'
     return res
 

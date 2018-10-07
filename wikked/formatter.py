@@ -4,7 +4,7 @@ import re
 import logging
 import jinja2
 from io import StringIO
-from .utils import get_meta_name_and_modifiers, html_escape
+from .utils import get_meta_name_and_modifiers, html_escape, split_page_url
 
 
 RE_FILE_FORMAT = re.compile(r'\r\n?', re.MULTILINE)
@@ -18,9 +18,9 @@ RE_META_MULTI_LINE = re.compile(
     re.MULTILINE | re.DOTALL)
 
 RE_LINK_ENDPOINT = re.compile(
-    r'\[\[(\w[\w\d]+)\:([^\]]+)\]\]')
+    r'\[\[(\w[\w\d]+)?\:([^\]]*/)?([^\]]+)\]\]')
 RE_LINK_ENDPOINT_DISPLAY = re.compile(
-    r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)\:([^\]]+)\]\]')
+    r'\[\[([^\|\]]+)\|\s*(\w[\w\d]+)?\:([^\]]+)\]\]')
 RE_LINK_DISPLAY = re.compile(
     r'\[\[([^\|\]]+)\|([^\]]+)\]\]')
 RE_LINK = re.compile(
@@ -34,6 +34,7 @@ class BaseContext(object):
     """ Base context for formatting pages. """
     def __init__(self, url):
         self.url = url
+        self.endpoint, self.endpoint_url = split_page_url(url)
 
     @property
     def urldir(self):
@@ -127,10 +128,13 @@ class PageFormatter(object):
         # [[endpoint:Something/Blah.ext]]
         def repl1(m):
             endpoint = m.group(1)
-            value = m.group(2).strip()
+            a, b = m.group(2, 3)
+            value = b if a is None else (a + b)
             if endpoint in self.endpoints:
-                return self.endpoints[endpoint](ctx, endpoint, value, value)
-            return self._formatEndpointLink(ctx, endpoint, value, value)
+                return self.endpoints[endpoint](
+                    ctx, endpoint, b.strip(), value.strip())
+            return self._formatEndpointLink(
+                ctx, endpoint, b.strip(), value.strip())
         text = RE_LINK_ENDPOINT.sub(repl1, text)
 
         # [[display name|endpoint:Something/Whatever]]
@@ -139,8 +143,10 @@ class PageFormatter(object):
             endpoint = m.group(2)
             value = m.group(3).strip()
             if endpoint in self.endpoints:
-                return self.endpoints[endpoint](ctx, endpoint, value, display)
-            return self._formatEndpointLink(ctx, endpoint, value, display)
+                return self.endpoints[endpoint](
+                    ctx, endpoint, display, value)
+            return self._formatEndpointLink(
+                ctx, endpoint, display, value)
         text = RE_LINK_ENDPOINT_DISPLAY.sub(repl2, text)
 
         # [[display name|Whatever/PageName]]
@@ -153,7 +159,7 @@ class PageFormatter(object):
         def repl4(m):
             a, b = m.group(1, 2)
             url = b if a is None else (a + b)
-            return s._formatWikiLink(ctx, b, url)
+            return s._formatWikiLink(ctx, b.strip(), url.strip())
         text = RE_LINK.sub(repl4, text)
 
         return text
@@ -208,7 +214,7 @@ class PageFormatter(object):
         return '<div class="wiki-query"%s>%s</div>\n' % (
                 mod_attr, '|'.join(processed_args))
 
-    def _formatFileLink(self, ctx, endpoint, value, display):
+    def _formatFileLink(self, ctx, endpoint, display, value):
         if value.startswith('./'):
             abs_url = os.path.join('/pagefiles', ctx.url.lstrip('/'),
                                    value[2:])
@@ -217,21 +223,40 @@ class PageFormatter(object):
         abs_url = os.path.normpath(abs_url).replace('\\', '/')
         return abs_url
 
-    def _formatImageLink(self, ctx, endpoint, value, display):
-        abs_url = self._formatFileLink(ctx, endpoint, value, display)
+    def _formatImageLink(self, ctx, endpoint, display, value):
+        abs_url = self._formatFileLink(ctx, endpoint, display, value)
         return ('<img class="wiki-image" src="%s" alt="%s"></img>' %
                 (abs_url, display))
 
-    def _formatEndpointLink(self, ctx, endpoint, value, display):
-        url = '%s:%s' % (endpoint, value)
-        ctx.out_links.append(url)
-        return ('<a class="wiki-link" data-wiki-url="%s" '
-                'data-wiki-endpoint="%s">%s</a>' % (url, endpoint, display))
+    def _formatEndpointLink(self, ctx, endpoint, display, local_url):
+        if True:  # endpoint:
+            endpoint = endpoint or ''
+            url = '%s:%s' % (endpoint, local_url)
+            ctx.out_links.append(url)
+            return ('<a class="wiki-link" data-wiki-url="%s" '
+                    'data-wiki-endpoint="%s">%s</a>' % (url, endpoint,
+                                                        display))
+        else:
+            # Endpoint link was actually: `[[:/Something/Blah]]`, which
+            # forces going back out of the endpoints.
+            # Render this like a normal wiki link.
+            ctx.out_links.append(local_url)
+            return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (
+                local_url, display)
 
     def _formatWikiLink(self, ctx, display, url):
-        ctx.out_links.append(url)
-        return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (
-                url, display)
+        if True:  # not ctx.endpoint:
+            ctx.out_links.append(url)
+            return '<a class="wiki-link" data-wiki-url="%s">%s</a>' % (
+                    url, display)
+        else:
+            # The link is a relative link from a page that lives in an
+            # endpoint, so the generated link must be in the same endpoint.
+            url = '%s:%s' % (ctx.endpoint, url)
+            ctx.out_links.append(url)
+            return ('<a class="wiki-link" data-wiki-url="%s" '
+                    'data-wiki-endpoint="%s">%s</a>' % (url, ctx.endpoint,
+                                                        display))
 
     @staticmethod
     def parseWikiLinks(text):

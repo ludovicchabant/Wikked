@@ -6,7 +6,7 @@ import jinja2
 from wikked.formatter import PageFormatter, FormattingContext
 from wikked.utils import (
         PageNotFoundError,
-        get_meta_name_and_modifiers, get_absolute_url,
+        get_meta_name_and_modifiers, get_absolute_url, split_page_url,
         flatten_single_metas, html_unescape)
 
 
@@ -21,7 +21,8 @@ re_wiki_tag_attr = re.compile(
     r'data-wiki-(?P<name>[a-z]+)="(?P<value>[^"]+)"')
 re_wiki_link = re.compile(
     r'<a class="wiki-link(?P<isedit>-edit)?" '
-    r'data-wiki-url="(?P<url>[^"]+)"')
+    r'data-wiki-url="(?P<url>[^"]+)"'
+    r'( data-wiki-endpoint="(?P<endpoint>[^"]*)")?')
 
 re_wiki_include_param = re.compile(
     r'<div class="wiki-param" '
@@ -88,10 +89,12 @@ class ResolveContext(object):
             return len(self.url_trail) > 1
         raise ValueError("Unknown modifier: " + modifier)
 
-    def getAbsoluteUrl(self, url, base_url=None, quote=False):
+    def getAbsoluteUrl(self, url, base_url=None, *,
+                       force_endpoint=None, quote=False):
         if base_url is None:
             base_url = self.root_page.url
-        return get_absolute_url(base_url, url, quote)
+        return get_absolute_url(base_url, url,
+                                force_endpoint=force_endpoint, quote=quote)
 
 
 class ResolveOutput(object):
@@ -114,7 +117,8 @@ class ResolveOutput(object):
             if key not in self.meta:
                 self.meta[key] = val
             else:
-                self.meta[key] = list(set(self.meta[key] + val))
+                existing_metas = set(self.meta[key])
+                self.meta[key] += [v for v in val if v not in existing_metas]
 
 
 class PageResolver(object):
@@ -225,23 +229,35 @@ class PageResolver(object):
             # Resolve link states.
             def repl1(m):
                 raw_url = m.group('url')
+                endpoint = m.group('endpoint')
                 is_edit = bool(m.group('isedit'))
-                url = self.ctx.getAbsoluteUrl(raw_url)
+                url = self.ctx.getAbsoluteUrl(raw_url, force_endpoint=endpoint)
                 validated_url = self.wiki.db.validateUrl(url)
                 if validated_url:
                     url = validated_url
+
                 self.output.out_links.append(url)
                 action = 'edit' if is_edit else 'read'
                 quoted_url = urllib.parse.quote(url.encode('utf-8'))
+                split_url = split_page_url(url)
+                endpoint_markup = ''
+                if split_url[0]:
+                    endpoint_markup = ' data-wiki-endpoint="%s"' % split_url[0]
 
                 if validated_url:
+                    # The DB has confirmed that the target page exists,
+                    # so make a "real" link.
                     actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
                     return ('<a class="wiki-link" data-wiki-url="%s" '
-                            'href="%s"' % (quoted_url, actual_url))
+                            'href="%s"' % (quoted_url, actual_url) +
+                            endpoint_markup)
 
+                # The DB doesn't know about the target page, so render
+                # a link with the "missing" class so it shows up red and all.
                 actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
                 return ('<a class="wiki-link missing" data-wiki-url="%s" '
-                        'href="%s"' % (quoted_url, actual_url))
+                        'href="%s"' % (quoted_url, actual_url) +
+                        endpoint_markup)
 
             final_text = re_wiki_link.sub(repl1, final_text)
 
@@ -519,4 +535,3 @@ def generate_edit_url(value, title=None):
         title = value
     return ('<a class="wiki-link-edit" data-wiki-url="%s">%s</a>' %
             (value, title))
-
