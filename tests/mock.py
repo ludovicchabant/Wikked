@@ -91,7 +91,7 @@ def mock_os_walk(root_dir, root_node):
 class MockFileSystem(FileSystem):
     def __init__(self, root, config, structure=None):
         super(MockFileSystem, self).__init__(root, config)
-        self.include_builtin_namespaces = False
+        self.include_builtin_endpoints = False
         if not structure:
             self.structure = {}
         else:
