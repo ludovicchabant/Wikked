@@ -100,7 +100,7 @@ class WhooshWikiIndex(WikiIndex):
             for result in results:
                 hit = HitResult(
                         result['url'],
-                        result.highlights('title'),
+                        result.highlights('title') or result['title'],
                         result.highlights('text'))
                 hits.append(hit)
             return hits
@@ -133,4 +133,3 @@ class WhooshWikiIndex(WikiIndex):
     def _unindexPage(self, writer, url):
         logger.debug("Removing '%s' from index." % url)
         writer.delete_by_term('url', url)
-
