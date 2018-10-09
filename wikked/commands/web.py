@@ -83,6 +83,13 @@ class RunServerCommand(WikkedCommand):
         # Start with the Witch wiki parameters.
         wikked.settings.WIKI_FACTORY_PARAMETERS = ctx.params
 
+        # Set the debug mode for the Flask app.
+        # We can't wait until we call `app.run` to do this because it can
+        # create its Jinja environment before that, and so we would be missing
+        # the ability to edit view templates on the fly.
+        if ctx.args.dev:
+            wikked.settings.DEBUG = True
+
         # Create/import the app.
         from wikked.web import app
         ctx.wiki.db.hookupWebApp(app)
@@ -93,13 +100,8 @@ class RunServerCommand(WikkedCommand):
             ctx.wiki.updateAll()
 
         # Run!
-        debug_mode = ctx.args.dev or app.config.get('DEBUG', False)
-        app.run(
-                host=ctx.args.host,
-                port=ctx.args.port,
-                debug=debug_mode,
-                use_debugger=debug_mode,
-                use_reloader=debug_mode)
+        app.run(host=ctx.args.host,
+                port=ctx.args.port)
 
 
 @register_command
