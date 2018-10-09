@@ -45,7 +45,7 @@
     {% if meta.category %}
     <section class="info">
         {% if meta.category %}
-        <span class="info-categories">Categories: </span>
+        <span class="info-categories"><i class="fas fa-tags"></i> Categories: </span>
         {% for c in meta.category %}
         {% if not loop.first %} | {% endif %}
         <span><a class="wiki-link" data-wiki-url="{{c.url}}"
