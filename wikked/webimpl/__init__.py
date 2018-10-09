@@ -85,6 +85,15 @@ def get_page_or_raise(wiki, url, fields=None, check_perms=None):
 
     if check_perms is not None:
         user, modes = check_perms
+
+        if 'edit' in modes:
+            endpoint, path = split_page_url(url)
+            if endpoint:
+                epinfo = wiki.getEndpoint(endpoint)
+                if epinfo is not None and epinfo.readonly:
+                    msg = "The '%s' endpoint is read-only." % endpoint
+                    raise UserPermissionError('edit', msg)
+
         has_page_perm = page.wiki.auth.hasPagePermission
         for mode in modes.split(','):
             if not has_page_perm(page, user, PERM_NAMES[mode]):
