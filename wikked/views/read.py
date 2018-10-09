@@ -21,9 +21,15 @@ def home():
 
 
 def _make_missing_page_data(url):
+    is_readonly_endpoint = False
     endpoint, path = split_page_url(url)
+    if endpoint:
+        epinfo = get_wiki().getEndpoint(endpoint)
+        is_readonly_endpoint = (epinfo is not None and epinfo.readonly)
+
     data = {
         'endpoint': endpoint,
+        'is_readonly': is_readonly_endpoint,
         'meta': {
             'url': url,
             'title': make_page_title(path)
@@ -37,6 +43,7 @@ def _make_missing_page_data(url):
 def read(url):
     wiki = get_wiki()
     url = url_from_viewarg(url)
+
     user = current_user.get_id()
     no_redirect = 'no_redirect' in request.args
     tpl_name = 'read-page.html'

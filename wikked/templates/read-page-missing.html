@@ -17,10 +17,14 @@
         {% endif %}
     </header>
     <section class="content">
+        {% if not is_readonly %}
         <p>This page doesn't exist yet. You can 
             <a class="wiki-link missing" data-wiki-url="{{meta.url}}"
                href="{{get_edit_url(meta.url)}}">create it now</a>.
         </p>
+        {% else %}
+        <p>This page doesn't exist, and can't be created.</p>
+        {% endif %}
     </section>
 </article>
 {% endblock %}
