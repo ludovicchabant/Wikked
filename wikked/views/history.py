@@ -10,7 +10,7 @@ from wikked.webimpl.history import (
         read_page_rev, diff_revs, diff_page_revs)
 
 
-@app.route('/special/history')
+@app.route('/read/special:/History')
 @requires_permission('wikihistory')
 def site_history():
     wiki = get_wiki()

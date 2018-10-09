@@ -4,6 +4,7 @@ import urllib.parse
 import logging
 import jinja2
 from wikked.formatter import PageFormatter, FormattingContext
+from wikked.endpoint import SPECIAL_ENDPOINT
 from wikked.utils import (
         PageNotFoundError,
         get_meta_name_and_modifiers, get_absolute_url, split_page_url,
@@ -232,9 +233,14 @@ class PageResolver(object):
                 endpoint = m.group('endpoint')
                 is_edit = bool(m.group('isedit'))
                 url = self.ctx.getAbsoluteUrl(raw_url, force_endpoint=endpoint)
-                validated_url = self.wiki.db.validateUrl(url)
-                if validated_url:
-                    url = validated_url
+
+                if endpoint != SPECIAL_ENDPOINT:
+                    validated_url = self.wiki.db.validateUrl(url)
+                    if validated_url:
+                        url = validated_url
+                else:
+                    # TODO: check the URL against a list of known special URLs.
+                    validated_url = url
 
                 self.output.out_links.append(url)
                 action = 'edit' if is_edit else 'read'

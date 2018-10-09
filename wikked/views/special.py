@@ -54,7 +54,7 @@ special_pages = {
         "template": "special-double-redirects.html"
     },
     'dead-ends': {
-        "title": "Dead-End Pages",
+        "title": "Dead Ends",
         "view": 'special_list_dead_ends',
         "description": ("Lists pages that don't have any "
                         "outgoing links."),
@@ -85,7 +85,7 @@ special_pages = {
 }
 
 
-@app.route('/special')
+@app.route('/read/special:/Dashboard')
 @requires_permission('read')
 def special_pages_dashboard():
     data = {
@@ -134,42 +134,42 @@ def call_api(page_name, api_func, *args, **kwargs):
     return render_template(info['template'], **data)
 
 
-@app.route('/special/list/orphans')
+@app.route('/read/special:/Orphaned Pages')
 @requires_permission('read')
 def special_list_orphans():
     return call_api('orphans', get_orphans,
                     raw_url='/api/orphans')
 
 
-@app.route('/special/list/broken-redirects')
+@app.route('/read/special:/Broken Redirects')
 @requires_permission('read')
 def special_list_broken_redirects():
     return call_api('broken-redirects', get_broken_redirects,
                     raw_url='/api/broken-redirects')
 
 
-@app.route('/special/list/double-redirects')
+@app.route('/read/special:/Double Redirects')
 @requires_permission('read')
 def special_list_double_redirects():
     return call_api('double-redirects', get_double_redirects,
                     raw_url='/api/double-redirects')
 
 
-@app.route('/special/list/dead-ends')
+@app.route('/read/special:/Dead Ends')
 @requires_permission('read')
 def special_list_dead_ends():
     return call_api('dead-ends', get_dead_ends,
                     raw_url='/api/dead-ends')
 
 
-@app.route('/special/list/broken-links')
+@app.route('/read/special:/Broken Links')
 @requires_permission('read')
 def special_list_broken_links():
     return call_api('broken-links', get_broken_links,
                     raw_url='/api/broken-links')
 
 
-@app.route('/special/list/wanted-pages')
+@app.route('/read/special:/Wanted Pages')
 @requires_permission('read')
 def special_list_wanted_pages():
     return call_api('wanted-pages', get_wanted_pages,

@@ -14,6 +14,9 @@ class EndpointInfo(object):
 _resources_root_dir = os.path.join(os.path.dirname(__file__), 'resources')
 
 
+SPECIAL_ENDPOINT = 'special'
+
+
 def create_endpoint_infos(config):
     endpoints = {}
     sections = [s for s in config.sections() if s.startswith('endpoint:')]
