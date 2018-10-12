@@ -40,7 +40,9 @@ def add_navigation_data(
     nav = {'extras': [], 'footers': []}
 
     nav['hide_menu'] = (
-            request.cookies.get('wiki-hide-nav') == '1')
+        request.cookies.get('wiki-hide-nav') == '1')
+
+    nav['url_help'] = url_for('read', url='help:/Help Contents')
 
     if home:
         nav['url_home'] = '/'
