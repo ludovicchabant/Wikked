@@ -23,6 +23,7 @@ re_wiki_tag_attr = re.compile(
 re_wiki_link = re.compile(
     r'<a class="wiki-link(?P<isedit>-edit)?" '
     r'data-wiki-url="(?P<url>[^"]+)"'
+    r'( data-wiki-fragment="(?P<frag>[^"]*)")?'
     r'( data-wiki-endpoint="(?P<endpoint>[^"]*)")?')
 
 re_wiki_include_param = re.compile(
@@ -230,6 +231,7 @@ class PageResolver(object):
             # Resolve link states.
             def repl1(m):
                 raw_url = m.group('url')
+                fragment = m.group('frag') or ''
                 endpoint = m.group('endpoint')
                 is_edit = bool(m.group('isedit'))
                 url = self.ctx.getAbsoluteUrl(raw_url, force_endpoint=endpoint)
@@ -253,14 +255,18 @@ class PageResolver(object):
                 if validated_url:
                     # The DB has confirmed that the target page exists,
                     # so make a "real" link.
-                    actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
+                    actual_url = '/%s/%s%s' % (action,
+                                               quoted_url.lstrip('/'),
+                                               fragment)
                     return ('<a class="wiki-link" data-wiki-url="%s" '
                             'href="%s"' % (quoted_url, actual_url) +
                             endpoint_markup)
 
                 # The DB doesn't know about the target page, so render
                 # a link with the "missing" class so it shows up red and all.
-                actual_url = '/%s/%s' % (action, quoted_url.lstrip('/'))
+                actual_url = '/%s/%s%s' % (action,
+                                           quoted_url.lstrip('/'),
+                                           fragment)
                 return ('<a class="wiki-link missing" data-wiki-url="%s" '
                         'href="%s"' % (quoted_url, actual_url) +
                         endpoint_markup)

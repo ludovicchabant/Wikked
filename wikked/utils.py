@@ -96,6 +96,10 @@ def get_url_folder(url):
     return '/'
 
 
+def get_url_tail(url):
+    return os.path.basename(url)
+
+
 def is_endpoint_url(url):
     return endpoint_prefix_regex.match(url) is not None
 

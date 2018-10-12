@@ -46,14 +46,12 @@ class WikiParameters(object):
             root = os.getcwd()
         self.root = root
         self.context = ctx
-        self.formatters = {}
         self.custom_heads = {}
         self.wiki_updater = synchronous_wiki_updater
         self._config = None
         self._index_factory = None
         self._scm_factory = None
-
-        self._build()
+        self._formatters = None
 
     @property
     def config(self):
@@ -79,15 +77,20 @@ class WikiParameters(object):
     def auth_factory(self):
         return UserManager(self.config)
 
-    def _build(self):
-        self.formatters[passthrough_formatter] = ['txt', 'html']
-        self.tryAddFormatter('markdown', 'markdown',
-                             ['md', 'mdown', 'markdown'])
-        self.tryAddFormatter('textile', 'textile',
-                             ['tl', 'text', 'textile'])
-        self.tryAddFormatter('creole', 'creole2html',
-                             ['cr', 'creole'])
-        self.tryAddFountainFormatter()
+    @property
+    def formatters(self):
+        if self._formatters is None:
+            self._formatters = {}
+
+            self.formatters[passthrough_formatter] = ['txt', 'html']
+            self.tryAddMarkdownFormatter()
+            self.tryAddFormatter('textile', 'textile',
+                                 ['tl', 'text', 'textile'])
+            self.tryAddFormatter('creole', 'creole2html',
+                                 ['cr', 'creole'])
+            self.tryAddFountainFormatter()
+
+        return self._formatters
 
     def getSpecialFilenames(self):
         yield '.wikirc'
@@ -101,9 +104,54 @@ class WikiParameters(object):
         try:
             module = importlib.import_module(module_name)
             func = getattr(module, module_func)
-            self.formatters[func] = extensions
+            self._formatters[func] = extensions
         except ImportError:
             pass
+
+    def tryAddMarkdownFormatter(self,):
+        try:
+            import markdown
+        except ImportError:
+            return
+
+        from markdown.util import etree
+
+        class HeaderAnchorsTreeprocessor(
+                markdown.treeprocessors.Treeprocessor):
+            HEADER_TAGS = {'h1', 'h2', 'h3', 'h4', 'h5', 'h6'}
+
+            def run(self, root):
+                hd_tags = self.HEADER_TAGS
+                for elem in root.iter():
+                    if elem.tag in hd_tags:
+                        hd_id = elem.text.lower().replace(' ', '-')
+                        hd_id = elem.attrib.setdefault('id', hd_id)
+                        elem.append(etree.Element(
+                            'a',
+                            {'class': 'wiki-header-link',
+                             'href': '#%s' % hd_id}))
+
+        class HeaderAnchorsExtension(markdown.extensions.Extension):
+            def extendMarkdown(self, md, *args, **kwargs):
+                md.treeprocessors.register(
+                    HeaderAnchorsTreeprocessor(md),
+                    'header_anchors',
+                    100)
+
+        class _MarkdownWrapper:
+            def __init__(self, md):
+                self._md = md
+
+            def __call__(self, text):
+                self._md.reset()
+                return self._md.convert(text)
+
+        exts = self.config.get('markdown', 'extensions').split(',')
+        exts.append(HeaderAnchorsExtension())
+        md = markdown.Markdown(extensions=exts)
+
+        md_wrapper = _MarkdownWrapper(md)
+        self._formatters[md_wrapper] = ['md', 'mdown', 'markdown']
 
     def tryAddFountainFormatter(self):
         try:
@@ -122,7 +170,7 @@ class WikiParameters(object):
                 rdr.render_doc(document, fp)
                 return fp.getvalue()
 
-        self.formatters[_jouvence_to_html] = ['fountain']
+        self._formatters[_jouvence_to_html] = ['fountain']
 
         head_css = ('<link rel="stylesheet" type="text/css" '
                     'href="/static/css/jouvence.css" />\n')

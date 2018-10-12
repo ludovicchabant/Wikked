@@ -1,5 +1,7 @@
+@wikked-icon-font: "Font Awesome 5 Free";
 @wikked-external-link-icon: @fa-var-external-link-alt;
 //@wikked-external-link-icon: @fa-var-external-link-square-alt;
+@wikked-anchor-icon: @fa-var-paragraph;
 
 
 // Article
@@ -28,14 +30,51 @@ article {
         color: @color-orange;
         &:hover { color: @color-orange; text-decoration: underline; }
     }
+
+    table {
+        display: block;
+        margin-top: 0;
+        margin-bottom: 1.5em;
+
+        th, td { padding: 0.5em 1em; border: 1px solid @color-gray-medium; }
+        th { font-weight: bold; }
+        th, tr:nth-child(2n) { background: darken(@color-gray-light, 5%); }
+    }
 }
 article.wiki-page {
-    a {
-        &::after { font-family: 'Font Awesome 5 Free'; font-weight: 900; content: ' @{wikked-external-link-icon}';  }
+    a[href] {
+        &::after {
+            font-family: @wikked-icon-font;
+            font-size: 0.6em;
+            font-weight: 900;
+            vertical-align: middle;
+            content: ' @{wikked-external-link-icon}';
+        }
     }
     a.wiki-link,
     a.wiki-meta-link {
         &::after { content: none; }
+    }
+
+    h1>a.wiki-header-link::after,
+    h2>a.wiki-header-link::after,
+    h3>a.wiki-header-link::after,
+    h4>a.wiki-header-link::after,
+    h5>a.wiki-header-link::after,
+    h6>a.wiki-header-link::after {
+        font-family: @wikked-icon-font;
+        font-size: 0.8em;
+        font-weight: 900;
+        content: ' @{wikked-anchor-icon}';
+        visibility: hidden;
+    }
+    h1:hover>a.wiki-header-link::after,
+    h2:hover>a.wiki-header-link::after,
+    h3:hover>a.wiki-header-link::after,
+    h4:hover>a.wiki-header-link::after,
+    h5:hover>a.wiki-header-link::after,
+    h6:hover>a.wiki-header-link::after {
+        visibility: visible;
     }
 }
 
