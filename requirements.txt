@@ -2,7 +2,7 @@ Flask==0.12.2
 Flask-Bcrypt==0.7.1
 Flask-Login==0.2.10
 Jinja2==2.10
-Markdown==2.6.10
+Markdown==3.0.1
 Pygments==2.2.0
 SQLAlchemy==1.2.0
 Whoosh==2.7.4
