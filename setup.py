@@ -8,8 +8,23 @@ def read(fname):
         return fp.read()
 
 
-install_requires = read('requirements.txt').splitlines()
-tests_require = read('dev-requirements.txt').splitlines()
+install_requires = [
+    'Flask>=0.12.2',
+    'Flask-Bcrypt>=0.7.1',
+    'Flask-Login>=0.2.10',
+    'Jinja2>=2.10',
+    'Markdown>=3',
+    'Pygments>=2.2.0',
+    'SQLAlchemy>=1.2.0',
+    'Whoosh>=2.7.4',
+    'colorama>=0.3.9',
+    'python-hglib>=1.8',
+    'repoze.lru>=0.6'
+]
+tests_require = [
+    'invoke>=0.22.0'
+    'pytest>=3.3.1'
+]
 
 
 setup(
