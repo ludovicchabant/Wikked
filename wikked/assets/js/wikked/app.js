@@ -77,7 +77,7 @@ _.extend(NavigationView.prototype, {
     },
     _toggleWikiMenuPin: function(onOff) {
         $('#wiki-menu-pin').toggleClass('wiki-menu-pin-active', onOff);
-        var lockIcon = $('#wiki-menu-pin>span');
+        var lockIcon = $('#wiki-menu-pin>i');
         if (onOff)
         {
             lockIcon.addClass('fa-lock');
