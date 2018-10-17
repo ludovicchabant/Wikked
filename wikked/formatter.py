@@ -150,7 +150,7 @@ class PageFormatter(object):
                 return self.endpoints[endpoint](
                     ctx, endpoint, display, value, frag)
             return self._formatEndpointLink(
-                ctx, endpoint, display, value)
+                ctx, endpoint, display, value, frag)
         text = RE_LINK_ENDPOINT_DISPLAY.sub(repl2, text)
 
         # [[display name|Whatever/PageName]]
