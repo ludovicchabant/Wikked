@@ -2,7 +2,7 @@ import urllib.parse
 from flask import request, url_for
 from flask_login import current_user
 from wikked.utils import get_url_folder, split_page_url
-from wikked.web import get_wiki
+from wikked.web import app, get_wiki
 
 
 def add_auth_data(data):
@@ -90,3 +90,5 @@ def add_navigation_data(
         nav['footers'] = [{'title': f[0], 'url': f[1], 'icon': f[2]}
                           for f in footers]
     data['nav'] = nav
+
+    data['stylesheet'] = app.config['WIKI_STYLESHEET']

@@ -28,6 +28,7 @@ app.config.setdefault('WIKI_SERVE_FILES', False)
 app.config.setdefault('WIKI_BROKER_URL',
                       'sqla+sqlite:///%(root)s/.wiki/broker.db')
 app.config.setdefault('WIKI_NO_FLASK_LOGGER', False)
+app.config.setdefault('WIKI_STYLESHEET', None)
 app.config.setdefault('PROFILE', False)
 app.config.setdefault('PROFILE_DIR', None)
 app.config.setdefault('INFLUXDB_HOST', None)
