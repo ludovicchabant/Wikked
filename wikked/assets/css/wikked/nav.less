@@ -7,13 +7,13 @@
 
 .wrapper {
     transition: padding 200ms ease-in-out 0s;
-    padding-left: @wiki-shortcut-width;
+    padding-left: 0;
 }
 .wrapper.wiki-menu-active {
     padding-left: @wiki-menu-width !important;
 }
 .wrapper.wiki-menu-inactive {
-    padding-left: @wiki-shortcut-width !important;
+    padding-left: 0 !important;
 }
 
 .wiki-menu-a {
@@ -110,7 +110,7 @@
     line-height: 1em;
     font-weight: bold;
     color: @body-bg;
-    background: @color-gray-dark;
+    background: fade(@color-gray-dark, 90%);
     text-decoration: none;
     cursor: pointer;
 }
