@@ -10,7 +10,7 @@ def makerelease(ctx, version, local_only=False):
     print("Update node modules")
     run("npm install")
     print("Generating Wikked assets")
-    run("grunt")
+    run("gulp")
 
     if not local_only:
         # Tag in Mercurial, which will then be used for PyPi version.
