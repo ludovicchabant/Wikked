@@ -9,11 +9,11 @@
         {% block head %}{% endblock %}
     </head>
     <body>
-        <div id="app">
+        <div id="app" class="{%if nav.locked%}wiki-menu-active wiki-menu-locked{%endif%}">
             <div class="nav-wrapper">
                 {% block nav %}{% include 'nav.html' %}{% endblock %}
             </div>
-            <div class="wrapper{%if not nav.hide_menu%} wiki-menu-active{%endif%}{%if is_special_page%} special{%endif%}">
+            <div class="wrapper{%if is_special_page%} special{%endif%}">
                 {% block content %}{% endblock %}
             </div>
             <div class="footer-wrapper">

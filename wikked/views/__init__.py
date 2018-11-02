@@ -39,8 +39,9 @@ def add_navigation_data(
 
     nav = {'extras': [], 'footers': []}
 
-    nav['hide_menu'] = (
-        request.cookies.get('wiki-hide-nav') == '1')
+    nav_locked = request.cookies.get('wiki-nav-locked')
+    nav['locked'] = (nav_locked == '1')
+    nav['lock_icon'] = 'lock' if nav['locked'] else 'unlock'
 
     nav['url_help'] = url_for('read', url='help:/Help Contents')
 

@@ -7,13 +7,8 @@
 
 .wrapper {
     transition: padding 200ms ease-in-out 0s;
+    padding-top: 3.6em;
     padding-left: 0;
-}
-.wrapper.wiki-menu-active {
-    padding-left: @wiki-menu-width !important;
-}
-.wrapper.wiki-menu-inactive {
-    padding-left: 0 !important;
 }
 
 .wiki-menu-a {
@@ -35,24 +30,21 @@
     }
 }
 
-#wiki-menu-pin {
+#wiki-menu-header {
     height: @wiki-shortcut-height;
     padding: 0 1.5em 0 @wiki-shortcut-width;
     text-align: right;
     color: @color-gray-medium;
     cursor: pointer;
 
-    &:hover {
+    i {
+        line-height: @wiki-shortcut-height;
+        display: none;
+    }
+    i:hover {
         color: @color-gray-light;
         text-shadow: #EEE 0 0 1em;
     }
-
-    span, i {
-        line-height: @wiki-shortcut-height;
-    }
-}
-#wiki-menu-pin.wiki-menu-pin-active {
-    color: @color-gray-light;
 }
 
 #wiki-menu {
@@ -90,17 +82,6 @@
     }
 }
 
-#wiki-menu.wiki-menu-active {
-    left: 0 !important;
-}
-#wiki-menu.wiki-menu-inactive {
-    left: -@wiki-menu-width !important;
-}
-#wiki-menu.wiki-menu-ext {
-    width: @wiki-menu-width-ext !important;
-    box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.3);
-}
-
 #wiki-menu-shortcut {
     position: fixed !important;
     top: 0;
@@ -115,15 +96,42 @@
     cursor: pointer;
 }
 
-@media (min-width: 48em) {
-    // Hide the shortcut and move the horizontal menu down.
+#app.wiki-menu-active {
     #wiki-menu {
-        //left: 0;
-    }
-    .wrapper {
-        //padding-left: @wiki-menu-width;
+        left: 0 !important;
     }
 }
+#app.wiki-menu-inactive {
+    #wiki-menu {
+        left: -@wiki-menu-width !important;
+    }
+}
+#app.wiki-menu-locked.wiki-menu-active .wrapper {
+    padding-left: @wiki-menu-width !important;
+}
+#app.wiki-menu-locked.wiki-menu-inactive .wrapper {
+    padding-left: 0 !important;
+}
+
+#wiki-menu.wiki-menu-ext {
+    width: @wiki-menu-width-ext !important;
+    box-shadow: 4px 0px 10px rgba(0, 0, 0, 0.3);
+}
+
+@media screen and (min-width: 48em) {
+    // Menu can be locked only on big enough screens.
+    #wiki-menu-header i {
+        display: block;
+    }
+}
+// If somehow we end up with a small screen where the lock icon is hidden,
+// but we still have the menu locked, then show the lock icon anyway.
+@media screen and (max-width: 48em) {
+    #app.wiki-menu-locked #wiki-menu-header i {
+        display: block;
+    }
+}
+
 
 // Search
 .search-result-hover {

@@ -15,18 +15,19 @@ _.extend(NavigationView.prototype, {
 
         // Cache some stuff for handling the menu.
         this.wikiBody = $('body');
+        this.wikiApp = $('#app');
         this.wikiMenu = $('#wiki-menu');
-        this.wikiMenuAndWrapper = $.merge(this.wikiMenu, $('#app .wrapper'));
+        this.wikiMenuLock = $('#wiki-menu-lock');
         this.isMenuActive = (this.wikiMenu.css('left') == '0px');
-        this.isMenuActiveLocked = false;
+        this.isMenuLocked = (this.wikiApp.hasClass('wiki-menu-locked'));
 
         // Hookup events.
         this.listen("#wiki-menu-shortcut", 'click', '_onMenuShortcutClick');
-        this.listen("#wiki-menu-pin", 'click', '_onMenuShortcutClick');
-        this.listen("#wiki-menu-shortcut", 'mouseenter', '_onMenuShortcutHover');
-        this.listen("#wiki-menu-shortcut", 'mouseleave', '_onMenuShortcutLeave');
-        this.listen("#wiki-menu", 'mouseenter', '_onMenuHover');
-        this.listen("#wiki-menu", 'mouseleave', '_onMenuLeave');
+        this.listen("#wiki-menu-lock", 'click', '_onMenuLockClick');
+        this.listen("#wiki-menu-lock", 'mouseenter', '_onMenuLockHoverLeave');
+        this.listen("#wiki-menu-lock", 'mouseleave', '_onMenuLockHoverLeave');
+        this.listen("#app .wrapper", 'click', '_onBackgroundClick');
+
         this.listen("#search-query", 'focus', '_searchQueryFocused');
         this.listen("#search-query", 'input', '_previewSearch');
         this.listen("#search-query", 'keyup', '_searchQueryChanged');
@@ -39,65 +40,50 @@ _.extend(NavigationView.prototype, {
             _t[callback](e);
         });
     },
-    _setNavHiddenCookie: function(val) {
-        document.cookie = (
-                "wiki-hide-nav=" + val + "; " +
-                "path=/; expires=31 Dec 2100 UTC");
+
+    _toggleWikiMenu: function() {
+        this.isMenuActive = !this.isMenuActive;
+        if (this.isMenuActive) {
+            this.wikiApp.toggleClass('wiki-menu-inactive', false);
+            this.wikiApp.toggleClass('wiki-menu-active', true);
+        } else {
+            this.wikiApp.toggleClass('wiki-menu-active', false);
+            this.wikiApp.toggleClass('wiki-menu-inactive', true);
+        }
     },
     _onMenuShortcutClick: function(e) {
-        this.isMenuActive = !this.isMenuActive;
-        var val = this.isMenuActive ? "0" : "1";
-        this._setNavHiddenCookie(val);
-        this._toggleWikiMenuPin(this.isMenuActive);
+        this._toggleWikiMenu();
     },
-    _onMenuShortcutHover: function(e) {
-        if (!this.isMenuActive && !this.isMenuActiveLocked)
-            this._toggleWikiMenu(true);
+
+    _lockUnlockWikiMenu: function() {
+        var val = this.isMenuLocked ? "0" : "1";
+        document.cookie = (
+                "wiki-nav-locked=" + val + "; " +
+                "path=/; expires=31 Dec 2100 UTC");
+        this.wikiApp.toggleClass('wiki-menu-locked');
+        this.isMenuLocked = !this.isMenuLocked;
     },
-    _onMenuShortcutLeave: function(e) {
-        if (!this.isMenuActive && !this.isMenuActiveLocked)
-            this._toggleWikiMenu(false);
+    _onMenuLockClick: function(e) {
+        this._lockUnlockWikiMenu();
     },
-    _onMenuHover: function(e) {
-        if (!this.isMenuActive && !this.isMenuActiveLocked)
-            this._toggleWikiMenu(true);
+
+    _onMenuLockHoverLeave: function(e) {
+        this.wikiMenuLock.toggleClass('fa-lock');
+        this.wikiMenuLock.toggleClass('fa-unlock');
     },
-    _onMenuLeave: function(e) {
-        if (!this.isMenuActive && !this.isMenuActiveLocked)
-            this._toggleWikiMenu(false);
+
+    _onBackgroundClick: function(e) {
+        if (!this.isMenuLocked && this.isMenuActive)
+            this._toggleWikiMenu();
     },
-    _toggleWikiMenu: function(onOff) {
-        if (onOff) {
-            this.wikiMenuAndWrapper.toggleClass('wiki-menu-inactive', false);
-            this.wikiMenuAndWrapper.toggleClass('wiki-menu-active', true);
-        } else {
-            this.wikiMenuAndWrapper.toggleClass('wiki-menu-active', false);
-            this.wikiMenuAndWrapper.toggleClass('wiki-menu-inactive', true);
-        }
-    },
-    _toggleWikiMenuPin: function(onOff) {
-        $('#wiki-menu-pin').toggleClass('wiki-menu-pin-active', onOff);
-        var lockIcon = $('#wiki-menu-pin>i');
-        if (onOff)
-        {
-            lockIcon.addClass('fa-lock');
-            lockIcon.removeClass('fa-unlock');
-        }
-        else
-        {
-            lockIcon.addClass('fa-unlock');
-            lockIcon.removeClass('fa-lock');
-        }
-    },
+
     _searchQueryFocused: function(e) {
-        this.isMenuActiveLocked = true;
         this.wikiMenu.toggleClass('wiki-menu-ext', true);
         this.wikiBody.toggleClass('wiki-search-underlayer', true);
     },
     _searchQueryBlurred: function(e) {
         this.wikiBody.toggleClass('wiki-search-underlayer', false);
         this.wikiMenu.toggleClass('wiki-menu-ext', false);
-        this.isMenuActiveLocked = false;
         if (this.searchPreviewList.is(':visible'))
             this.searchPreviewList.slideUp(200);
         if ($(document.activeElement).parents('#wiki-menu').length === 0)

@@ -1,9 +1,9 @@
 <a id="wiki-menu-shortcut" class="wiki-logo">
     <span>W</span>
 </a>
-<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open{%if not nav.hide_menu%} wiki-menu-active{%endif%}">
-    <div id="wiki-menu-pin" title="Pin/unpin the wiki menu.">
-        <i class="fas fa-{%if not nav.hide_menu%}lock{%else%}unlock{%endif%}"></i>
+<nav id="wiki-menu" role="navigation" class="pure-menu pure-menu-open">
+    <div id="wiki-menu-header" title="Pin/unpin the wiki menu.">
+        <i id="wiki-menu-lock" class="fas fa-{{nav.lock_icon}}"></i>
     </div>
     <ul class="pure-menu-list">
         {%if nav.url_home%}<li class="pure-menu-item"><a href="{{nav.url_home}}"><i class="fas fa-home"></i> Home</a></li>{%endif%}
