@@ -131,6 +131,13 @@
         display: block;
     }
 }
+// For big enough screens, we don't need to reserve some room at the top
+// for the menu shortcut.
+@media screen and (min-width: 64em) {
+    .wrapper {
+        padding-top: 1.3em;
+    }
+}
 
 
 // Search
