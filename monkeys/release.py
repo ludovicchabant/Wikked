@@ -17,7 +17,8 @@ def makerelease(ctx, version, local_only=False):
         run("hg tag %s" % version)
 
         # PyPi upload.
-        run("python setup.py sdist upload")
+        run("python setup.py sdist bdist_wheel")
+        run("twine upload dist/Wikked-%s.tar.gz" % version)
     else:
         print("Would tag repo with %s..." % version)
         print("Would upload to PyPi...")
