@@ -246,7 +246,7 @@ class PageResolver(object):
 
                 self.output.out_links.append(url)
                 action = 'edit' if is_edit else 'read'
-                quoted_url = urllib.parse.quote(url.encode('utf-8'))
+                quoted_url = urllib.parse.quote(url.encode('utf-8'), safe='/:')
                 split_url = split_page_url(url)
                 endpoint_markup = ''
                 if split_url[0]:
