@@ -35,9 +35,6 @@ class InitCommand(WikkedCommand):
                 action='store_true')
 
     def run(self, ctx):
-        if ctx.args.git:
-            raise Exception("Git is not yet fully supported.")
-
         path = ctx.args.destination or os.getcwd()
         path = os.path.abspath(path)
         if not os.path.isdir(path):
@@ -46,6 +43,8 @@ class InitCommand(WikkedCommand):
         logger.info("Initializing new wiki at: %s" % path)
         from wikked.wiki import WikiParameters, Wiki
         parameters = WikiParameters(path, ctx=INIT_CONTEXT)
+        if ctx.args.git:
+            parameters.config.set('wiki', 'sourcecontrol', 'git')
         wiki = Wiki(parameters)
         wiki.init()
 
