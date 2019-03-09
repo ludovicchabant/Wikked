@@ -142,6 +142,14 @@ class MercurialSourceControl(MercurialBaseSourceControl):
             self._run('revert', '-a', '-C')
 
     def _initRepo(self, path):
+        # When we init, we first check if Mercurial is installed, so we
+        # can show a user-friendly message.
+        import shutil
+        if not shutil.which(self.hg):
+            raise Exception(
+                    "Mercurial ('%s') wasn't found in your PATH. Did you "
+                    "forget to install it? If you want to use Git instead, "
+                    "run 'wk init --git'." % self.hg)
         self._run('init', path, norepo=True)
 
     def _parseRevision(self, group):
