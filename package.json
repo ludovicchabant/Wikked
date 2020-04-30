@@ -15,7 +15,7 @@
     "gulp-notify": "^3.0.0",
     "gulp-uglify": "^3.0.0",
     "gulp-watch": "^4.3.11",
-    "jquery": "^3.2.1",
+    "jquery": "^3.5.0",
     "jquery-validation": "^1.17.0",
     "jshint": "^2.9.5",
     "less": "^2.7.3",
